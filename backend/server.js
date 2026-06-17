@@ -55,7 +55,10 @@ const server = http.createServer(async (req, res) => {
     return json(res, 404, { error: 'Nie znaleziono endpointu.' });
   } catch (err) {
     console.error(err);
-    return json(res, 500, { error: err.message || 'Błąd serwera AI.' });
+    return json(res, err.status || 500, {
+      error: err.message || 'Błąd serwera AI.',
+      code: err.code || 'AI_SERVER_ERROR'
+    });
   }
 });
 
@@ -206,7 +209,20 @@ async function askOpenAI(system, messages) {
     })
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error?.message || `Błąd OpenAI HTTP ${res.status}`);
+  if (!res.ok) {
+    const message = data.error?.message || `Błąd OpenAI HTTP ${res.status}`;
+    const code = data.error?.code || data.error?.type || '';
+    if (res.status === 429 && /quota|billing|credits|usage limit/i.test(`${message} ${code}`)) {
+      const err = new Error('Konto OpenAI nie ma teraz dostępnych środków albo osiągnęło limit wydatków. Wejdź w panel OpenAI: Billing/Usage/Limits, dodaj środki lub zwiększ limit projektu, a potem uruchom ponownie deploy w Renderze.');
+      err.status = 402;
+      err.code = 'OPENAI_QUOTA';
+      throw err;
+    }
+    const err = new Error(message);
+    err.status = res.status;
+    err.code = code || 'OPENAI_ERROR';
+    throw err;
+  }
   return data.choices?.[0]?.message?.content?.trim() || '(brak odpowiedzi)';
 }
 

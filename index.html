@@ -1412,6 +1412,9 @@ async function sendChat() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      if (err.code === 'OPENAI_QUOTA') {
+        throw new Error(err.error || 'Konto OpenAI nie ma dostępnych środków albo osiągnęło limit wydatków.');
+      }
       throw new Error(err.error || err.message || `HTTP ${res.status}`);
     }
 
