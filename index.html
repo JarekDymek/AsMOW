@@ -465,6 +465,21 @@ body {
   display: flex; align-items: center; justify-content: center;
 }
 .chat-send:active { opacity: .8; }
+.chat-voice {
+  background: var(--white); color: var(--navy); border: 2px solid var(--border);
+  width: 46px; height: 46px; border-radius: 12px;
+  font-size: 1.05rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.chat-voice.listening {
+  background: #fdf2f2; color: var(--red); border-color: #f0a9a0;
+  animation: pulseVoice 1.2s infinite;
+}
+@keyframes pulseVoice {
+  0%,100% { box-shadow: 0 0 0 0 rgba(192,57,43,.25); }
+  50% { box-shadow: 0 0 0 7px rgba(192,57,43,0); }
+}
 .chat-pills {
   display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px;
 }
@@ -647,6 +662,7 @@ body {
           oninput="autoResizeTA(this)"
           onkeydown="chatKeydown(event)"></textarea>
       </div>
+      <button class="chat-voice" id="voice-btn" onclick="toggleVoiceInput()" title="Dyktuj pytanie" aria-label="Dyktuj pytanie">🎙</button>
       <button class="chat-send" onclick="sendChat()" title="Wyślij">➤</button>
     </div>
 
@@ -1057,6 +1073,8 @@ const LAWS = [
 let chatHistory = [];
 let harmContent = null;
 let harmFileName = null;
+let speechRecognition = null;
+let isListening = false;
 
 /* ────────────────────────────────
    INIT
@@ -1068,6 +1086,7 @@ function init() {
   renderStopnie();
   renderLaws();
   renderChatPills();
+  loadChatHistory();
   loadNotes();
   startClock();
   setupInstall();
@@ -1303,13 +1322,6 @@ const SYSTEM_PROMPT = `Jesteś asystentem wychowawcy pracującego w Młodzieżow
 
 Odpowiadaj po polsku, zwięźle i praktycznie. Używaj list i nagłówków. Gdy chodzi o sytuacje kryzysowe – podkreślaj najważniejsze kroki. Podstawy prawne: UPN (Dz.U. 2022 poz. 1082), Rozp. MEN 2011, Rozp. RM 2011, Statut MOW.`;
 
-function checkOnline() {
-  const online = navigator.onLine;
-  document.getElementById('ai-dot').className = 'dot ' + (online ? 'online' : 'offline');
-  document.getElementById('ai-status-txt').textContent = online
-    ? 'Połączono – AI dostępne' : 'Brak połączenia – AI niedostępne';
-}
-
 function setQuestion(q) {
   const ta = document.getElementById('chat-input');
   ta.value = q;
@@ -1326,26 +1338,72 @@ function chatKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 }
 
+function clearChat() {
+  chatHistory = [];
+  localStorage.removeItem('mow_chat_history_v2');
+  const win = document.getElementById('chat-window');
+  win.innerHTML = '<div class="msg ai">Historia wyczyszczona. Zadaj nowe pytanie!</div>';
+}
+
+const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || '/api/chat';
+const CHAT_STORE_KEY = 'mow_chat_history_v2';
+const MOW_DOCUMENTS = [
+  'STATUT-M.O.W.pdf',
+  'Reg.stopni uspołecznienia.pdf',
+  'Procedury, niebezpieczne przedmioty, odwiedziny i korespondencja dotycząca wychowanków MOW w Malborku (2).pdf',
+  'STANDARDY-OCHRONY-MALOLETNICH.pdf',
+  'Poradnik dla wychowawców w Młodzieżowym Ośrodku Wychowawczym nr 1 w Malborku.docx.pdf',
+  'Ustawa z dnia 9 czerwca 2022 r. o wspieraniu i resocjalizacji nieletnich (Dz.U. z 2022 r. poz. 1700) Wybrane zagadnienia.pdf'
+];
+
+async function checkOnline() {
+  const dot = document.getElementById('ai-dot');
+  const txt = document.getElementById('ai-status-txt');
+  if (!navigator.onLine) {
+    dot.className = 'dot offline';
+    txt.textContent = 'Brak połączenia - AI niedostępne';
+    return;
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3500);
+    const res = await fetch(getAIHealthUrl(), { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    dot.className = 'dot ' + (res.ok ? 'online' : 'offline');
+    txt.textContent = res.ok ? 'Połączono - asystent AI dostępny' : 'Backend AI nie odpowiada poprawnie';
+  } catch {
+    dot.className = 'dot offline';
+    txt.textContent = 'Brak połączenia z backendem AI';
+  }
+}
+
+function getAIHealthUrl() {
+  const url = new URL(AI_BACKEND_URL, window.location.href);
+  url.pathname = url.pathname.replace(/\/api\/chat\/?$/, '/health');
+  return url.toString();
+}
+
 async function sendChat() {
   const ta = document.getElementById('chat-input');
   const q = ta.value.trim();
   if (!q) return;
-  ta.value = ''; ta.style.height = 'auto';
+  ta.value = '';
+  ta.style.height = 'auto';
 
   appendMsg('user', q);
   chatHistory.push({ role: 'user', content: q });
+  saveChatHistory();
 
-  const loading = appendMsg('loading', '⏳ Szukam odpowiedzi...');
+  const loading = appendMsg('loading', 'Szukam odpowiedzi w dokumentach i rozmowie...');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(AI_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: chatHistory
+        messages: chatHistory.slice(-18),
+        context: buildAssistantContext(),
+        clientTime: new Date().toISOString()
       })
     });
 
@@ -1353,38 +1411,143 @@ async function sendChat() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+      throw new Error(err.error || err.message || `HTTP ${res.status}`);
     }
 
     const data = await res.json();
-    const answer = data.content?.[0]?.text || '(brak odpowiedzi)';
+    const answer = data.answer || data.message || data.content || '(brak odpowiedzi)';
     chatHistory.push({ role: 'assistant', content: answer });
-    appendMsg('ai', answer);
+    saveChatHistory();
+    appendMsg('ai', answer, data.sources || []);
 
   } catch (err) {
     loading.remove();
     if (!navigator.onLine) {
-      appendMsg('err', '📡 Brak połączenia z Internetem. Sprawdź zasięg sieci.');
+      appendMsg('err', 'Brak połączenia z Internetem. Sprawdź zasięg sieci.');
     } else {
-      appendMsg('err', `❌ Błąd: ${err.message}`);
+      appendMsg('err', `Nie mogę połączyć się z asystentem AI: ${err.message}`);
     }
   }
 }
 
-function appendMsg(type, text) {
+function buildAssistantContext() {
+  return {
+    role: 'mentor i asystent wychowawcy MOW nr 1 w Malborku',
+    rule: 'Dokumenty MOW są nadrzędne przy pytaniach o procedury postępowania. Gdy pytanie jest zbyt ogólne, asystent ma dopytać o kontekst.',
+    documents: MOW_DOCUMENTS,
+    procedures: PROCS.map(p => ({
+      title: stripHtml(p.title),
+      description: stripHtml(p.sub),
+      source: stripHtml(p.src),
+      steps: p.steps.map(stripHtml),
+      alert: p.alert ? stripHtml(p.alert.txt) : ''
+    })),
+    socializationLevels: STOPNIE.map(s => ({
+      level: stripHtml(s.lvl),
+      pocketMoney: stripHtml(s.kies),
+      criteria: s.crit.map(stripHtml),
+      privileges: s.przyw.map(stripHtml)
+    })),
+    legalBases: LAWS.map(l => stripHtml(l.t))
+  };
+}
+
+function loadChatHistory() {
+  try {
+    chatHistory = JSON.parse(localStorage.getItem(CHAT_STORE_KEY) || '[]')
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-18);
+  } catch {
+    chatHistory = [];
+  }
+  if (!chatHistory.length) return;
+  const win = document.getElementById('chat-window');
+  win.innerHTML = '<div class="msg ai">Kontynuuję poprzedni wątek. Możesz dopytać albo wyczyścić historię.</div>';
+  chatHistory.forEach(m => appendMsg(m.role === 'user' ? 'user' : 'ai', m.content));
+}
+
+function saveChatHistory() {
+  localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(chatHistory.slice(-18)));
+}
+
+function appendMsg(type, text, sources = []) {
   const win = document.getElementById('chat-window');
   const el = document.createElement('div');
   el.className = `msg ${type}`;
-  el.innerHTML = text.replace(/\n/g, '<br>');
+  el.innerHTML = formatChatText(text);
+  if (sources.length) {
+    const src = document.createElement('div');
+    src.style.marginTop = '8px';
+    src.style.fontSize = '.72rem';
+    src.style.color = 'var(--muted)';
+    src.innerHTML = '<strong>Źródła:</strong> ' + sources.map(escapeHtml).join('; ');
+    el.appendChild(src);
+  }
   win.appendChild(el);
   win.scrollTop = win.scrollHeight;
   return el;
 }
 
-function clearChat() {
-  chatHistory = [];
-  const win = document.getElementById('chat-window');
-  win.innerHTML = '<div class="msg ai">Historia wyczyszczona. Zadaj nowe pytanie!</div>';
+function formatChatText(text) {
+  return escapeHtml(String(text || ''))
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function stripHtml(value) {
+  const box = document.createElement('div');
+  box.innerHTML = String(value || '');
+  return box.textContent.replace(/\s+/g, ' ').trim();
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function toggleVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    appendMsg('err', 'Ta przeglądarka nie obsługuje dyktowania głosowego. Użyj Chrome albo Edge na telefonie lub komputerze.');
+    return;
+  }
+  if (isListening && speechRecognition) {
+    speechRecognition.stop();
+    return;
+  }
+  speechRecognition = new SpeechRecognition();
+  speechRecognition.lang = 'pl-PL';
+  speechRecognition.interimResults = true;
+  speechRecognition.continuous = false;
+  speechRecognition.onstart = () => setVoiceState(true);
+  speechRecognition.onend = () => setVoiceState(false);
+  speechRecognition.onerror = e => {
+    setVoiceState(false);
+    appendMsg('err', `Nie udało się rozpoznać mowy: ${e.error || 'błąd mikrofonu'}`);
+  };
+  speechRecognition.onresult = e => {
+    let finalText = '';
+    let interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText += transcript;
+      else interimText += transcript;
+    }
+    const ta = document.getElementById('chat-input');
+    ta.value = (finalText || interimText).trim();
+    autoResizeTA(ta);
+    if (finalText.trim()) ta.focus();
+  };
+  speechRecognition.start();
+}
+
+function setVoiceState(active) {
+  isListening = active;
+  const btn = document.getElementById('voice-btn');
+  if (!btn) return;
+  btn.classList.toggle('listening', active);
+  btn.title = active ? 'Zatrzymaj dyktowanie' : 'Dyktuj pytanie';
 }
 
 /* ────────────────────────────────
@@ -1400,9 +1563,7 @@ function handleHarmFile(input) {
     showHarmFile(file);
     extractHarmNames();
   };
-  reader.readAsText(e => {
-    appendMsg('err','Błąd odczytu pliku');
-  });
+  reader.onerror = () => appendMsg('err', 'Błąd odczytu pliku harmonogramu.');
   reader.readAsText(file, 'UTF-8');
 }
 
