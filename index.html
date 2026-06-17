@@ -1415,6 +1415,9 @@ async function sendChat() {
       if (err.code === 'OPENAI_QUOTA') {
         throw new Error(err.error || 'Konto OpenAI nie ma dostępnych środków albo osiągnęło limit wydatków.');
       }
+      if (err.code === 'GEMINI_QUOTA') {
+        throw new Error(err.error || 'Gemini API osiągnęło darmowy limit zapytań. Spróbuj później albo sprawdź limity w Google AI Studio.');
+      }
       throw new Error(err.error || err.message || `HTTP ${res.status}`);
     }
 

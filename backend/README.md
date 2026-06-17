@@ -15,11 +15,11 @@ Ustawienia usługi Web Service:
 - Start Command: `npm start`
 - Environment: Node
 
-Zmienne środowiskowe dla OpenAI:
+Zmienne środowiskowe dla Google Gemini:
 
-- `LLM_PROVIDER=openai`
-- `OPENAI_API_KEY=...`
-- `OPENAI_MODEL=gpt-4o-mini`
+- `LLM_PROVIDER=gemini`
+- `GEMINI_API_KEY=...`
+- `GEMINI_MODEL=gemini-2.5-flash-lite`
 - opcjonalnie `ALLOWED_ORIGINS=https://twoja-domena.pl`
 
 Jeżeli aplikacja PWA jest serwowana z tego samego Rendera, w `index.html` może zostać domyślne `AI_BACKEND_URL='/api/chat'`.

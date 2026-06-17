@@ -12,7 +12,8 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .filter(Boolean);
 
 const PROVIDER = (process.env.LLM_PROVIDER || '').toLowerCase()
-  || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'openai');
+  || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'openai');
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
@@ -29,7 +30,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         ok: true,
         provider: PROVIDER,
-        model: PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL
+        model: PROVIDER === 'gemini' ? GEMINI_MODEL : PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL
       });
     }
 
@@ -40,9 +41,11 @@ const server = http.createServer(async (req, res) => {
       if (!messages.length) return json(res, 400, { error: 'Brak pytania.' });
 
       const system = buildSystemPrompt(payload.context, payload.clientTime);
-      const answer = PROVIDER === 'anthropic'
-        ? await askAnthropic(system, messages)
-        : await askOpenAI(system, messages);
+      const answer = PROVIDER === 'gemini'
+        ? await askGemini(system, messages)
+        : PROVIDER === 'anthropic'
+          ? await askAnthropic(system, messages)
+          : await askOpenAI(system, messages);
 
       return json(res, 200, { answer });
     }
@@ -191,6 +194,43 @@ async function askAnthropic(system, messages) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error?.message || `Błąd Anthropic HTTP ${res.status}`);
   return data.content?.map(part => part.text || '').join('\n').trim() || '(brak odpowiedzi)';
+}
+
+async function askGemini(system, messages) {
+  if (!process.env.GEMINI_API_KEY) throw new Error('Brak GEMINI_API_KEY w zmiennych środowiskowych.');
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents,
+      generationConfig: {
+        temperature: Number(process.env.TEMPERATURE || 0.2),
+        maxOutputTokens: Number(process.env.MAX_TOKENS || 1400)
+      }
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message = data.error?.message || `Błąd Gemini HTTP ${res.status}`;
+    const status = data.error?.status || '';
+    if (res.status === 429 || /quota|limit|billing|RESOURCE_EXHAUSTED/i.test(`${message} ${status}`)) {
+      const err = new Error('Gemini API osiągnęło darmowy limit albo limit zapytań. Poczekaj na odnowienie limitu lub sprawdź limity projektu w Google AI Studio.');
+      err.status = 429;
+      err.code = 'GEMINI_QUOTA';
+      throw err;
+    }
+    const err = new Error(message);
+    err.status = res.status;
+    err.code = status || 'GEMINI_ERROR';
+    throw err;
+  }
+  return data.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('\n').trim() || '(brak odpowiedzi)';
 }
 
 async function askOpenAI(system, messages) {

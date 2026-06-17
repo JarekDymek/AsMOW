@@ -7,10 +7,10 @@ services:
     startCommand: npm start
     envVars:
       - key: LLM_PROVIDER
-        value: openai
-      - key: OPENAI_API_KEY
+        value: gemini
+      - key: GEMINI_API_KEY
         sync: false
-      - key: OPENAI_MODEL
-        value: gpt-4o-mini
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite
       - key: ALLOWED_ORIGINS
         value: "*"
