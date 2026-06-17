@@ -11,13 +11,22 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .map(s => s.trim())
   .filter(Boolean);
 
-const PROVIDER = (process.env.LLM_PROVIDER || '').toLowerCase()
-  || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'openai');
+const REQUESTED_PROVIDER = (process.env.LLM_PROVIDER || '').toLowerCase();
+const PROVIDER = resolveProvider();
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 const rate = new Map();
+
+function resolveProvider() {
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (REQUESTED_PROVIDER === 'gemini') return 'gemini';
+  if (REQUESTED_PROVIDER === 'anthropic') return 'anthropic';
+  if (REQUESTED_PROVIDER === 'openai') return 'openai';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  return 'gemini';
+}
 
 const server = http.createServer(async (req, res) => {
   setCors(req, res);
@@ -197,7 +206,12 @@ async function askAnthropic(system, messages) {
 }
 
 async function askGemini(system, messages) {
-  if (!process.env.GEMINI_API_KEY) throw new Error('Brak GEMINI_API_KEY w zmiennych środowiskowych.');
+  if (!process.env.GEMINI_API_KEY) {
+    const err = new Error('Brak klucza Gemini w Renderze. W ustawieniach Environment dodaj GEMINI_API_KEY z Google AI Studio, zapisz zmiany i uruchom ponownie deploy.');
+    err.status = 400;
+    err.code = 'GEMINI_KEY_MISSING';
+    throw err;
+  }
   const contents = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }]
