@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Asystent MOW">
+<title>Asystent MOW Malbork</title>
+<script>
+const manifest = {
+  "name": "Asystent Wychowawcy MOW nr 1 Malbork",
+  "short_name": "Asystent MOW",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1a3a5c",
+  "theme_color": "#1a3a5c",
+  "orientation": "portrait",
+  "icons": [{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==","sizes":"192x192","type":"image/png"}]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+document.write('<link rel="manifest" href="'+URL.createObjectURL(blob)+'">');
+</script>
+<style>
+/* ═══════════════════════════════════
+   RESET & BASE — mobile-first
+═══════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+html {
+  font-size: 18px; /* base — wszystko w rem skaluje z tego */
+  overflow-x: hidden;
+}
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f0f4f8;
+  color: #1a1a2e;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════ */
+:root {
+  --navy:       #1a3a5c;
+  --navy2:      #254d7a;
+  --gold:       #c9972b;
+  --gold2:      #e8b84b;
+  --cream:      #f0f4f8;
+  --white:      #ffffff;
+  --red:        #c0392b;
+  --orange:     #d35400;
+  --green:      #1e8449;
+  --border:     #d0dae6;
+  --muted:      #607080;
+  --shadow:     0 2px 14px rgba(26,58,92,.13);
+  --radius:     14px;
+  --nav-h:      68px;
+}
+
+/* ═══════════════════════════════════
+   HEADER
+═══════════════════════════════════ */
+.app-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 16px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.hdr-icon { font-size: 1.6rem; flex-shrink: 0; }
+.hdr-text h1 { font-size: 1rem; font-weight: 800; line-height: 1.2; }
+.hdr-text p  { font-size: .72rem; color: rgba(255,255,255,.65); }
+.hdr-badge {
+  margin-left: auto;
+  background: var(--gold);
+  color: var(--navy);
+  font-size: .65rem; font-weight: 900;
+  padding: 3px 9px; border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════
+   BOTTOM NAV
+═══════════════════════════════════ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--navy);
+  display: flex;
+  z-index: 90;
+  border-top: 2.5px solid var(--gold);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.nav-btn {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 7px 1px 4px;
+  color: rgba(255,255,255,.5);
+  background: none; border: none;
+  cursor: pointer; transition: color .18s;
+  gap: 2px; min-width: 0;
+}
+.nav-btn .ni { font-size: 1.3rem; }
+.nav-btn .nl { font-size: .55rem; font-weight: 700; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nav-btn.active { color: var(--gold2); }
+
+/* ═══════════════════════════════════
+   MAIN SCROLL AREA
+═══════════════════════════════════ */
+.main-wrap {
+  padding: 12px 12px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  max-width: 540px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════
+   SCREENS
+═══════════════════════════════════ */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from {opacity:0;transform:translateY(5px)} to {opacity:1;transform:none} }
+
+/* ═══════════════════════════════════
+   TYPOGRAPHY HELPERS
+═══════════════════════════════════ */
+.sec-title {
+  font-size: .72rem; font-weight: 900;
+  color: var(--navy);
+  text-transform: uppercase; letter-spacing: .8px;
+  margin: 16px 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--gold);
+}
+.tag {
+  display: inline-block;
+  font-size: .62rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 20px;
+  margin: 2px 2px 2px 0;
+  background: var(--navy2); color: #fff;
+}
+.tag.red    { background: var(--red); }
+.tag.orange { background: var(--orange); }
+.tag.green  { background: var(--green); }
+.tag.gold   { background: var(--gold); color: var(--navy); }
+
+/* ═══════════════════════════════════
+   CARD
+═══════════════════════════════════ */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.card-hdr {
+  background: var(--navy);
+  color: #fff;
+  padding: 11px 15px;
+  font-size: .83rem; font-weight: 800;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-body { padding: 14px; }
+
+/* ═══════════════════════════════════
+   CLOCK BOX
+═══════════════════════════════════ */
+.clock-box {
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 12px;
+}
+.clock-time { font-size: 2.4rem; font-weight: 900; color: var(--gold2); font-variant-numeric: tabular-nums; line-height: 1; }
+.clock-sub  { font-size: .72rem; color: rgba(255,255,255,.65); margin-top: 3px; }
+.clock-act  { font-size: .95rem; font-weight: 700; line-height: 1.3; }
+.clock-right { margin-left: auto; text-align: right; }
+
+/* ═══════════════════════════════════
+   SCHEDULE
+═══════════════════════════════════ */
+.sched-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sched-item:last-child { border-bottom: none; }
+.sched-time {
+  background: var(--navy);
+  color: var(--gold2);
+  font-size: .7rem; font-weight: 900;
+  padding: 4px 8px; border-radius: 8px;
+  white-space: nowrap; min-width: 82px;
+  text-align: center; flex-shrink: 0;
+}
+.sched-label { font-size: .88rem; font-weight: 700; }
+.sched-tip   { font-size: .72rem; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.sched-item.now .sched-time {
+  background: var(--gold); color: var(--navy);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(201,151,43,.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(201,151,43,0); }
+}
+
+/* ═══════════════════════════════════
+   QUICK GRID
+═══════════════════════════════════ */
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.qbtn {
+  background: var(--white);
+  border: none; border-radius: var(--radius);
+  padding: 14px 10px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; transition: transform .14s, box-shadow .14s;
+}
+.qbtn:active { transform: scale(.96); }
+.qbtn.qred  { background: #fdf2f2; border: 1.5px solid #f5b7b1; }
+.qbtn.qorn  { background: #fef6ee; border: 1.5px solid #f5cba7; }
+.qbtn.qgold { background: #fef9ee; border: 1.5px solid #f0d080; }
+.qbtn.qblue { background: #edf4fb; border: 1.5px solid #aed6f1; }
+.qbtn .qi { font-size: 1.8rem; }
+.qbtn .ql { font-size: .75rem; font-weight: 800; color: var(--navy); text-align: center; line-height: 1.35; }
+
+/* install banner */
+.install-banner {
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  color: #fff; border-radius: var(--radius);
+  padding: 13px 15px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.ib-icon { font-size: 1.7rem; flex-shrink: 0; }
+.ib-text h3 { font-size: .83rem; font-weight: 800; }
+.ib-text p  { font-size: .68rem; color: rgba(255,255,255,.72); margin-top: 2px; }
+.ib-btn {
+  margin-left: auto;
+  background: var(--gold); color: var(--navy);
+  border: none; border-radius: 9px;
+  padding: 8px 13px;
+  font-size: .78rem; font-weight: 900;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════
+   PROCEDURE LIST
+═══════════════════════════════════ */
+.proc-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: background .14s;
+}
+.proc-item:last-child { border-bottom: none; }
+.proc-item:active { background: #f0f5fb; }
+.proc-icon  { font-size: 1.6rem; flex-shrink: 0; }
+.proc-title { font-size: .9rem; font-weight: 800; line-height: 1.3; }
+.proc-sub   { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.proc-arrow { margin-left: auto; font-size: 1.2rem; color: var(--muted); flex-shrink: 0; }
+.proc-item.danger .proc-title { color: var(--red); }
+.proc-item.warn   .proc-title { color: var(--orange); }
+.proc-item.ok     .proc-title { color: var(--green); }
+
+/* search */
+.search-bar {
+  background: var(--white); border-radius: var(--radius);
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; box-shadow: var(--shadow); margin-bottom: 12px;
+}
+.search-bar input {
+  border: none; outline: none;
+  font-size: .95rem; flex: 1; background: transparent;
+  color: var(--navy); min-width: 0;
+}
+.search-icon { font-size: 1.1rem; color: var(--muted); flex-shrink: 0; }
+
+/* ═══════════════════════════════════
+   STOPNIE
+═══════════════════════════════════ */
+.st-card {
+  border-radius: 12px;
+  padding: 14px; margin-bottom: 10px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: transform .14s;
+}
+.st-card:active { transform: scale(.98); }
+.st-n2  { background:#fdf2f2; border-color:#e74c3c; }
+.st-n1  { background:#fff3e0; border-color:#e67e22; }
+.st-0   { background:#f2f3f4; border-color:#95a5a6; }
+.st-p1  { background:#eafaf1; border-color:#27ae60; }
+.st-p2  { background:#e8f4fd; border-color:#2e86c1; }
+.st-p3  { background:#f5eef8; border-color:#8e44ad; }
+.st-title { font-size: 1rem; font-weight: 900; margin-bottom: 5px; }
+.st-kies {
+  font-size: .7rem; font-weight: 900;
+  background: var(--navy); color: var(--gold2);
+  display: inline-block; padding: 2px 9px; border-radius: 12px; margin-bottom: 7px;
+}
+.st-crit { font-size: .78rem; line-height: 1.65; }
+.st-crit li { margin-left: 16px; margin-bottom: 1px; }
+
+/* ═══════════════════════════════════
+   ALERT BOX
+═══════════════════════════════════ */
+.abox {
+  border-radius: 10px; padding: 12px 13px;
+  margin: 10px 0; font-size: .83rem; line-height: 1.55;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.abox.danger { background:#fdf2f2; border-left:4px solid var(--red); }
+.abox.warn   { background:#fef6ee; border-left:4px solid var(--orange); }
+.abox.info   { background:#edf4fb; border-left:4px solid var(--navy2); }
+.abox.ok     { background:#eafaf1; border-left:4px solid var(--green); }
+.abox .ai    { font-size: 1.1rem; flex-shrink: 0; margin-top:1px; }
+
+/* ═══════════════════════════════════
+   DETAIL FULL-SCREEN
+═══════════════════════════════════ */
+.detail-view {
+  display: none;
+  position: fixed; inset: 0;
+  background: var(--white); z-index: 200;
+  overflow-y: auto; overflow-x: hidden;
+  animation: slideUp .22s ease;
+}
+.detail-view.open { display: block; }
+@keyframes slideUp { from {transform:translateY(100%)} to {transform:none} }
+.det-hdr {
+  background: var(--navy); color: #fff;
+  padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+.det-back {
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  font-size: 1.3rem; cursor: pointer;
+  padding: 5px 10px; border-radius: 9px;
+  flex-shrink: 0; margin-top: 2px;
+}
+.det-title  { font-size: 1rem; font-weight: 800; line-height: 1.35; }
+.det-source { font-size: .65rem; color: rgba(255,255,255,.6); margin-top: 4px; font-style: italic; }
+.det-body   { padding: 16px; padding-bottom: 50px; }
+
+/* steps */
+.step {
+  display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start;
+}
+.step-num {
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: var(--navy); color: var(--gold2);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 900;
+}
+.step-text { font-size: .88rem; line-height: 1.6; padding-top: 4px; }
+.step-text strong { color: var(--navy); }
+
+/* info rows */
+.info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: .88rem;
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .il { color: var(--muted); }
+.info-row .iv { font-weight: 800; }
+.info-row a   { color: var(--navy2); font-weight: 800; text-decoration: none; }
+
+/* ═══════════════════════════════════
+   NOTATNIK
+═══════════════════════════════════ */
+.nota-area {
+  width: 100%; min-height: 140px;
+  border: 2px solid var(--border); border-radius: 12px;
+  padding: 12px; font-size: .95rem; font-family: inherit;
+  resize: vertical; outline: none; color: var(--navy); line-height: 1.6;
+}
+.nota-area:focus { border-color: var(--navy); }
+.btn {
+  background: var(--navy); color: #fff;
+  border: none; border-radius: 10px;
+  padding: 11px 18px; font-size: .85rem; font-weight: 800;
+  cursor: pointer; margin-top: 8px;
+}
+.btn:active { opacity: .85; }
+.btn.sec  { background: var(--border); color: var(--navy); }
+.btn.red  { background: var(--red); }
+.note-card {
+  background: var(--white); border-radius: 12px;
+  padding: 13px; margin-bottom: 9px; box-shadow: var(--shadow); position: relative;
+}
+.note-meta    { font-size: .65rem; color: var(--muted); margin-bottom: 5px; }
+.note-content { font-size: .85rem; line-height: 1.55; }
+.note-del {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer;
+}
+
+/* ═══════════════════════════════════
+   AI CHAT (Zapytaj AI)
+═══════════════════════════════════ */
+.ai-screen {}
+.chat-window {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 10px;
+  min-height: 200px; max-height: 50vh; overflow-y: auto;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.msg {
+  max-width: 92%; padding: 10px 13px;
+  border-radius: 14px; font-size: .85rem; line-height: 1.6; word-break: break-word;
+}
+.msg.user {
+  background: var(--navy); color: #fff;
+  border-bottom-right-radius: 4px; align-self: flex-end;
+}
+.msg.ai {
+  background: #f0f4f8; color: var(--navy);
+  border-bottom-left-radius: 4px; align-self: flex-start;
+}
+.msg.err { background: #fdf2f2; color: var(--red); border: 1px solid #f5b7b1; }
+.msg.loading { background: #f0f4f8; color: var(--muted); font-style: italic; }
+.chat-row {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input-wrap {
+  flex: 1; background: var(--white);
+  border-radius: 14px; border: 2px solid var(--border);
+  display: flex; align-items: flex-end; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.chat-input {
+  flex: 1; border: none; outline: none; resize: none;
+  font-size: .9rem; font-family: inherit;
+  padding: 11px 12px; background: transparent;
+  color: var(--navy); max-height: 120px; line-height: 1.45;
+}
+.chat-send {
+  background: var(--navy); color: #fff; border: none;
+  width: 46px; height: 46px; border-radius: 12px;
+  font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.chat-send:active { opacity: .8; }
+.chat-pills {
+  display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px;
+}
+.pill {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: 7px 12px;
+  font-size: .75rem; font-weight: 700; color: var(--navy2);
+  cursor: pointer; box-shadow: var(--shadow);
+}
+.pill:active { background: var(--cream); }
+.ai-status {
+  font-size: .65rem; color: var(--muted); text-align: center; margin-bottom: 6px;
+}
+.ai-status .dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 4px; vertical-align: middle;
+}
+.dot.online  { background: var(--green); }
+.dot.offline { background: #e74c3c; }
+
+/* ═══════════════════════════════════
+   HARMONOGRAM UPLOAD
+═══════════════════════════════════ */
+.upload-zone {
+  border: 2.5px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--white);
+  transition: border-color .2s, background .2s;
+  margin-bottom: 10px;
+}
+.upload-zone.drag { border-color: var(--navy); background: #edf4fb; }
+.upload-zone .uz-icon { font-size: 2.2rem; margin-bottom: 6px; }
+.upload-zone .uz-label { font-size: .83rem; font-weight: 700; color: var(--navy); }
+.upload-zone .uz-hint  { font-size: .7rem; color: var(--muted); margin-top: 3px; }
+.file-list { margin-bottom: 10px; }
+.file-item {
+  background: var(--white); border-radius: 10px;
+  padding: 10px 13px; margin-bottom: 7px;
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 10px;
+}
+.file-item .fi-icon { font-size: 1.3rem; flex-shrink: 0; }
+.file-item .fi-name { font-size: .83rem; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-item .fi-size  { font-size: .65rem; color: var(--muted); }
+.file-item .fi-del   { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; flex-shrink: 0; }
+.wych-result {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px;
+  font-size: .85rem; line-height: 1.7;
+  margin-bottom: 10px; white-space: pre-wrap; word-break: break-word;
+}
+
+/* ═══════════════════════════════════
+   UTILS
+═══════════════════════════════════ */
+.divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.law-item { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: .8rem; line-height: 1.6; }
+.law-item:last-child { border-bottom: none; }
+.law-num { font-weight: 900; color: var(--navy); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <span class="hdr-icon">🏫</span>
+  <div class="hdr-text">
+    <h1>Asystent MOW</h1>
+    <p>nr 1 im. T. Kościuszki · Malbork</p>
+  </div>
+  <span class="hdr-badge">v2.0</span>
+</header>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+<!-- ════════════ DYŻUR ════════════ -->
+<div class="screen active" id="s-dyzur">
+
+  <div class="clock-box">
+    <div>
+      <div class="clock-time" id="live-clock">--:--</div>
+      <div class="clock-sub" id="live-date">ładowanie...</div>
+    </div>
+    <div class="clock-right">
+      <div class="clock-act" id="curr-act">Sprawdzanie...</div>
+      <div class="clock-sub">aktualne zajęcie</div>
+    </div>
+  </div>
+
+  <div id="install-wrap" style="display:none">
+    <div class="install-banner">
+      <span class="ib-icon">📲</span>
+      <div class="ib-text">
+        <h3>Zainstaluj na telefonie</h3>
+        <p>Działa offline po instalacji</p>
+      </div>
+      <button class="ib-btn" id="install-btn">Zainstaluj</button>
+    </div>
+  </div>
+
+  <p class="sec-title">📋 Harmonogram dnia (dni robocze)</p>
+  <div class="card" style="padding:0"><div id="sched-list"></div></div>
+
+  <p class="sec-title">⚡ Szybkie akcje</p>
+  <div class="quick-grid" id="quick-grid"></div>
+
+</div><!-- /s-dyzur -->
+
+<!-- ════════════ PROCEDURY ════════════ -->
+<div class="screen" id="s-proc">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="proc-search" placeholder="Szukaj procedury..." oninput="filterProcs(this.value)">
+  </div>
+  <p class="sec-title">🔴 Sytuacje kryzysowe</p>
+  <div class="card" style="padding:0"><div id="pl-crisis"></div></div>
+  <p class="sec-title">🟡 Bezpieczeństwo</p>
+  <div class="card" style="padding:0"><div id="pl-safety"></div></div>
+  <p class="sec-title">🟢 Inne procedury</p>
+  <div class="card" style="padding:0"><div id="pl-other"></div></div>
+</div>
+
+<!-- ════════════ STOPNIE ════════════ -->
+<div class="screen" id="s-stop">
+  <div class="abox info">
+    <span class="ai">ℹ️</span>
+    <div>Kwalifikacja do <strong>25. dnia miesiąca</strong> przez wychowawców i wychowanków wspólnie. Zmiana max. o 1 stopień wyżej (wyjątkowo 2). Stopień zerowy: min. 4 tyg. adaptacji.</div>
+  </div>
+  <p class="sec-title">📉 Stopnie ujemne</p>
+  <div id="st-neg"></div>
+  <p class="sec-title">📈 Stopnie pozytywne</p>
+  <div id="st-pos"></div>
+  <p class="sec-title">⬇️ Automatyczny spadek stopnia</p>
+  <div class="card"><div class="card-body">
+    <div style="font-size:.88rem;line-height:2">
+      <div>🥊 Czyn karalny → <strong>stopień –2</strong></div>
+      <div>👊 Pobicie z urazem → <strong>spadek o 2</strong> (min. zero)</div>
+      <div>💊 Narkotyki/alkohol → <strong>spadek o 1–2</strong> (min. zero)</div>
+      <div>🤜 Bójka/pobicie → <strong>spadek o 1–2</strong></div>
+      <div>💰 Wymuszenie → <strong>spadek o 1–2</strong></div>
+      <div>🖊️ Tatuaż bez zgody rodziców → <strong>spadek</strong></div>
+      <div>🩸 Samookaleczenie → <strong>stopień –1</strong></div>
+      <div>🚪 Ucieczka → <strong>stopień –1</strong></div>
+      <div>😤 Przemoc psychiczna → <strong>spadek o 1</strong></div>
+      <div>💥 Dewastacja mienia → <strong>spadek o 1</strong></div>
+    </div>
+    <p style="font-size:.65rem;color:var(--muted);margin-top:8px;font-style:italic">Źródło: Reg. Stopni Uspołecznienia pkt 9</p>
+  </div></div>
+</div>
+
+<!-- ════════════ AI CHAT ════════════ -->
+<div class="screen" id="s-ai">
+  <div class="ai-screen">
+    <div class="ai-status" id="ai-status">
+      <span class="dot offline" id="ai-dot"></span>
+      <span id="ai-status-txt">Sprawdzam połączenie...</span>
+    </div>
+
+    <div class="abox info" style="margin-bottom:10px">
+      <span class="ai">🤖</span>
+      <div style="font-size:.78rem">Zadaj pytanie o procedury MOW, stopnie uspołecznienia, prawo oświatowe lub wychowanie resocjalizacyjne. Potrzebuje połączenia z Internetem.</div>
+    </div>
+
+    <div class="chat-window" id="chat-window">
+      <div class="msg ai">Cześć! Jestem asystentem MOW. Mogę odpowiadać na pytania dotyczące procedur, stopni uspołecznienia, prawa i pracy wychowawczej. Zapytaj o cokolwiek!</div>
+    </div>
+
+    <p class="sec-title" style="margin-top:8px">💡 Szybkie pytania</p>
+    <div class="chat-pills" id="chat-pills"></div>
+
+    <div class="chat-row">
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chat-input" rows="1"
+          placeholder="Napisz pytanie..."
+          oninput="autoResizeTA(this)"
+          onkeydown="chatKeydown(event)"></textarea>
+      </div>
+      <button class="chat-send" onclick="sendChat()" title="Wyślij">➤</button>
+    </div>
+
+    <button class="btn sec" style="width:100%;margin-top:8px" onclick="clearChat()">🗑 Wyczyść historię</button>
+  </div>
+</div>
+
+<!-- ════════════ PRAWO ════════════ -->
+<div class="screen" id="s-prawo">
+
+  <p class="sec-title">📚 Podstawy prawne MOW</p>
+  <div class="card" style="padding:0"><div id="law-list-render"></div></div>
+
+  <p class="sec-title">⚖️ Prawa wychowanka (UPN)</p>
+  <div class="card"><div class="card-body">
+    <div style="font-size:.88rem;font-weight:800;color:var(--navy);margin-bottom:8px">Art. 4 – Środki wychowawcze:</div>
+    <div style="font-size:.85rem;line-height:1.8;margin-bottom:12px">
+      • upomnienie<br>• nadzór rodziców / kuratora<br>• nadzór organizacji społecznej<br>
+      • zakaz prowadzenia pojazdów<br>• przepadek rzeczy<br>• naprawienie szkody<br>
+      • <strong>umieszczenie w instytucji resocjalizacyjnej (MOW)</strong>
+    </div>
+    <hr class="divider">
+    <div style="font-size:.88rem;font-weight:800;color:var(--navy);margin:10px 0 8px">Art. 95–96 – Prawa wychowanka MOW:</div>
+    <div style="font-size:.85rem;line-height:1.8">
+      • prawo do nauki i wychowania<br>
+      • prawo do kontaktu z rodziną<br>
+      • prawo do opieki zdrowotnej<br>
+      • prawo do skargi do Dyrektora i Sądu<br>
+      • prawo do intymności i prywatności
+    </div>
+    <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Źródło: Ustawa o postępowaniu w sprawach nieletnich (t.j. Dz.U. 2022 poz. 1082)</p>
+  </div></div>
+
+  <p class="sec-title">⬇️ Środki przymusu bezpośredniego</p>
+  <div class="card"><div class="card-body">
+    <div class="abox warn" style="margin-bottom:10px">
+      <span class="ai">⚠️</span>
+      <div style="font-size:.8rem">Środki przymusu stosuje się <strong>tylko w ostateczności</strong>, gdy inne sposoby są nieskuteczne. Podstawa: Rozp. RM z 22.02.2011 r.</div>
+    </div>
+    <div style="font-size:.85rem;line-height:1.9">
+      <strong>Dozwolone środki:</strong><br>
+      • przytrzymanie<br>
+      • unieruchomienie<br>
+      • izolowanie<br>
+      • założenie pasa obezwładniającego (tylko na polecenie dyrektora/lekarza)<br>
+    </div>
+    <hr class="divider">
+    <div style="font-size:.85rem;line-height:1.7">
+      <strong>Obowiązki po zastosowaniu:</strong><br>
+      • natychmiast powiadom Dyrektora<br>
+      • sporządź protokół (data, godzina, okoliczności, zastosowany środek)<br>
+      • poinformuj rodziców / opiekunów<br>
+      • zapewnij opiekę medyczną jeśli potrzebna
+    </div>
+  </div></div>
+
+  <p class="sec-title">📞 Numery alarmowe i kontakty</p>
+  <div class="card" style="padding:0">
+    <div class="info-row"><span class="il">🚒 Straż Pożarna</span><span class="iv"><a href="tel:998">998</a></span></div>
+    <div class="info-row"><span class="il">👮 Policja</span><span class="iv"><a href="tel:997">997</a></span></div>
+    <div class="info-row"><span class="il">🚑 Pogotowie</span><span class="iv"><a href="tel:999">999</a></span></div>
+    <div class="info-row"><span class="il">📞 Numer alarmowy</span><span class="iv"><a href="tel:112">112</a></span></div>
+    <div class="info-row"><span class="il">🏫 MOW Malbork (centrala)</span><span class="iv"><a href="tel:556473450">55 647 34 50</a></span></div>
+    <div class="info-row"><span class="il">⚖️ Sąd Rodzinny Malbork</span><span class="iv"><a href="tel:556472020">55 647 20 20</a></span></div>
+    <div class="info-row"><span class="il">🔵 Telefon zaufania MEN</span><span class="iv"><a href="tel:116111">116 111</a></span></div>
+  </div>
+
+  <p class="sec-title">📄 Dokumenty wewnętrzne MOW</p>
+  <div class="card"><div class="card-body">
+    <span class="tag gold">Statut MOW</span>
+    <span class="tag">Reg. Stopni Uspołecznienia</span>
+    <span class="tag">Procedury Postępowania</span>
+    <span class="tag">Procedury Niebezp. Przedmiotów</span>
+    <span class="tag">Poradnik Wychowawcy</span>
+    <span class="tag">Wymag. Dyplomowanie</span>
+    <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Dokumenty formalne MOW nr 1 im. T. Kościuszki w Malborku</p>
+  </div></div>
+
+</div><!-- /s-prawo -->
+
+<!-- ════════════ HARMONOGRAM ════════════ -->
+<div class="screen" id="s-harm">
+
+  <div class="abox info" style="margin-bottom:10px">
+    <span class="ai">📁</span>
+    <div style="font-size:.78rem">Wgraj plik tekstowy (.txt, .csv) z harmonogramem internatu. Następnie zapytaj o plan konkretnego wychowawcy.</div>
+  </div>
+
+  <input type="file" id="harm-file-input" accept=".txt,.csv,.tsv" style="display:none" onchange="handleHarmFile(this)">
+
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">
+    <div class="uz-icon">📋</div>
+    <div class="uz-label">Dotknij aby wgrać harmonogram</div>
+    <div class="uz-hint">.txt / .csv — plik z rozkładem dyżurów</div>
+  </div>
+
+  <div class="file-list" id="harm-file-list"></div>
+
+  <div id="harm-loaded" style="display:none">
+    <p class="sec-title">🔍 Zapytaj o wychowawcę</p>
+    <div class="card card-body">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="wych-input" placeholder="Imię i nazwisko wychowawcy..."
+          style="flex:1;border:2px solid var(--border);border-radius:10px;padding:10px 13px;font-size:.9rem;font-family:inherit;outline:none;min-width:0"
+          onkeydown="if(event.key==='Enter')queryHarm()">
+        <button class="btn" style="margin-top:0;flex-shrink:0" onclick="queryHarm()">Szukaj</button>
+      </div>
+      <div class="chat-pills" id="harm-pills" style="margin-top:8px"></div>
+    </div>
+
+    <div id="harm-result" style="display:none">
+      <p class="sec-title">📊 Wynik</p>
+      <div class="wych-result" id="harm-result-body"></div>
+    </div>
+
+    <div class="abox info" style="margin-top:4px">
+      <span class="ai">🤖</span>
+      <div style="font-size:.75rem">Jeśli masz połączenie z Internetem — asystent AI pomoże zinterpretować harmonogram i odpowie na bardziej złożone pytania.</div>
+    </div>
+    <button class="btn qblue" style="width:100%;margin-top:4px" onclick="sendHarmToAI()">🤖 Zapytaj AI o harmonogram</button>
+  </div>
+
+</div><!-- /s-harm -->
+
+</div><!-- /main-wrap -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="nav('s-dyzur',this)">
+    <span class="ni">🏠</span><span class="nl">Dyżur</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-proc',this)">
+    <span class="ni">📋</span><span class="nl">Procedury</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-stop',this)">
+    <span class="ni">📊</span><span class="nl">Stopnie</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-prawo',this)">
+    <span class="ni">⚖️</span><span class="nl">Prawo</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-harm',this)">
+    <span class="ni">📁</span><span class="nl">Harmonogram</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-ai',this)">
+    <span class="ni">🤖</span><span class="nl">AI</span>
+  </button>
+</nav>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-view" id="detail-view">
+  <div class="det-hdr">
+    <button class="det-back" onclick="closeDetail()">←</button>
+    <div>
+      <div class="det-title"  id="det-title">Procedura</div>
+      <div class="det-source" id="det-source"></div>
+    </div>
+  </div>
+  <div class="det-body" id="det-body"></div>
+</div>
+
+<!-- ═══════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════ -->
+<script>
+/* ────────────────────────────────
+   DATA
+──────────────────────────────── */
+const SCHEDULE = [
+  {t:"06:30",e:"06:35",l:"Pobudka",tip:"Zapal światło, spokojnie: 'Dzień dobry – pobudka, proszę wstawać.' Daj ok. 2 min na wstanie."},
+  {t:"06:35",e:"07:00",l:"Gimnastyka poranna",tip:"Krótkie ćwiczenia (do 5 min) od głowy/szyi w dół. Jednolity strój sportowy grupy."},
+  {t:"07:00",e:"07:30",l:"Toaleta poranna",tip:"Mobilizuj do higieny – sprawdzaj stan czystości, zęby, twarz, ręce."},
+  {t:"07:30",e:"08:00",l:"Śniadanie",tip:"Zejście na stołówkę prawą stroną klatki. Czujność: nie dopuszczaj do wymuszania porcji."},
+  {t:"08:00",e:"14:00",l:"Szkoła",tip:"Przed wyjściem sprawdź kompletność zeszytów. Poinformuj nauczyciela o istotnych zdarzeniach."},
+  {t:"14:00",e:"14:45",l:"Obiad",tip:"Obecność w kuchni przy transporcie gorących posiłków (ryzyko poparzeń)."},
+  {t:"14:45",e:"17:00",l:"Zajęcia wychowawcze",tip:"Spacery, zakupy, sport, porządki. Unikaj zostawiania wychowanków bez nadzoru – czas ryzyka."},
+  {t:"17:00",e:"17:15",l:"Teleexpress",tip:"Zapoznanie z bieżącymi wiadomościami."},
+  {t:"17:15",e:"18:15",l:"Nauka własna",tip:"Praca z zeszytem łącznikowym. Pomoc w zaległościach. Dyscyplinuj grupę."},
+  {t:"18:15",e:"19:00",l:"Zajęcia wieczorne",tip:"Przygotowanie do kolacji, toaleta, łaźnia, ścielenie łóżek. Uwaga: nogi i skarpety przed 20:45."},
+  {t:"19:00",e:"19:30",l:"Kolacja",tip:"Zejście grupą na stołówkę."},
+  {t:"19:30",e:"20:45",l:"Czas wolny",tip:"Korzystanie z telefonów wg stopnia uspołecznienia i zachowania w danym dniu."},
+  {t:"20:45",e:"21:00",l:"Dyżury specjalne",tip:"Wykonanie dyżurów wieczornych – toaleta i korytarz. Przygotowanie do ciszy nocnej."},
+  {t:"21:00",e:"21:30",l:"Mała cisza nocna",tip:"Wychowankowie do sypialni. Wyciszamy grupy, gasimy 'górne światła'."},
+  {t:"21:30",e:"06:30",l:"Cisza nocna",tip:"Sprawdzenie stanu osobowego przed odejściem. Wyłącz lampki nocne."},
+];
+
+const PROCS = [
+  {id:"p-agresja",cat:"crisis",sev:"danger",icon:"🥊",
+   title:"Bójka / Agresja fizyczna",sub:"Ujawnienie bójki lub pobicia",
+   src:"Procedury Postępowania – pkt 2 | Statut MOW §48",
+   steps:[
+     "NATYCHMIAST rozdziel uczestników. Stanowczy głos, nie krzyk. Wejdź między nich jeśli bezpiecznie.",
+     "Zabezpiecz świadków – odsuń innych wychowanków.",
+     "<strong>Wezwij pomoc</strong> – powiadom drugiego wychowawcę / dyżurującego.",
+     "Oceń obrażenia. Rany, krwawienie → <strong>dzwoń 112</strong>.",
+     "<strong>Powiadom Dyrektora</strong> niezwłocznie.",
+     "Rozdziel sprawcę i ofiarę – nie przebywają razem do wyjaśnienia.",
+     "Sporządź dokumentację: data, godzina, opis, uczestnicy, świadkowie.",
+     "Dyrektor powiadamia <strong>sąd rodzinny</strong> o czynie karalnym."
+   ],
+   alert:{t:"danger",txt:"Pobicie z urazem = spadek stopnia o 2. Czyn karalny = stopień –2. Bezwzględnie dokumentuj obrażenia!"},
+   extra:`<div class="abox warn"><span class="ai">⚠️</span><div>Nie stosuj przemocy fizycznej. Siłę możesz użyć tylko w obronie koniecznej i bezpieczeństwa innych. Podstawa: Rozp. RM z 22.02.2011.</div></div>`},
+
+  {id:"p-ucieczka",cat:"crisis",sev:"danger",icon:"🚪",
+   title:"Ucieczka / Samowolne oddalenie",sub:"Wychowanek opuścił teren bez zezwolenia",
+   src:"Procedury Postępowania – pkt 13 | Statut MOW §49",
+   steps:[
+     "Sprawdź czy rzeczywiście uciekł – przeszukaj cały teren, stołówkę, boisko.",
+     "<strong>Powiadom Dyrektora</strong> – max. 10 minut od stwierdzenia.",
+     "Dyrektor/wychowawca <strong>powiadamia Policję</strong> – zgłoszenie zaginięcia nieletniego.",
+     "<strong>Powiadom rodziców/opiekunów</strong> – telefonicznie, odnotuj godzinę i treść.",
+     "Powiadom <strong>sąd rodzinny</strong> – nadzorujący wychowanka.",
+     "Dokumentuj: godzina ostatniego kontaktu, wygląd (ubranie), kierunek oddalenia.",
+     "Po powrocie – protokół powrotu, ocena stanu zdrowia, wpis do dokumentacji."
+   ],
+   alert:{t:"danger",txt:"Ucieczka = automatyczny spadek do stopnia –1. Obowiązek powiadomienia w ciągu 24h: rodziców, sądu i Policji."}},
+
+  {id:"p-narkotyki",cat:"crisis",sev:"danger",icon:"💊",
+   title:"Narkotyki / Alkohol / Dopalacze",sub:"Podejrzenie lub ujawnienie użycia substancji",
+   src:"Procedury Postępowania – pkt 9 | Ustawa o Przeciwdziałaniu Narkomanii",
+   steps:[
+     "<strong>Odizoluj</strong> wychowanka od grupy – spokojne miejsce.",
+     "Oceń stan. Zaburzenia świadomości → <strong>dzwoń 112</strong>.",
+     "<strong>Nie zostawiaj samego</strong> – ryzyko pogłębienia zatrucia.",
+     "Zapytaj co i kiedy zażył – bez oskarżeń, zbieraj informacje.",
+     "<strong>Powiadom Dyrektora</strong> niezwłocznie.",
+     "Znalezione substancje – <strong>zabezpiecz</strong> (nie dotykaj gołymi rękami, zapieczętuj). Przekaż Dyrektorowi/Policji.",
+     "<strong>Powiadom rodziców</strong> i <strong>sąd rodzinny</strong>.",
+     "Dokumentacja: objawy, godzina, substancja (jeśli znana), działania."
+   ],
+   alert:{t:"danger",txt:"Posiadanie/używanie = spadek o 1–2 stopnie (min. zerowy). Substancja = materiał dowodowy – nie wyrzucaj!"}},
+
+  {id:"p-samo",cat:"crisis",sev:"danger",icon:"🆘",
+   title:"Próba samobójcza / Samookaleczenie",sub:"Wychowanek zagraża swojemu życiu",
+   src:"Procedury Postępowania – pkt 8 | Statut MOW §50",
+   steps:[
+     "<strong>DZWOŃ 112</strong> – natychmiast jeśli zagrożenie życia.",
+     "Nie zostawiaj wychowanka samego – ciągła obecność.",
+     "Usuń dostęp do niebezpiecznych przedmiotów (nóż, pasek, leki).",
+     "Mów spokojnie: <em>'Jestem tutaj, nic ci nie grozi, jesteś bezpieczny.'</em> Nie bagatelizuj.",
+     "<strong>Powiadom Dyrektora</strong> natychmiast.",
+     "<strong>Powiadom rodziców/opiekunów</strong>.",
+     "<strong>Powiadom sąd rodzinny</strong> pisemnie w ciągu 24h.",
+     "Szczegółowa dokumentacja. Wychowanek kierowany na konsultację psychiatryczną."
+   ],
+   alert:{t:"danger",txt:"Samookaleczenie = automatyczny spadek do stopnia –1. Każda groźba traktowana poważnie. Nie rób scen, nie zawstydzaj."}},
+
+  {id:"p-niebezp",cat:"safety",sev:"warn",icon:"🔪",
+   title:"Niebezpieczne przedmioty",sub:"Wychowanek posiada nóż lub inne narzędzie",
+   src:"Procedury – Niebezpieczne Przedmioty | Statut MOW §44",
+   steps:[
+     "<strong>Zachowaj spokój</strong> – nie wchodź w konfrontację przy agresji.",
+     "Jeśli bezpiecznie – <strong>wezwij do oddania</strong> spokojnie i stanowczo.",
+     "Odmowa lub agresja → <strong>wezwij pomoc</strong>, izoluj innych.",
+     "<strong>Powiadom Dyrektora</strong> niezwłocznie.",
+     "Zabezpiecz przedmiot – wpisz do protokołu, przekaż Dyrektorowi.",
+     "Dyrektor decyduje o zawiadomieniu Policji.",
+     "Dokumentacja: rodzaj przedmiotu, okoliczności, działania."
+   ],
+   alert:{t:"warn",txt:"Skonfiskowane wpisz do rejestru depozytów. Broń lub narzędzie zbrodni → obowiązek zawiadomienia Policji."}},
+
+  {id:"p-pozar",cat:"crisis",sev:"danger",icon:"🔥",
+   title:"Pożar / Zatrucie / Wybuch",sub:"Zagrożenie życia – ewakuacja",
+   src:"Procedury Postępowania – pkt 1 | Plan ewakuacji MOW",
+   steps:[
+     "<strong>EWAKUACJA</strong> – uruchom alarm, zarządź opuszczenie budynku.",
+     "<strong>DZWOŃ 998</strong> (straż) lub 112.",
+     "Wyprowadź zgodnie z <strong>planem ewakuacji</strong> – najkrótszą drogą.",
+     "Sprawdź wszystkie pokoje – nikt nie zostaje w budynku.",
+     "Zbiórka w <strong>wyznaczonym miejscu</strong> – sprawdź stan osobowy.",
+     "Powiadom Dyrektora o stanie grupy.",
+     "Nie wracaj do budynku bez zgody Straży Pożarnej."
+   ],
+   alert:{t:"danger",txt:"Plan ewakuacji wisi przy wyjściach na każdym piętrze. Zapoznaj się przed dyżurem!"}},
+
+  {id:"p-kores",cat:"safety",sev:"warn",icon:"📬",
+   title:"Korespondencja i paczki",sub:"Procedura odbioru korespondencji",
+   src:"Procedury – Korespondencja | Statut MOW §35",
+   steps:[
+     "Korespondencja otwierana <strong>w obecności wychowanka</strong>.",
+     "Podejrzenie substancji zabronionych → <strong>powiadom Dyrektora przed otwarciem</strong>.",
+     "Podejrzana przesyłka (zapach, wycieki) → <strong>nie otwieraj</strong>, Dyrektor i Policja.",
+     "Każda paczka odnotowana w rejestrze korespondencji.",
+     "Niedozwolone przedmioty w paczce – sporządź protokół, zabezpiecz."
+   ],
+   alert:{t:"info",txt:"Wychowanek ma prawo do korespondencji z rodziną. Nie możesz zatrzymać korespondencji z sądem rodzinnym."}},
+
+  {id:"p-odwiedz",cat:"other",sev:"ok",icon:"👨‍👩‍👦",
+   title:"Odwiedziny",sub:"Zasady przyjmowania odwiedzających",
+   src:"Procedury – Odwiedziny | Statut MOW §36",
+   steps:[
+     "Odwiedziny w <strong>ustalonych godzinach</strong> z pisemną zgodą Dyrektora (jeśli wymagana).",
+     "Sprawdź tożsamość – wpisz do rejestru.",
+     "Odwiedziny w <strong>wyznaczonych miejscach</strong> pod nadzorem.",
+     "Obserwuj – zapobiegaj przekazywaniu niedozwolonych przedmiotów.",
+     "Niepokojące zachowanie odwiedzającego → przerwij wizytę, powiadom Dyrektora."
+   ],
+   alert:{t:"info",txt:"Wychowanek ma prawo do kontaktów z rodziną. Sąd może ograniczyć kontakty – sprawdź postanowienie sądowe."}},
+
+  {id:"p-cyber",cat:"safety",sev:"warn",icon:"💻",
+   title:"Cyberprzemoc",sub:"Przemoc z użyciem telefonu lub internetu",
+   src:"Procedury Postępowania – pkt 11",
+   steps:[
+     "Ustal co się stało, kto jest sprawcą.",
+     "Zabezpiecz dowody – zrzut ekranu, zapisz treść.",
+     "<strong>Nie usuwaj</strong> dowodów.",
+     "Powiadom Dyrektora i rodziców.",
+     "Treści niezgodne z prawem (groźby, pornografia) → zawiadom Policję."
+   ],
+   alert:{t:"warn",txt:"Sprawca-wychowanek → procedura dyscyplinarna. Sprawca z zewnątrz → Policja."}},
+
+  {id:"p-nadzuz",cat:"crisis",sev:"danger",icon:"🔞",
+   title:"Podejrzenie wykorzystania seksualnego",sub:"Ujawnienie lub podejrzenie",
+   src:"Procedury Postępowania – pkt 12 | Art. 12 Ustawy o Nieletnich",
+   steps:[
+     "<strong>Wysłuchaj wychowanka</strong> – spokojnie, bez oceniania. Nie zadawaj sugestywnych pytań.",
+     "Zapewnij bezpieczeństwo – odizoluj od potencjalnego sprawcy.",
+     "<strong>Powiadom Dyrektora</strong> niezwłocznie.",
+     "Dyrektor powiadamia <strong>Policję i Prokuraturę</strong> – obowiązek prawny.",
+     "<strong>Nie prowadź własnego dochodzenia</strong>.",
+     "Dokumentacja – co, kiedy, słowo w słowo co powiedział wychowanek."
+   ],
+   alert:{t:"danger",txt:"OBOWIĄZEK ZAWIADOMIENIA ORGANÓW ŚCIGANIA. Brak zawiadomienia grozi odpowiedzialnością karną (art. 240 KK)!"}},
+
+  {id:"p-kradziez",cat:"safety",sev:"warn",icon:"💰",
+   title:"Kradzież",sub:"Kradzież mienia na terenie placówki",
+   src:"Procedury Postępowania – pkt 5",
+   steps:[
+     "Ustal okoliczności: kiedy, co skradziono, kto zgłosił.",
+     "Rozmowa z podejrzanym – bez oskarżeń.",
+     "<strong>Powiadom Dyrektora</strong>.",
+     "Dyrektor decyduje o Policji (wartość > 500 zł lub czyn karalny nieletniego).",
+     "Dokumentacja, wpis do karty obserwacji wychowanka."
+   ],
+   alert:{t:"warn",txt:"Wymuszenie cudzej własności = spadek o 1–2 stopnie uspołecznienia."}},
+
+  {id:"p-przepust",cat:"other",sev:"ok",icon:"🚶",
+   title:"Przepustka / Urlop",sub:"Zasady udzielania i monitorowania",
+   src:"Statut MOW §37 | Regulamin Stopni",
+   steps:[
+     "Przepustka od stopnia 0 wzwyż – decyzja Dyrektora.",
+     "Zgoda pisemna – odnotuj w dokumentacji.",
+     "Ustal godzinę powrotu – wpisz do rejestru wyjść.",
+     "Brak powrotu w terminie → procedura ucieczki po 30 min.",
+     "Po powrocie sprawdź stan wychowanka."
+   ],
+   alert:{t:"info",txt:"Stopień +1: przepustka do miasta, urlop do domu. Stopień +2/+3: więcej możliwości. Stopień zerowy/ujemny: brak przepustek."}}
+];
+
+const STOPNIE = [
+  {id:"sn2",lvl:"–2",title:"Stopień –2",cls:"st-n2",kies:"20% kwoty bazowej",
+   crit:["czyn karalny na terenie MOW lub poza nim","rażące naruszenie porządku"],
+   przyw:["Kieszonkowe 20%","Brak telefonu komórkowego","Brak przepustek","Ograniczenie TV (piątki/soboty do 21:00)","Obniżenie oceny z zachowania","Powiadomienie sądu rodzinnego","Rozmowa ostrzegawcza wychowawcy i dyrektora"]},
+  {id:"sn1",lvl:"–1",title:"Stopień –1",cls:"st-n1",kies:"40% kwoty bazowej",
+   crit:["samookaleczenie","ucieczka","poważne naruszenie regulaminu"],
+   przyw:["Kieszonkowe 40%","Brak telefonu komórkowego","Brak przepustek do miasta","Ograniczenie TV","Wzmożony nadzór wychowawcy"]},
+  {id:"s0",lvl:"0 (adaptacyjny)",title:"Stopień zerowy",cls:"st-0",kies:"60% kwoty bazowej",
+   crit:["realizuje dyżury w internacie i szkole","przestrzega rozkładu dnia","poprawnie odnosi się do kolegów i pracowników","dba o higienę własną i mienie ośrodka","aktywnie uczestniczy w zajęciach nauki własnej","uczestniczy w zajęciach grupy i szkole"],
+   przyw:["Kieszonkowe 60%","Imprezy kulturalne na terenie MOW","Siłownia/pracownia komputerowa (w ramach grupy)","Pochwała wychowawcy","Możliwość ubiegania się o urlop (decyzja Dyrektora)","TV piątki/soboty do 21:30","Telefon 3×/tydzień po 30 min w miejscu wyznaczonym przez wychowawcę"]},
+  {id:"sp1",lvl:"+1",title:"Stopień +1",cls:"st-p1",kies:"80% kwoty bazowej",
+   crit:["samodzielnie realizuje dyżury","przestrzega rozkładu dnia","wyrobione nawyki higieniczno-porządkowe","nadrabia zaległości szkolne","pozytywne oceny odpowiednio do możliwości","uczestniczy w zajęciach wyrównawczych (jeśli potrzeba)","prawidłowe relacje z kolegami i pracownikami","punktualnie powraca z przepustek"],
+   przyw:["Kieszonkowe 80%","Zawody sportowe i konkursy poza MOW","Imprezy kulturalne poza MOW","Dyplom uznania (gabicha samorządu)","Telefon wg regulaminu","Przepustka do miasta, urlop do domu (święta, wakacje, ferie)","Wyjście do miasta z osobą odwiedzającą","Pochwała na forum ośrodka"]},
+  {id:"sp2",lvl:"+2",title:"Stopień +2",cls:"st-p2",kies:"100% kwoty bazowej",
+   crit:["spełnia kryteria stopnia +1","z kulturą i szacunkiem odnosi się do innych (nie używa wulgaryzmów)","pomaga innym wychowankom","dobre wyniki w nauce wg możliwości","realizuje dodatkowe zadania wychowawcy","zawsze terminowo powraca z przepustek","wspiera słabszych kolegów i nowo przybyłych"],
+   przyw:["Kieszonkowe 100%","Nagrody rzeczowe","Dopuszczenie do śródrocznej promocji","List pochwalny do rodziców","Pochwała dyrektora na forum placówki","Wpis do księgi nagród","Telefon we własnej sypialni","Urlop + dodatkowe dni","Wyjście na imprezy środowiska lokalnego","Poparcie wniosku o wcześniejsze zwolnienie"]},
+  {id:"sp3",lvl:"+3",title:"Stopień +3",cls:"st-p3",kies:"120% kwoty bazowej",
+   crit:["spełnia kryteria stopnia +2","wzorowo odnosi się do kolegów i pracowników MOW","dobre i bardzo dobre wyniki w nauce","min. 2 miesiące: zdrowy, higieniczny, wolny od nałogów tryb życia","aktywnie uczestniczy w projektach edukacyjnych (akademie, uroczystości)","podejmuje inicjatywy na rzecz grupy i zespołu klasowego"],
+   przyw:["Kieszonkowe 120%","Wszystkie przywileje stopnia +2","Reprezentowanie MOW na zewnątrz","Poparcie wcześniejszego zwolnienia"]}
+];
+
+const QUICK_ACTIONS = [
+  {icon:"🥊",label:"Bójka / Agresja",proc:"p-agresja",cls:"qred"},
+  {icon:"🚪",label:"Ucieczka",proc:"p-ucieczka",cls:"qred"},
+  {icon:"💊",label:"Narkotyki / Alkohol",proc:"p-narkotyki",cls:"qred"},
+  {icon:"🆘",label:"Próba samobójcza",proc:"p-samo",cls:"qred"},
+  {icon:"🔪",label:"Niebezpieczne przedmioty",proc:"p-niebezp",cls:"qorn"},
+  {icon:"🔥",label:"Pożar / Ewakuacja",proc:"p-pozar",cls:"qorn"},
+  {icon:"📊",label:"Stopnie uspołecznienia",screen:"s-stop",cls:"qgold"},
+  {icon:"🤖",label:"Zapytaj AI",screen:"s-ai",cls:"qblue"},
+];
+
+const CHAT_PILLS = [
+  "Jak reagować na agresję wychowanka?",
+  "Co to jest stopień uspołecznienia +1?",
+  "Kiedy zawiadomić Policję?",
+  "Jak motywować wychowanków?",
+  "Prawa wychowanka w MOW",
+  "Jak dokumentować incydenty?",
+  "Co robić przy próbie ucieczki?",
+  "Kiedy wzywać pogotowie?",
+];
+
+const LAWS = [
+  {n:"1",t:"Ustawa o postępowaniu w sprawach nieletnich (Dz.U. 2022 poz. 1082) – podstawa prawna działania MOW."},
+  {n:"2",t:"Rozporządzenie MEN z 27 grudnia 2011 r. – zasady kierowania, przyjmowania, przenoszenia, zwalniania i pobytu nieletnich w MOW."},
+  {n:"3",t:"Rozporządzenie RM z 22 lutego 2011 r. – warunki i sposoby użycia środków przymusu bezpośredniego wobec nieletnich w MOW."},
+  {n:"4",t:"Ustawa o systemie oświaty z 7 września 1991 r. – ramy organizacyjne placówki."},
+  {n:"5",t:"Ustawa o wychowaniu w trzeźwości i przeciwdziałaniu alkoholizmowi (Dz.U. Nr 35 poz. 230)."},
+  {n:"6",t:"Ustawa o przeciwdziałaniu narkomanii z 29 lipca 2005 r."},
+  {n:"7",t:"Ustawa o Policji z 6 kwietnia 1990 r."},
+  {n:"8",t:"Statut MOW nr 1 im. T. Kościuszki w Malborku – wewnętrzny akt prawny placówki."},
+  {n:"9",t:"Karta Nauczyciela (Dz.U. z 2023 poz. 984) – prawa, obowiązki wychowawcy, awans zawodowy."},
+  {n:"10",t:"Zarządzenie nr 15/97 KGP z 16 czerwca 1997 r. – zapobieganie demoralizacji i przestępczości nieletnich."},
+];
+
+/* ────────────────────────────────
+   STATE
+──────────────────────────────── */
+let chatHistory = [];
+let harmContent = null;
+let harmFileName = null;
+
+/* ────────────────────────────────
+   INIT
+──────────────────────────────── */
+function init() {
+  renderSchedule();
+  renderQuickGrid();
+  renderProcs();
+  renderStopnie();
+  renderLaws();
+  renderChatPills();
+  loadNotes();
+  startClock();
+  setupInstall();
+  checkOnline();
+  setInterval(checkOnline, 15000);
+}
+
+/* ────────────────────────────────
+   CLOCK
+──────────────────────────────── */
+function startClock() {
+  tick(); setInterval(tick, 10000);
+}
+function tick() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent =
+    now.toLocaleTimeString('pl', {hour:'2-digit', minute:'2-digit'});
+  const DAYS = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+  const MO = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  document.getElementById('live-date').textContent =
+    `${DAYS[now.getDay()]}, ${now.getDate()} ${MO[now.getMonth()]} ${now.getFullYear()}`;
+  highlightSlot(now);
+}
+
+function toMin(t) {
+  const [h,m] = t.split(':').map(Number); return h*60+m;
+}
+function highlightSlot(now) {
+  const cur = now.getHours()*60 + now.getMinutes();
+  let found = null;
+  for (const s of SCHEDULE) {
+    let start = toMin(s.t), end = toMin(s.e);
+    if (end < start) end += 1440;
+    let c = cur;
+    if (end < start && c < start) c += 1440;
+    if (c >= start && c < end) { found = s; break; }
+  }
+  document.getElementById('curr-act').textContent = found ? found.l : '–';
+  document.querySelectorAll('.sched-item').forEach(el => el.classList.remove('now'));
+  if (found) {
+    const el = document.querySelector(`.sched-item[data-t="${found.t}"]`);
+    if (el) el.classList.add('now');
+  }
+}
+
+/* ────────────────────────────────
+   RENDER SCHEDULE
+──────────────────────────────── */
+function renderSchedule() {
+  document.getElementById('sched-list').innerHTML =
+    SCHEDULE.map(s => `
+      <div class="sched-item" data-t="${s.t}">
+        <div class="sched-time">${s.t}–${s.e}</div>
+        <div>
+          <div class="sched-label">${s.l}</div>
+          <div class="sched-tip">${s.tip}</div>
+        </div>
+      </div>`).join('');
+}
+
+/* ────────────────────────────────
+   RENDER QUICK GRID
+──────────────────────────────── */
+function renderQuickGrid() {
+  document.getElementById('quick-grid').innerHTML =
+    QUICK_ACTIONS.map(a => `
+      <button class="qbtn ${a.cls}" onclick="${a.proc ? `openDetail('${a.proc}')` : `nav('${a.screen}', document.querySelector('.nav-btn:nth-child(${a.screen==='s-stop'?3:5})'))` }">
+        <span class="qi">${a.icon}</span>
+        <span class="ql">${a.label}</span>
+      </button>`).join('');
+}
+
+/* ────────────────────────────────
+   RENDER PROCEDURES
+──────────────────────────────── */
+function renderProcs() {
+  PROCS.forEach(p => {
+    const el = document.createElement('div');
+    el.className = `proc-item ${p.sev}`;
+    el.dataset.id = p.id;
+    el.dataset.search = (p.title+' '+p.sub).toLowerCase();
+    el.innerHTML = `
+      <span class="proc-icon">${p.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="proc-title">${p.title}</div>
+        <div class="proc-sub">${p.sub}</div>
+      </div>
+      <span class="proc-arrow">›</span>`;
+    el.addEventListener('click', () => openDetail(p.id));
+    const container = p.cat==='crisis' ? 'pl-crisis' : p.cat==='safety' ? 'pl-safety' : 'pl-other';
+    document.getElementById(container).appendChild(el);
+  });
+}
+
+function filterProcs(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('.proc-item').forEach(el => {
+    el.style.display = (!q || el.dataset.search.includes(q)) ? '' : 'none';
+  });
+}
+
+/* ────────────────────────────────
+   RENDER STOPNIE
+──────────────────────────────── */
+function renderStopnie() {
+  STOPNIE.forEach(s => {
+    const el = document.createElement('div');
+    el.className = `st-card ${s.cls}`;
+    el.innerHTML = `
+      <div class="st-title">Stopień ${s.lvl}</div>
+      <div class="st-kies">💰 Kieszonkowe: ${s.kies}</div>
+      <div class="st-crit"><ul>${s.crit.map(c=>`<li>${c}</li>`).join('')}</ul></div>`;
+    el.addEventListener('click', () => openStopien(s));
+    document.getElementById(s.lvl.startsWith('–') ? 'st-neg' : 'st-pos').appendChild(el);
+  });
+}
+
+function openStopien(s) {
+  document.getElementById('det-title').textContent = `Stopień ${s.lvl}`;
+  document.getElementById('det-source').textContent = 'Regulamin Stopni Uspołecznienia – Załącznik nr 7 do Statutu MOW';
+  document.getElementById('det-body').innerHTML = `
+    <div class="abox info"><span class="ai">💰</span><div><strong>Kieszonkowe: ${s.kies}</strong></div></div>
+    <p class="sec-title">✅ Kryteria (wszystkie muszą być spełnione)</p>
+    ${s.crit.map((c,i)=>`<div class="step"><div class="step-num">${i+1}</div><div class="step-text">${c}</div></div>`).join('')}
+    <p class="sec-title">🎁 Nagrody i przywileje</p>
+    ${s.przyw.map(p=>`<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:.85rem">• ${p}</div>`).join('')}`;
+  document.getElementById('detail-view').classList.add('open');
+}
+
+/* ────────────────────────────────
+   RENDER LAWS
+──────────────────────────────── */
+function renderLaws() {
+  const el = document.getElementById('law-list-render');
+  if (!el) return;
+  el.innerHTML = LAWS.map(l =>
+    `<div class="law-item"><span class="law-num">${l.n}.</span> ${l.t}</div>`
+  ).join('');
+}
+
+/* ────────────────────────────────
+   RENDER CHAT PILLS
+──────────────────────────────── */
+function renderChatPills() {
+  document.getElementById('chat-pills').innerHTML =
+    CHAT_PILLS.map(p => `<button class="pill" onclick="setQuestion('${p.replace(/'/g,"\\'")}')">💬 ${p}</button>`).join('');
+}
+
+/* ────────────────────────────────
+   NAVIGATION
+──────────────────────────────── */
+function nav(screenId, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+/* ────────────────────────────────
+   DETAIL VIEW
+──────────────────────────────── */
+function openDetail(id) {
+  const proc = PROCS.find(p => p.id === id);
+  if (!proc) return;
+  document.getElementById('det-title').textContent = `${proc.icon} ${proc.title}`;
+  document.getElementById('det-source').textContent = `Źródło: ${proc.src}`;
+  let html = '';
+  if (proc.alert) {
+    const icons = {danger:'🚨', warn:'⚠️', info:'ℹ️', ok:'✅'};
+    html += `<div class="abox ${proc.alert.t}"><span class="ai">${icons[proc.alert.t]||'ℹ️'}</span><div>${proc.alert.txt}</div></div>`;
+  }
+  html += `<p class="sec-title">📋 Kroki postępowania</p>`;
+  html += proc.steps.map((s,i) =>
+    `<div class="step"><div class="step-num">${i+1}</div><div class="step-text">${s}</div></div>`).join('');
+  if (proc.extra) html += proc.extra;
+  document.getElementById('det-body').innerHTML = html;
+  document.getElementById('detail-view').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-view').classList.remove('open');
+}
+
+/* ────────────────────────────────
+   NOTATNIK (notes stored in localStorage)
+──────────────────────────────── */
+function loadNotes() { renderNotesList(); }
+
+function saveNote() {
+  const ta = document.getElementById('note-input');
+  const txt = ta.value.trim();
+  if (!txt) return;
+  const notes = getNotes();
+  notes.unshift({ id: Date.now(), txt, date: new Date().toLocaleString('pl') });
+  localStorage.setItem('mow_notes_v2', JSON.stringify(notes));
+  ta.value = '';
+  renderNotesList();
+}
+
+function getNotes() {
+  try { return JSON.parse(localStorage.getItem('mow_notes_v2') || '[]'); } catch { return []; }
+}
+
+function deleteNote(id) {
+  localStorage.setItem('mow_notes_v2', JSON.stringify(getNotes().filter(n => n.id !== id)));
+  renderNotesList();
+}
+
+function renderNotesList() {
+  const el = document.getElementById('notes-list');
+  if (!el) return;
+  const notes = getNotes();
+  el.innerHTML = notes.length
+    ? `<p class="sec-title">📁 Zapisane notatki (${notes.length})</p>` +
+      notes.map(n => `
+        <div class="note-card">
+          <div class="note-meta">📅 ${n.date}</div>
+          <div class="note-content">${n.txt.replace(/\n/g,'<br>')}</div>
+          <button class="note-del" onclick="deleteNote(${n.id})">✕</button>
+        </div>`).join('')
+    : '<p style="text-align:center;color:var(--muted);font-size:.85rem;padding:20px 0">Brak notatek</p>';
+}
+
+/* ────────────────────────────────
+   AI CHAT
+──────────────────────────────── */
+const SYSTEM_PROMPT = `Jesteś asystentem wychowawcy pracującego w Młodzieżowym Ośrodku Wychowawczym nr 1 im. Tadeusza Kościuszki w Malborku. Pomagasz w:
+- procedurach postępowania (bójki, ucieczki, narkotyki, próby samobójcze, pożar itp.)
+- stopniach uspołecznienia wychowanków (poziomy –2, –1, 0, +1, +2, +3)
+- prawie oświatowym i przepisach dotyczących MOW
+- technikach wychowawczych i resocjalizacyjnych
+- dokumentowaniu zdarzeń
+
+Odpowiadaj po polsku, zwięźle i praktycznie. Używaj list i nagłówków. Gdy chodzi o sytuacje kryzysowe – podkreślaj najważniejsze kroki. Podstawy prawne: UPN (Dz.U. 2022 poz. 1082), Rozp. MEN 2011, Rozp. RM 2011, Statut MOW.`;
+
+function checkOnline() {
+  const online = navigator.onLine;
+  document.getElementById('ai-dot').className = 'dot ' + (online ? 'online' : 'offline');
+  document.getElementById('ai-status-txt').textContent = online
+    ? 'Połączono – AI dostępne' : 'Brak połączenia – AI niedostępne';
+}
+
+function setQuestion(q) {
+  const ta = document.getElementById('chat-input');
+  ta.value = q;
+  autoResizeTA(ta);
+  ta.focus();
+}
+
+function autoResizeTA(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const ta = document.getElementById('chat-input');
+  const q = ta.value.trim();
+  if (!q) return;
+  ta.value = ''; ta.style.height = 'auto';
+
+  appendMsg('user', q);
+  chatHistory.push({ role: 'user', content: q });
+
+  const loading = appendMsg('loading', '⏳ Szukam odpowiedzi...');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: chatHistory
+      })
+    });
+
+    loading.remove();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const answer = data.content?.[0]?.text || '(brak odpowiedzi)';
+    chatHistory.push({ role: 'assistant', content: answer });
+    appendMsg('ai', answer);
+
+  } catch (err) {
+    loading.remove();
+    if (!navigator.onLine) {
+      appendMsg('err', '📡 Brak połączenia z Internetem. Sprawdź zasięg sieci.');
+    } else {
+      appendMsg('err', `❌ Błąd: ${err.message}`);
+    }
+  }
+}
+
+function appendMsg(type, text) {
+  const win = document.getElementById('chat-window');
+  const el = document.createElement('div');
+  el.className = `msg ${type}`;
+  el.innerHTML = text.replace(/\n/g, '<br>');
+  win.appendChild(el);
+  win.scrollTop = win.scrollHeight;
+  return el;
+}
+
+function clearChat() {
+  chatHistory = [];
+  const win = document.getElementById('chat-window');
+  win.innerHTML = '<div class="msg ai">Historia wyczyszczona. Zadaj nowe pytanie!</div>';
+}
+
+/* ────────────────────────────────
+   HARMONOGRAM
+──────────────────────────────── */
+function handleHarmFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  harmFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    harmContent = e.target.result;
+    showHarmFile(file);
+    extractHarmNames();
+  };
+  reader.readAsText(e => {
+    appendMsg('err','Błąd odczytu pliku');
+  });
+  reader.readAsText(file, 'UTF-8');
+}
+
+function showHarmFile(file) {
+  const size = file.size < 1024 ? `${file.size} B` : `${(file.size/1024).toFixed(1)} KB`;
+  document.getElementById('harm-file-list').innerHTML = `
+    <div class="file-item">
+      <span class="fi-icon">📋</span>
+      <span class="fi-name">${file.name}</span>
+      <span class="fi-size">${size}</span>
+      <button class="fi-del" onclick="removeHarmFile()">✕</button>
+    </div>`;
+  document.getElementById('harm-loaded').style.display = 'block';
+  document.getElementById('harm-result').style.display = 'none';
+}
+
+function removeHarmFile() {
+  harmContent = null;
+  harmFileName = null;
+  document.getElementById('harm-file-list').innerHTML = '';
+  document.getElementById('harm-loaded').style.display = 'none';
+  document.getElementById('harm-file-input').value = '';
+}
+
+function extractHarmNames() {
+  if (!harmContent) return;
+  // Wyodrębnij unikalne słowa wyglądające jak nazwiska (z dużej litery, min 4 znaki)
+  const lines = harmContent.split(/[\n\r]+/);
+  const names = new Set();
+  lines.forEach(line => {
+    // szukaj wzorców: Imię Nazwisko lub Nazwisko
+    const matches = line.match(/[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{3,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{3,})?/g);
+    if (matches) matches.forEach(m => names.add(m.trim()));
+  });
+  // Pokaż max 8 jako pills
+  const pills = [...names].slice(0, 8);
+  document.getElementById('harm-pills').innerHTML =
+    pills.map(n => `<button class="pill" onclick="document.getElementById('wych-input').value='${n.replace(/'/g,"\\'")}'; queryHarm()">👤 ${n}</button>`).join('');
+}
+
+function queryHarm() {
+  const name = document.getElementById('wych-input').value.trim();
+  if (!name || !harmContent) return;
+
+  const lines = harmContent.split(/[\n\r]+/);
+  const nameLower = name.toLowerCase();
+
+  // Znajdź wszystkie linie zawierające dane imię/nazwisko
+  const matches = lines.filter(l => l.toLowerCase().includes(nameLower));
+
+  const resultEl = document.getElementById('harm-result');
+  const bodyEl   = document.getElementById('harm-result-body');
+  resultEl.style.display = 'block';
+
+  if (!matches.length) {
+    bodyEl.textContent = `Nie znaleziono żadnych wpisów dla: "${name}"\n\nSprawdź pisownię lub wyszukaj inną osobę.`;
+    return;
+  }
+
+  bodyEl.textContent = `WYNIKI DLA: ${name.toUpperCase()}\n` +
+    `Znalezione wpisy (${matches.length}):\n\n` +
+    matches.join('\n');
+}
+
+async function sendHarmToAI() {
+  if (!harmContent) return;
+  const name = document.getElementById('wych-input').value.trim();
+
+  nav('s-ai', document.querySelector('.nav-btn:last-child'));
+
+  const question = name
+    ? `Na podstawie poniższego harmonogramu, podsumuj dyżury i plan pracy dla wychowawcy: ${name}\n\n--- HARMONOGRAM ---\n${harmContent.slice(0, 3000)}`
+    : `Przeanalizuj poniższy harmonogram internatu i podsumuj go:\n\n--- HARMONOGRAM ---\n${harmContent.slice(0, 3000)}`;
+
+  document.getElementById('chat-input').value = question;
+  await sendChat();
+}
+
+/* ────────────────────────────────
+   PWA INSTALL
+──────────────────────────────── */
+let deferredPrompt = null;
+function setupInstall() {
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-wrap').style.display = 'block';
+  });
+  document.getElementById('install-btn').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('install-wrap').style.display = 'none';
+  });
+}
+
+/* ────────────────────────────────
+   START
+──────────────────────────────── */
+init();
+
+/* ────────────────────────────────
+   SERVICE WORKER (offline cache)
+──────────────────────────────── */
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE='mow-v2';
+self.addEventListener('install',e=>e.waitUntil(
+  caches.open(CACHE).then(c=>c.addAll([self.registration.scope]))
+));
+self.addEventListener('fetch',e=>e.respondWith(
+  caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>r))
+));`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
+</script>
+
+<!-- NOTATNIK – osobny ekran, dodany jako 6-ta zakładka via overlay w nav -->
+<!-- Notatnik dostępny jako overlay z bottom sheet -->
+<style>
+.nota-sheet {
+  display: none;
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(0,0,0,.45);
+}
+.nota-sheet.open { display: flex; align-items: flex-end; }
+.nota-inner {
+  background: var(--white); width: 100%;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom,0px));
+  max-height: 85dvh; overflow-y: auto;
+  animation: sheetUp .25s ease;
+}
+@keyframes sheetUp { from {transform:translateY(100%)} to {transform:none} }
+.nota-drag { width: 44px; height: 5px; background: var(--border); border-radius: 3px; margin: 0 auto 14px; }
+</style>
+
+<!-- floating notatnik button -->
+<button onclick="openNota()" style="
+  position:fixed; bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 10px); right:12px;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--navy); color:#fff; border:none;
+  font-size:1.4rem; box-shadow:0 4px 16px rgba(26,58,92,.4);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer; z-index:80;">📝</button>
+
+<div class="nota-sheet" id="nota-sheet" onclick="closeNota(event)">
+  <div class="nota-inner" onclick="event.stopPropagation()">
+    <div class="nota-drag"></div>
+    <div class="card-hdr" style="border-radius:10px;margin-bottom:12px">📝 Notatnik dyżuru</div>
+    <textarea class="nota-area" id="note-input" placeholder="Zapisz zdarzenia z dyżuru...&#10;&#10;Np. 18:20 – Kowalski J. wrócił z przepustki, bez zastrzeżeń."></textarea>
+    <div class="btn-row">
+      <button class="btn" onclick="saveNote()">💾 Zapisz</button>
+      <button class="btn sec" onclick="document.getElementById('note-input').value=''">🗑 Wyczyść</button>
+    </div>
+    <div id="notes-list" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<script>
+function openNota()  { document.getElementById('nota-sheet').classList.add('open'); renderNotesList(); }
+function closeNota(e){ if(e.target===document.getElementById('nota-sheet')) document.getElementById('nota-sheet').classList.remove('open'); }
+</script>
+
+</body>
+</html>
