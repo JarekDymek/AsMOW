@@ -1345,7 +1345,8 @@ function clearChat() {
   win.innerHTML = '<div class="msg ai">Historia wyczyszczona. Zadaj nowe pytanie!</div>';
 }
 
-const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || '/api/chat';
+const DEFAULT_AI_BACKEND_URL = 'https://asmow.onrender.com/api/chat';
+const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || DEFAULT_AI_BACKEND_URL;
 const CHAT_STORE_KEY = 'mow_chat_history_v2';
 const MOW_DOCUMENTS = [
   'STATUT-M.O.W.pdf',
@@ -1671,9 +1672,12 @@ init();
 ──────────────────────────────── */
 if ('serviceWorker' in navigator) {
   const swCode = `
-const CACHE='mow-v2';
+const CACHE='mow-v3';
 self.addEventListener('install',e=>e.waitUntil(
   caches.open(CACHE).then(c=>c.addAll([self.registration.scope]))
+));
+self.addEventListener('activate',e=>e.waitUntil(
+  caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
 ));
 self.addEventListener('fetch',e=>e.respondWith(
   caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>r))
