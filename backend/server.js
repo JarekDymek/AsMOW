@@ -2,10 +2,12 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BODY_LIMIT = Number(process.env.BODY_LIMIT || 1_200_000);
+const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
   .map(s => s.trim())
@@ -54,12 +56,14 @@ const server = http.createServer(async (req, res) => {
       const messages = sanitizeMessages(payload.messages);
       if (!messages.length) return json(res, 400, { error: 'Brak pytania.' });
 
+      const attachments = await normalizeAttachments(payload.attachments);
       const system = buildSystemPrompt(payload.context, payload.clientTime);
+      const enrichedMessages = addAttachmentContext(messages, attachments);
       const answer = PROVIDER === 'gemini'
-        ? await askGemini(system, messages)
+        ? await askGemini(system, enrichedMessages, attachments)
         : PROVIDER === 'anthropic'
-          ? await askAnthropic(system, messages)
-          : await askOpenAI(system, messages);
+          ? await askAnthropic(system, enrichedMessages)
+          : await askOpenAI(system, enrichedMessages);
 
       return json(res, 200, { answer });
     }
@@ -143,6 +147,76 @@ function sanitizeMessages(messages) {
     .map(m => ({ role: m.role, content: m.content.slice(0, 8000) }));
 }
 
+async function normalizeAttachments(attachments) {
+  if (!Array.isArray(attachments)) return [];
+  const safe = [];
+  for (const item of attachments.slice(0, 6)) {
+    if (!item || typeof item.name !== 'string') continue;
+    const name = item.name.slice(0, 160);
+    const mimeType = String(item.mimeType || '').slice(0, 120);
+    const dataBase64 = typeof item.dataBase64 === 'string' ? item.dataBase64 : '';
+    const text = typeof item.text === 'string' ? item.text.slice(0, 60_000) : '';
+
+    if (text) {
+      safe.push({ name, mimeType, text, kind: 'text' });
+      continue;
+    }
+
+    if (!dataBase64) continue;
+    const buffer = Buffer.from(dataBase64, 'base64');
+    if (buffer.length > 8_000_000) {
+      safe.push({ name, mimeType, text: `Plik "${name}" jest za duży do analizy w tej wersji aplikacji.`, kind: 'text' });
+      continue;
+    }
+
+    if (isImageMime(mimeType)) {
+      safe.push({ name, mimeType, dataBase64, kind: 'image' });
+      continue;
+    }
+
+    if (/\.(docx)$/i.test(name) || mimeType.includes('wordprocessingml')) {
+      const result = await mammoth.extractRawText({ buffer });
+      safe.push({ name, mimeType, text: result.value.slice(0, 60_000), kind: 'text' });
+      continue;
+    }
+
+    if (/\.(xlsx|xls)$/i.test(name) || mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const parts = [];
+      workbook.SheetNames.slice(0, 8).forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const csv = XLSX.utils.sheet_to_csv(sheet).slice(0, 20_000);
+        parts.push(`Arkusz: ${sheetName}\n${csv}`);
+      });
+      safe.push({ name, mimeType, text: parts.join('\n\n').slice(0, 60_000), kind: 'text' });
+      continue;
+    }
+
+    if (/\.(doc)$/i.test(name)) {
+      safe.push({ name, mimeType, text: `Plik "${name}" jest w starszym formacie .doc. Zapisz go jako .docx albo PDF i wgraj ponownie.`, kind: 'text' });
+    }
+  }
+  return safe;
+}
+
+function addAttachmentContext(messages, attachments) {
+  const textParts = attachments
+    .filter(a => a.kind === 'text' && a.text)
+    .map(a => `--- ZAŁĄCZNIK: ${a.name} ---\n${a.text}`)
+    .join('\n\n');
+  if (!textParts) return messages;
+  const copy = messages.map(m => ({ ...m }));
+  const lastUser = [...copy].reverse().find(m => m.role === 'user');
+  if (lastUser) {
+    lastUser.content += `\n\nDo analizy dołączono pliki:\n${textParts}`;
+  }
+  return copy;
+}
+
+function isImageMime(mimeType) {
+  return /^image\/(png|jpe?g|webp|gif)$/i.test(mimeType);
+}
+
 function buildSystemPrompt(context = {}, clientTime = '') {
   const structuredContext = JSON.stringify(compactContext(context), null, 2).slice(0, 45_000);
   const localKnowledge = loadKnowledgeFiles().slice(0, 55_000);
@@ -215,17 +289,32 @@ async function askAnthropic(system, messages) {
   return data.content?.map(part => part.text || '').join('\n').trim() || '(brak odpowiedzi)';
 }
 
-async function askGemini(system, messages) {
+async function askGemini(system, messages, attachments = []) {
   if (!process.env.GEMINI_API_KEY) {
     const err = new Error('Brak klucza Gemini w Renderze. W ustawieniach Environment dodaj GEMINI_API_KEY z Google AI Studio, zapisz zmiany i uruchom ponownie deploy.');
     err.status = 400;
     err.code = 'GEMINI_KEY_MISSING';
     throw err;
   }
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
+  const imageParts = attachments
+    .filter(a => a.kind === 'image' && a.dataBase64 && isImageMime(a.mimeType))
+    .map(a => ({
+      inlineData: {
+        mimeType: a.mimeType,
+        data: a.dataBase64
+      }
+    }));
+  const contents = messages.map((m, idx) => {
+    const isLast = idx === messages.length - 1;
+    const parts = [{ text: m.content }];
+    if (isLast && m.role === 'user' && imageParts.length) {
+      parts.push(...imageParts);
+    }
+    return {
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts
+    };
+  });
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
   const res = await fetch(url, {
     method: 'POST',

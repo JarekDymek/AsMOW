@@ -84,6 +84,15 @@ body {
   padding: 3px 9px; border-radius: 20px;
   white-space: nowrap;
 }
+.hdr-install {
+  margin-left: auto;
+  background: var(--gold); color: var(--navy);
+  border: none; border-radius: 9px;
+  padding: 8px 10px;
+  font-size: .74rem; font-weight: 950;
+  white-space: nowrap; cursor: pointer;
+}
+.hdr-install + .hdr-badge { margin-left: 6px; }
 
 /* ═══════════════════════════════════
    BOTTOM NAV
@@ -499,6 +508,30 @@ body {
   background: #fdf2f2; color: var(--red); border-color: #f0a9a0;
   animation: pulseVoice 1.2s infinite;
 }
+.chat-attach {
+  background: var(--white); color: var(--navy); border: 2px solid var(--border);
+  width: 52px; height: 52px; border-radius: 12px;
+  font-size: 1.05rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.attach-list {
+  display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0;
+}
+.attach-chip {
+  background: #e8eff7; border: 1px solid var(--border); color: #09233d;
+  border-radius: 18px; padding: 6px 10px; font-size: .78rem; font-weight: 850;
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+}
+.attach-chip button {
+  border: none; background: transparent; color: var(--red);
+  font-weight: 950; cursor: pointer; min-height: auto;
+}
+.retry-btn {
+  margin-top: 8px; background: var(--navy); color: #fff;
+  border: none; border-radius: 9px; padding: 8px 12px;
+  font-size: .82rem; font-weight: 950; cursor: pointer;
+}
 @keyframes pulseVoice {
   0%,100% { box-shadow: 0 0 0 0 rgba(192,57,43,.25); }
   50% { box-shadow: 0 0 0 7px rgba(192,57,43,0); }
@@ -557,6 +590,34 @@ body {
   font-size: .85rem; line-height: 1.7;
   margin-bottom: 10px; white-space: pre-wrap; word-break: break-word;
 }
+.harm-preview {
+  background: #fff; border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 10px; margin-bottom: 10px;
+}
+.harm-preview img {
+  width: 100%; max-height: 360px; object-fit: contain;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: #f7fafc; cursor: zoom-in;
+}
+.image-viewer {
+  display: none; position: fixed; inset: 0; z-index: 280;
+  background: rgba(0,0,0,.92); padding: 12px;
+  align-items: center; justify-content: center;
+}
+.image-viewer.open { display: flex; }
+.image-viewer img {
+  max-width: 100%; max-height: 86vh; object-fit: contain;
+  transform: scale(var(--zoom, 1)); transform-origin: center center;
+}
+.image-tools {
+  position: fixed; left: 10px; right: 10px; bottom: 12px;
+  display: flex; gap: 8px; justify-content: center;
+}
+.image-tools button {
+  background: #fff; color: var(--navy); border: none;
+  border-radius: 10px; padding: 10px 13px;
+  font-weight: 950; cursor: pointer;
+}
 
 /* ═══════════════════════════════════
    UTILS
@@ -608,6 +669,7 @@ input, textarea {
     <h1>Asystent MOW</h1>
     <p>nr 1 im. T. Kościuszki · Malbork</p>
   </div>
+  <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
   <span class="hdr-badge">v2.0</span>
 </header>
 
@@ -625,18 +687,6 @@ input, textarea {
     <div class="clock-right">
       <div class="clock-act" id="curr-act">Sprawdzanie...</div>
       <div class="clock-sub">aktualne zajęcie</div>
-    </div>
-  </div>
-
-  <div id="install-wrap" style="display:none">
-    <div class="install-banner">
-      <span class="ib-icon">📲</span>
-      <div class="ib-text">
-        <h3>Zainstaluj aplikację</h3>
-        <p>Smartfon, iPad i PC. Szybszy dostęp z ekranu głównego.</p>
-      </div>
-      <button class="ib-help" id="install-help-btn" type="button">Jak?</button>
-      <button class="ib-btn" id="install-btn" type="button">Instaluj</button>
     </div>
   </div>
 
@@ -709,6 +759,10 @@ input, textarea {
 
     <p class="sec-title" style="margin-top:8px">💡 Szybkie pytania</p>
     <div class="chat-pills" id="chat-pills"></div>
+    <input type="file" id="ai-file-input"
+      accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
+      multiple style="display:none" onchange="handleAIFileInput(this)">
+    <div class="attach-list" id="ai-attachments"></div>
 
     <div class="chat-row">
       <div class="chat-input-wrap">
@@ -717,6 +771,7 @@ input, textarea {
           oninput="autoResizeTA(this)"
           onkeydown="chatKeydown(event)"></textarea>
       </div>
+      <button class="chat-attach" onclick="document.getElementById('ai-file-input').click()" title="Dodaj dokument" aria-label="Dodaj dokument">📎</button>
       <button class="chat-voice" id="voice-btn" onclick="toggleVoiceInput()" title="Dyktuj pytanie" aria-label="Dyktuj pytanie">🎙</button>
       <button class="chat-send" onclick="sendChat()" title="Wyślij">➤</button>
     </div>
@@ -803,18 +858,21 @@ input, textarea {
 
   <div class="abox info" style="margin-bottom:10px">
     <span class="ai">📁</span>
-    <div style="font-size:.78rem">Wgraj plik tekstowy (.txt, .csv) z harmonogramem internatu. Następnie zapytaj o plan konkretnego wychowawcy.</div>
+    <div style="font-size:.92rem">Wgraj harmonogram: tekst, CSV, Word, Excel albo screen. Screen możesz potem powiększyć w aplikacji.</div>
   </div>
 
-  <input type="file" id="harm-file-input" accept=".txt,.csv,.tsv" style="display:none" onchange="handleHarmFile(this)">
+  <input type="file" id="harm-file-input"
+    accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
+    style="display:none" onchange="handleHarmFile(this)">
 
   <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">
     <div class="uz-icon">📋</div>
     <div class="uz-label">Dotknij aby wgrać harmonogram</div>
-    <div class="uz-hint">.txt / .csv — plik z rozkładem dyżurów</div>
+    <div class="uz-hint">TXT, CSV, Word, Excel lub screen/zdjęcie</div>
   </div>
 
   <div class="file-list" id="harm-file-list"></div>
+  <div class="harm-preview" id="harm-preview" style="display:none"></div>
 
   <div id="harm-loaded" style="display:none">
     <p class="sec-title">🔍 Zapytaj o wychowawcę</p>
@@ -849,6 +907,15 @@ input, textarea {
     <h2>Instalacja aplikacji</h2>
     <div class="install-steps" id="install-steps"></div>
     <button class="install-close" type="button" onclick="closeInstallHelp()">Zamknij</button>
+  </div>
+</div>
+
+<div class="image-viewer" id="image-viewer" onclick="closeImageViewer(event)">
+  <img id="image-viewer-img" alt="Podgląd harmonogramu">
+  <div class="image-tools" onclick="event.stopPropagation()">
+    <button type="button" onclick="zoomImage(0.25)">+</button>
+    <button type="button" onclick="zoomImage(-0.25)">-</button>
+    <button type="button" onclick="closeImageViewer()">Zamknij</button>
   </div>
 </div>
 
@@ -1138,6 +1205,10 @@ let harmContent = null;
 let harmFileName = null;
 let speechRecognition = null;
 let isListening = false;
+let aiAttachments = [];
+let harmAttachment = null;
+let lastFailedChat = null;
+let imageZoom = 1;
 
 /* ────────────────────────────────
    INIT
@@ -1450,13 +1521,22 @@ function getAIHealthUrl() {
 async function sendChat() {
   const ta = document.getElementById('chat-input');
   const q = ta.value.trim();
-  if (!q) return;
+  if (!q && !aiAttachments.length) return;
+  const attachmentsToSend = aiAttachments.slice();
   ta.value = '';
   ta.style.height = 'auto';
+  aiAttachments = [];
+  renderAIAttachments();
 
-  appendMsg('user', q);
-  chatHistory.push({ role: 'user', content: q });
+  const userContent = q || 'Przeanalizuj załączone pliki.';
+  appendMsg('user', userContent);
+  chatHistory.push({ role: 'user', content: userContent });
   saveChatHistory();
+  lastFailedChat = {
+    question: q,
+    attachments: attachmentsToSend,
+    history: chatHistory.slice(-18)
+  };
 
   const loading = appendMsg('loading', 'Szukam odpowiedzi w dokumentach i rozmowie...');
 
@@ -1466,6 +1546,7 @@ async function sendChat() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: chatHistory.slice(-18),
+        attachments: attachmentsToSend,
         context: buildAssistantContext(),
         clientTime: new Date().toISOString()
       })
@@ -1491,14 +1572,15 @@ async function sendChat() {
     const answer = data.answer || data.message || data.content || '(brak odpowiedzi)';
     chatHistory.push({ role: 'assistant', content: answer });
     saveChatHistory();
+    lastFailedChat = null;
     appendMsg('ai', answer, data.sources || []);
 
   } catch (err) {
     loading.remove();
     if (!navigator.onLine) {
-      appendMsg('err', 'Brak połączenia z Internetem. Sprawdź zasięg sieci.');
+      appendMsg('err', 'Brak połączenia z Internetem. Sprawdź zasięg sieci.', [], { retry: true });
     } else {
-      appendMsg('err', `Nie mogę połączyć się z asystentem AI: ${err.message}`);
+      appendMsg('err', `Nie mogę połączyć się z asystentem AI: ${err.message}`, [], { retry: true });
     }
   }
 }
@@ -1543,7 +1625,7 @@ function saveChatHistory() {
   localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(chatHistory.slice(-18)));
 }
 
-function appendMsg(type, text, sources = []) {
+function appendMsg(type, text, sources = [], options = {}) {
   const win = document.getElementById('chat-window');
   const el = document.createElement('div');
   el.className = `msg ${type}`;
@@ -1556,9 +1638,56 @@ function appendMsg(type, text, sources = []) {
     src.innerHTML = '<strong>Źródła:</strong> ' + sources.map(escapeHtml).join('; ');
     el.appendChild(src);
   }
+  if (options.retry) {
+    const btn = document.createElement('button');
+    btn.className = 'retry-btn';
+    btn.type = 'button';
+    btn.textContent = 'Powtórz';
+    btn.onclick = retryLastChat;
+    el.appendChild(btn);
+  }
   win.appendChild(el);
   win.scrollTop = win.scrollHeight;
   return el;
+}
+
+async function retryLastChat() {
+  if (!lastFailedChat) return;
+  chatHistory = lastFailedChat.history.slice(0, -1);
+  aiAttachments = lastFailedChat.attachments || [];
+  document.getElementById('chat-input').value = lastFailedChat.question || '';
+  renderAIAttachments();
+  await sendChat();
+}
+
+async function handleAIFileInput(input) {
+  const files = [...input.files].slice(0, 6);
+  if (!files.length) return;
+  try {
+    const items = await Promise.all(files.map(fileToAttachment));
+    aiAttachments.push(...items);
+    renderAIAttachments();
+  } catch (err) {
+    appendMsg('err', err.message || 'Nie udało się dodać pliku.');
+  } finally {
+    input.value = '';
+  }
+}
+
+function renderAIAttachments() {
+  const el = document.getElementById('ai-attachments');
+  if (!el) return;
+  el.innerHTML = aiAttachments.map((a, i) => `
+    <span class="attach-chip">
+      ${isImageAttachment(a) ? '🖼' : '📄'} ${escapeHtml(a.name)}
+      <button type="button" onclick="removeAIAttachment(${i})">×</button>
+    </span>
+  `).join('');
+}
+
+function removeAIAttachment(index) {
+  aiAttachments.splice(index, 1);
+  renderAIAttachments();
 }
 
 function formatChatText(text) {
@@ -1623,28 +1752,82 @@ function setVoiceState(active) {
   btn.title = active ? 'Zatrzymaj dyktowanie' : 'Dyktuj pytanie';
 }
 
+async function fileToAttachment(file) {
+  const textLike = /\.(txt|csv|tsv)$/i.test(file.name) || /^text\//i.test(file.type);
+  if (textLike) {
+    return {
+      name: file.name,
+      mimeType: file.type || 'text/plain',
+      text: await readFileText(file)
+    };
+  }
+  const dataUrl = await readFileDataUrl(file);
+  const dataBase64 = dataUrl.split(',')[1] || '';
+  return {
+    name: file.name,
+    mimeType: file.type || guessMimeType(file.name),
+    dataBase64,
+    dataUrl
+  };
+}
+
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(String(e.target.result || ''));
+    reader.onerror = () => reject(new Error('Błąd odczytu pliku.'));
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+function readFileDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(String(e.target.result || ''));
+    reader.onerror = () => reject(new Error('Błąd odczytu pliku.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function guessMimeType(name) {
+  if (/\.docx$/i.test(name)) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (/\.xlsx$/i.test(name)) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (/\.xls$/i.test(name)) return 'application/vnd.ms-excel';
+  if (/\.doc$/i.test(name)) return 'application/msword';
+  if (/\.png$/i.test(name)) return 'image/png';
+  if (/\.jpe?g$/i.test(name)) return 'image/jpeg';
+  if (/\.webp$/i.test(name)) return 'image/webp';
+  return 'application/octet-stream';
+}
+
+function isImageAttachment(att) {
+  return /^image\//i.test(att.mimeType || '');
+}
+
 /* ────────────────────────────────
    HARMONOGRAM
 ──────────────────────────────── */
-function handleHarmFile(input) {
+async function handleHarmFile(input) {
   const file = input.files[0];
   if (!file) return;
   harmFileName = file.name;
-  const reader = new FileReader();
-  reader.onload = e => {
-    harmContent = e.target.result;
-    showHarmFile(file);
-    extractHarmNames();
-  };
-  reader.onerror = () => appendMsg('err', 'Błąd odczytu pliku harmonogramu.');
-  reader.readAsText(file, 'UTF-8');
+  try {
+    harmAttachment = await fileToAttachment(file);
+    harmContent = harmAttachment.text || '';
+    showHarmFile(file, harmAttachment);
+    renderHarmPreview(harmAttachment);
+    if (harmContent) extractHarmNames();
+    else document.getElementById('harm-pills').innerHTML = '';
+  } catch (err) {
+    appendMsg('err', 'Błąd odczytu pliku harmonogramu.');
+  }
 }
 
-function showHarmFile(file) {
+function showHarmFile(file, attachment = null) {
   const size = file.size < 1024 ? `${file.size} B` : `${(file.size/1024).toFixed(1)} KB`;
   document.getElementById('harm-file-list').innerHTML = `
     <div class="file-item">
-      <span class="fi-icon">📋</span>
+      <span class="fi-icon">${attachment && isImageAttachment(attachment) ? '🖼' : '📋'}</span>
       <span class="fi-name">${file.name}</span>
       <span class="fi-size">${size}</span>
       <button class="fi-del" onclick="removeHarmFile()">✕</button>
@@ -1656,9 +1839,27 @@ function showHarmFile(file) {
 function removeHarmFile() {
   harmContent = null;
   harmFileName = null;
+  harmAttachment = null;
   document.getElementById('harm-file-list').innerHTML = '';
+  document.getElementById('harm-preview').style.display = 'none';
+  document.getElementById('harm-preview').innerHTML = '';
   document.getElementById('harm-loaded').style.display = 'none';
   document.getElementById('harm-file-input').value = '';
+}
+
+function renderHarmPreview(attachment) {
+  const el = document.getElementById('harm-preview');
+  if (!el || !attachment) return;
+  if (isImageAttachment(attachment) && attachment.dataUrl) {
+    el.style.display = 'block';
+    el.innerHTML = `
+      <img src="${attachment.dataUrl}" alt="Screen harmonogramu" onclick="openImageViewer('${attachment.dataUrl}')">
+      <button class="btn sec" style="width:100%;margin-top:8px" onclick="openImageViewer('${attachment.dataUrl}')">🔍 Powiększ screen</button>
+    `;
+    return;
+  }
+  el.style.display = 'none';
+  el.innerHTML = '';
 }
 
 function extractHarmNames() {
@@ -1679,7 +1880,14 @@ function extractHarmNames() {
 
 function queryHarm() {
   const name = document.getElementById('wych-input').value.trim();
-  if (!name || !harmContent) return;
+  if (!name) return;
+  if (!harmContent) {
+    const resultEl = document.getElementById('harm-result');
+    const bodyEl   = document.getElementById('harm-result-body');
+    resultEl.style.display = 'block';
+    bodyEl.textContent = 'Ten format harmonogramu najlepiej przeanalizuje AI. Kliknij „Zapytaj AI o harmonogram”.';
+    return;
+  }
 
   const lines = harmContent.split(/[\n\r]+/);
   const nameLower = name.toLowerCase();
@@ -1702,17 +1910,40 @@ function queryHarm() {
 }
 
 async function sendHarmToAI() {
-  if (!harmContent) return;
+  if (!harmContent && !harmAttachment) return;
   const name = document.getElementById('wych-input').value.trim();
 
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
 
   const question = name
-    ? `Na podstawie poniższego harmonogramu, podsumuj dyżury i plan pracy dla wychowawcy: ${name}\n\n--- HARMONOGRAM ---\n${harmContent.slice(0, 3000)}`
-    : `Przeanalizuj poniższy harmonogram internatu i podsumuj go:\n\n--- HARMONOGRAM ---\n${harmContent.slice(0, 3000)}`;
+    ? `Na podstawie załączonego harmonogramu podsumuj dyżury i plan pracy dla wychowawcy: ${name}. Jeżeli dane są nieczytelne, dopytaj o brakujący fragment.\n\n--- HARMONOGRAM TEKSTOWY ---\n${(harmContent || '').slice(0, 5000)}`
+    : `Przeanalizuj załączony harmonogram internatu i podsumuj go. Jeżeli pytanie jest zbyt ogólne albo dane są nieczytelne, zadaj pytanie doprecyzowujące.\n\n--- HARMONOGRAM TEKSTOWY ---\n${(harmContent || '').slice(0, 5000)}`;
 
+  if (harmAttachment) {
+    aiAttachments = [harmAttachment];
+    renderAIAttachments();
+  }
   document.getElementById('chat-input').value = question;
   await sendChat();
+}
+
+function openImageViewer(src) {
+  imageZoom = 1;
+  const viewer = document.getElementById('image-viewer');
+  const img = document.getElementById('image-viewer-img');
+  img.src = src;
+  img.style.setProperty('--zoom', imageZoom);
+  viewer.classList.add('open');
+}
+
+function closeImageViewer(e) {
+  const viewer = document.getElementById('image-viewer');
+  if (!e || e.target === viewer) viewer.classList.remove('open');
+}
+
+function zoomImage(delta) {
+  imageZoom = Math.max(0.75, Math.min(3, imageZoom + delta));
+  document.getElementById('image-viewer-img').style.setProperty('--zoom', imageZoom);
 }
 
 /* ────────────────────────────────
@@ -1720,40 +1951,33 @@ async function sendHarmToAI() {
 ──────────────────────────────── */
 let deferredPrompt = null;
 function setupInstall() {
-  const wrap = document.getElementById('install-wrap');
   const installBtn = document.getElementById('install-btn');
-  const helpBtn = document.getElementById('install-help-btn');
-  if (!wrap || !installBtn || !helpBtn) return;
+  if (!installBtn) return;
 
   if (isStandaloneApp()) {
-    wrap.style.display = 'none';
+    installBtn.style.display = 'none';
     return;
   }
 
-  wrap.style.display = 'block';
-  installBtn.textContent = 'Instrukcja';
+  installBtn.style.display = 'none';
 
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    wrap.style.display = 'block';
+    installBtn.style.display = 'inline-flex';
     installBtn.textContent = 'Instaluj';
   });
 
-  helpBtn.addEventListener('click', openInstallHelp);
   installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) {
-      openInstallHelp();
-      return;
-    }
+    if (!deferredPrompt) return;
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
     deferredPrompt = null;
-    wrap.style.display = 'none';
+    installBtn.style.display = 'none';
   });
 
   window.addEventListener('appinstalled', () => {
-    wrap.style.display = 'none';
+    installBtn.style.display = 'none';
   });
 }
 
