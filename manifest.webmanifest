@@ -1,0 +1,23 @@
+{
+  "name": "Asystent Wychowawcy MOW nr 1 Malbork",
+  "short_name": "Asystent MOW",
+  "description": "Mobilny asystent wychowawcy MOW nr 1 w Malborku.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#102f4e",
+  "theme_color": "#102f4e",
+  "orientation": "portrait",
+  "lang": "pl",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -18,6 +18,11 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 const rate = new Map();
+const STATIC_FILES = new Map([
+  ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
+  ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }],
+  ['/icon.svg', { file: path.join(__dirname, '..', 'icon.svg'), type: 'image/svg+xml; charset=utf-8' }]
+]);
 
 function resolveProvider() {
   if (process.env.GEMINI_API_KEY) return 'gemini';
@@ -62,6 +67,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
       const file = path.join(__dirname, '..', 'index.html');
       return sendFile(res, file, 'text/html; charset=utf-8');
+    }
+
+    if (req.method === 'GET' && STATIC_FILES.has(url.pathname)) {
+      const asset = STATIC_FILES.get(url.pathname);
+      return sendFile(res, asset.file, asset.type);
     }
 
     return json(res, 404, { error: 'Nie znaleziono endpointu.' });

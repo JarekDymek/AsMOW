@@ -2,26 +2,17 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a3a5c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Asystent MOW">
+<meta name="application-name" content="Asystent MOW">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <title>Asystent MOW Malbork</title>
-<script>
-const manifest = {
-  "name": "Asystent Wychowawcy MOW nr 1 Malbork",
-  "short_name": "Asystent MOW",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#1a3a5c",
-  "theme_color": "#1a3a5c",
-  "orientation": "portrait",
-  "icons": [{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==","sizes":"192x192","type":"image/png"}]
-};
-const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-document.write('<link rel="manifest" href="'+URL.createObjectURL(blob)+'">');
-</script>
 <style>
 /* ═══════════════════════════════════
    RESET & BASE — mobile-first
@@ -33,36 +24,38 @@ document.write('<link rel="manifest" href="'+URL.createObjectURL(blob)+'">');
   -webkit-touch-callout: none;
 }
 html {
-  font-size: 18px; /* base — wszystko w rem skaluje z tego */
+  font-size: 19px; /* mobile-first: wyraźna baza tekstu */
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #f0f4f8;
-  color: #1a1a2e;
+  background: #eef3f8;
+  color: #071827;
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  font-weight: 650;
 }
 
 /* ═══════════════════════════════════
    DESIGN TOKENS
 ═══════════════════════════════════ */
 :root {
-  --navy:       #1a3a5c;
-  --navy2:      #254d7a;
-  --gold:       #c9972b;
-  --gold2:      #e8b84b;
-  --cream:      #f0f4f8;
+  --navy:       #102f4e;
+  --navy2:      #1d4974;
+  --gold:       #d8a21f;
+  --gold2:      #ffd56a;
+  --cream:      #eef3f8;
   --white:      #ffffff;
-  --red:        #c0392b;
-  --orange:     #d35400;
-  --green:      #1e8449;
-  --border:     #d0dae6;
-  --muted:      #607080;
-  --shadow:     0 2px 14px rgba(26,58,92,.13);
-  --radius:     14px;
-  --nav-h:      68px;
+  --red:        #a82618;
+  --orange:     #a94800;
+  --green:      #126334;
+  --border:     #aebed0;
+  --muted:      #3f5368;
+  --shadow:     0 3px 16px rgba(16,47,78,.18);
+  --radius:     12px;
+  --nav-h:      76px;
 }
 
 /* ═══════════════════════════════════
@@ -81,8 +74,8 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
 .hdr-icon { font-size: 1.6rem; flex-shrink: 0; }
-.hdr-text h1 { font-size: 1rem; font-weight: 800; line-height: 1.2; }
-.hdr-text p  { font-size: .72rem; color: rgba(255,255,255,.65); }
+.hdr-text h1 { font-size: 1.05rem; font-weight: 900; line-height: 1.2; }
+.hdr-text p  { font-size: .78rem; color: rgba(255,255,255,.86); font-weight: 750; }
 .hdr-badge {
   margin-left: auto;
   background: var(--gold);
@@ -113,16 +106,17 @@ body {
   cursor: pointer; transition: color .18s;
   gap: 2px; min-width: 0;
 }
-.nav-btn .ni { font-size: 1.3rem; }
-.nav-btn .nl { font-size: .55rem; font-weight: 700; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nav-btn { min-height: 62px; }
+.nav-btn .ni { font-size: 1.38rem; }
+.nav-btn .nl { font-size: .64rem; font-weight: 900; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .nav-btn.active { color: var(--gold2); }
 
 /* ═══════════════════════════════════
    MAIN SCROLL AREA
 ═══════════════════════════════════ */
 .main-wrap {
-  padding: 12px 12px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
-  max-width: 540px;
+  padding: 12px 12px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  max-width: 620px;
   margin: 0 auto;
   overflow-x: hidden;
 }
@@ -138,9 +132,9 @@ body {
    TYPOGRAPHY HELPERS
 ═══════════════════════════════════ */
 .sec-title {
-  font-size: .72rem; font-weight: 900;
+  font-size: .8rem; font-weight: 950;
   color: var(--navy);
-  text-transform: uppercase; letter-spacing: .8px;
+  text-transform: uppercase; letter-spacing: .3px;
   margin: 16px 0 8px;
   padding-left: 10px;
   border-left: 3px solid var(--gold);
@@ -174,7 +168,7 @@ body {
   font-size: .83rem; font-weight: 800;
   display: flex; align-items: center; gap: 8px;
 }
-.card-body { padding: 14px; }
+.card-body { padding: 15px; }
 
 /* ═══════════════════════════════════
    CLOCK BOX
@@ -188,8 +182,8 @@ body {
   margin-bottom: 12px;
 }
 .clock-time { font-size: 2.4rem; font-weight: 900; color: var(--gold2); font-variant-numeric: tabular-nums; line-height: 1; }
-.clock-sub  { font-size: .72rem; color: rgba(255,255,255,.65); margin-top: 3px; }
-.clock-act  { font-size: .95rem; font-weight: 700; line-height: 1.3; }
+.clock-sub  { font-size: .78rem; color: rgba(255,255,255,.86); margin-top: 3px; font-weight: 750; }
+.clock-act  { font-size: 1rem; font-weight: 850; line-height: 1.35; }
 .clock-right { margin-left: auto; text-align: right; }
 
 /* ═══════════════════════════════════
@@ -209,8 +203,8 @@ body {
   white-space: nowrap; min-width: 82px;
   text-align: center; flex-shrink: 0;
 }
-.sched-label { font-size: .88rem; font-weight: 700; }
-.sched-tip   { font-size: .72rem; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.sched-label { font-size: .96rem; font-weight: 900; }
+.sched-tip   { font-size: .82rem; color: #24384b; margin-top: 3px; line-height: 1.5; font-weight: 650; }
 .sched-item.now .sched-time {
   background: var(--gold); color: var(--navy);
   animation: pulse 2s infinite;
@@ -243,26 +237,54 @@ body {
 .qbtn.qgold { background: #fef9ee; border: 1.5px solid #f0d080; }
 .qbtn.qblue { background: #edf4fb; border: 1.5px solid #aed6f1; }
 .qbtn .qi { font-size: 1.8rem; }
-.qbtn .ql { font-size: .75rem; font-weight: 800; color: var(--navy); text-align: center; line-height: 1.35; }
+.qbtn .ql { font-size: .84rem; font-weight: 900; color: var(--navy); text-align: center; line-height: 1.35; }
 
 /* install banner */
 .install-banner {
-  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  background: var(--navy);
   color: #fff; border-radius: var(--radius);
   padding: 13px 15px;
   display: flex; align-items: center; gap: 12px;
   margin-bottom: 12px;
 }
 .ib-icon { font-size: 1.7rem; flex-shrink: 0; }
-.ib-text h3 { font-size: .83rem; font-weight: 800; }
-.ib-text p  { font-size: .68rem; color: rgba(255,255,255,.72); margin-top: 2px; }
+.ib-text h3 { font-size: .94rem; font-weight: 950; }
+.ib-text p  { font-size: .78rem; color: rgba(255,255,255,.9); margin-top: 2px; font-weight: 700; line-height: 1.35; }
 .ib-btn {
   margin-left: auto;
   background: var(--gold); color: var(--navy);
   border: none; border-radius: 9px;
-  padding: 8px 13px;
-  font-size: .78rem; font-weight: 900;
+  padding: 10px 14px;
+  font-size: .82rem; font-weight: 950;
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.ib-help {
+  background: rgba(255,255,255,.14); color: #fff;
+  border: 1px solid rgba(255,255,255,.38); border-radius: 9px;
+  padding: 10px 12px; font-size: .82rem; font-weight: 900;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.install-sheet {
+  display: none; position: fixed; inset: 0; z-index: 260;
+  background: rgba(7,24,39,.62); padding: 14px;
+  align-items: flex-end; justify-content: center;
+}
+.install-sheet.open { display: flex; }
+.install-panel {
+  width: min(620px, 100%); background: #fff; color: #071827;
+  border-radius: 16px; padding: 18px; box-shadow: 0 8px 28px rgba(0,0,0,.32);
+}
+.install-panel h2 { font-size: 1.15rem; color: var(--navy); font-weight: 950; margin-bottom: 8px; }
+.install-steps { display: grid; gap: 9px; margin: 12px 0; }
+.install-step {
+  background: #eef3f8; border-left: 5px solid var(--gold);
+  padding: 10px 12px; border-radius: 9px; font-size: .92rem;
+  line-height: 1.45; font-weight: 800;
+}
+.install-close {
+  width: 100%; background: var(--navy); color: #fff;
+  border: none; border-radius: 10px; padding: 12px;
+  font-size: .95rem; font-weight: 950; cursor: pointer;
 }
 
 /* ═══════════════════════════════════
@@ -277,8 +299,8 @@ body {
 .proc-item:last-child { border-bottom: none; }
 .proc-item:active { background: #f0f5fb; }
 .proc-icon  { font-size: 1.6rem; flex-shrink: 0; }
-.proc-title { font-size: .9rem; font-weight: 800; line-height: 1.3; }
-.proc-sub   { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.proc-title { font-size: .98rem; font-weight: 950; line-height: 1.32; }
+.proc-sub   { font-size: .82rem; color: #2a3d50; margin-top: 2px; font-weight: 700; }
 .proc-arrow { margin-left: auto; font-size: 1.2rem; color: var(--muted); flex-shrink: 0; }
 .proc-item.danger .proc-title { color: var(--red); }
 .proc-item.warn   .proc-title { color: var(--orange); }
@@ -313,13 +335,13 @@ body {
 .st-p1  { background:#eafaf1; border-color:#27ae60; }
 .st-p2  { background:#e8f4fd; border-color:#2e86c1; }
 .st-p3  { background:#f5eef8; border-color:#8e44ad; }
-.st-title { font-size: 1rem; font-weight: 900; margin-bottom: 5px; }
+.st-title { font-size: 1.08rem; font-weight: 950; margin-bottom: 5px; }
 .st-kies {
-  font-size: .7rem; font-weight: 900;
+  font-size: .78rem; font-weight: 950;
   background: var(--navy); color: var(--gold2);
   display: inline-block; padding: 2px 9px; border-radius: 12px; margin-bottom: 7px;
 }
-.st-crit { font-size: .78rem; line-height: 1.65; }
+.st-crit { font-size: .88rem; line-height: 1.65; font-weight: 750; }
 .st-crit li { margin-left: 16px; margin-bottom: 1px; }
 
 /* ═══════════════════════════════════
@@ -327,7 +349,7 @@ body {
 ═══════════════════════════════════ */
 .abox {
   border-radius: 10px; padding: 12px 13px;
-  margin: 10px 0; font-size: .83rem; line-height: 1.55;
+  margin: 10px 0; font-size: .92rem; line-height: 1.55; font-weight: 750;
   display: flex; gap: 10px; align-items: flex-start;
 }
 .abox.danger { background:#fdf2f2; border-left:4px solid var(--red); }
@@ -360,8 +382,8 @@ body {
   padding: 5px 10px; border-radius: 9px;
   flex-shrink: 0; margin-top: 2px;
 }
-.det-title  { font-size: 1rem; font-weight: 800; line-height: 1.35; }
-.det-source { font-size: .65rem; color: rgba(255,255,255,.6); margin-top: 4px; font-style: italic; }
+.det-title  { font-size: 1.08rem; font-weight: 950; line-height: 1.35; }
+.det-source { font-size: .74rem; color: rgba(255,255,255,.86); margin-top: 4px; font-style: italic; font-weight: 700; }
 .det-body   { padding: 16px; padding-bottom: 50px; }
 
 /* steps */
@@ -374,7 +396,7 @@ body {
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: .8rem; font-weight: 900;
 }
-.step-text { font-size: .88rem; line-height: 1.6; padding-top: 4px; }
+.step-text { font-size: .96rem; line-height: 1.62; padding-top: 4px; font-weight: 750; }
 .step-text strong { color: var(--navy); }
 
 /* info rows */
@@ -412,7 +434,7 @@ body {
   padding: 13px; margin-bottom: 9px; box-shadow: var(--shadow); position: relative;
 }
 .note-meta    { font-size: .65rem; color: var(--muted); margin-bottom: 5px; }
-.note-content { font-size: .85rem; line-height: 1.55; }
+.note-content { font-size: .94rem; line-height: 1.58; font-weight: 750; }
 .note-del {
   position: absolute; top: 10px; right: 10px;
   background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer;
@@ -425,20 +447,21 @@ body {
 .chat-window {
   background: var(--white); border-radius: var(--radius);
   box-shadow: var(--shadow); margin-bottom: 10px;
-  min-height: 200px; max-height: 50vh; overflow-y: auto;
+  min-height: 240px; max-height: 56vh; overflow-y: auto;
   padding: 12px;
   display: flex; flex-direction: column; gap: 10px;
 }
 .msg {
-  max-width: 92%; padding: 10px 13px;
-  border-radius: 14px; font-size: .85rem; line-height: 1.6; word-break: break-word;
+  max-width: 94%; padding: 11px 14px;
+  border-radius: 14px; font-size: .95rem; line-height: 1.62; word-break: break-word;
+  font-weight: 750;
 }
 .msg.user {
   background: var(--navy); color: #fff;
   border-bottom-right-radius: 4px; align-self: flex-end;
 }
 .msg.ai {
-  background: #f0f4f8; color: var(--navy);
+  background: #e8eff7; color: #09233d;
   border-bottom-left-radius: 4px; align-self: flex-start;
 }
 .msg.err { background: #fdf2f2; color: var(--red); border: 1px solid #f5b7b1; }
@@ -454,20 +477,20 @@ body {
 }
 .chat-input {
   flex: 1; border: none; outline: none; resize: none;
-  font-size: .9rem; font-family: inherit;
-  padding: 11px 12px; background: transparent;
-  color: var(--navy); max-height: 120px; line-height: 1.45;
+  font-size: 1rem; font-family: inherit; font-weight: 800;
+  padding: 13px 12px; background: transparent;
+  color: var(--navy); max-height: 140px; line-height: 1.48;
 }
 .chat-send {
   background: var(--navy); color: #fff; border: none;
-  width: 46px; height: 46px; border-radius: 12px;
+  width: 52px; height: 52px; border-radius: 12px;
   font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
 .chat-send:active { opacity: .8; }
 .chat-voice {
   background: var(--white); color: var(--navy); border: 2px solid var(--border);
-  width: 46px; height: 46px; border-radius: 12px;
+  width: 52px; height: 52px; border-radius: 12px;
   font-size: 1.05rem; cursor: pointer; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   box-shadow: var(--shadow);
@@ -485,13 +508,13 @@ body {
 }
 .pill {
   background: var(--white); border: 1.5px solid var(--border);
-  border-radius: 20px; padding: 7px 12px;
-  font-size: .75rem; font-weight: 700; color: var(--navy2);
+  border-radius: 20px; padding: 8px 12px;
+  font-size: .84rem; font-weight: 850; color: var(--navy2);
   cursor: pointer; box-shadow: var(--shadow);
 }
 .pill:active { background: var(--cream); }
 .ai-status {
-  font-size: .65rem; color: var(--muted); text-align: center; margin-bottom: 6px;
+  font-size: .76rem; color: #26394c; text-align: center; margin-bottom: 8px; font-weight: 800;
 }
 .ai-status .dot {
   display: inline-block; width: 7px; height: 7px;
@@ -543,6 +566,37 @@ body {
 .law-item:last-child { border-bottom: none; }
 .law-num { font-weight: 900; color: var(--navy); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+button, input, textarea {
+  font: inherit;
+}
+button {
+  min-height: 44px;
+}
+input, textarea {
+  caret-color: var(--navy);
+}
+:focus-visible {
+  outline: 3px solid var(--gold2);
+  outline-offset: 2px;
+}
+
+@media (max-width: 380px) {
+  html { font-size: 18px; }
+  .main-wrap { padding-left: 9px; padding-right: 9px; }
+  .quick-grid { gap: 8px; }
+  .qbtn { padding: 12px 7px; }
+  .clock-box { gap: 9px; padding: 13px 12px; }
+  .clock-time { font-size: 2rem; }
+  .chat-row { gap: 6px; }
+  .chat-send, .chat-voice { width: 48px; height: 48px; }
+}
+
+@media (min-width: 760px) {
+  .main-wrap { max-width: 760px; }
+  .quick-grid { grid-template-columns: repeat(4, 1fr); }
+  .chat-window { max-height: 60vh; }
+}
 </style>
 </head>
 <body>
@@ -578,10 +632,11 @@ body {
     <div class="install-banner">
       <span class="ib-icon">📲</span>
       <div class="ib-text">
-        <h3>Zainstaluj na telefonie</h3>
-        <p>Działa offline po instalacji</p>
+        <h3>Zainstaluj aplikację</h3>
+        <p>Smartfon, iPad i PC. Szybszy dostęp z ekranu głównego.</p>
       </div>
-      <button class="ib-btn" id="install-btn">Zainstaluj</button>
+      <button class="ib-help" id="install-help-btn" type="button">Jak?</button>
+      <button class="ib-btn" id="install-btn" type="button">Instaluj</button>
     </div>
   </div>
 
@@ -788,6 +843,14 @@ body {
 </div><!-- /s-harm -->
 
 </div><!-- /main-wrap -->
+
+<div class="install-sheet" id="install-sheet" onclick="closeInstallHelp(event)">
+  <div class="install-panel" onclick="event.stopPropagation()">
+    <h2>Instalacja aplikacji</h2>
+    <div class="install-steps" id="install-steps"></div>
+    <button class="install-close" type="button" onclick="closeInstallHelp()">Zamknij</button>
+  </div>
+</div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
@@ -1657,18 +1720,94 @@ async function sendHarmToAI() {
 ──────────────────────────────── */
 let deferredPrompt = null;
 function setupInstall() {
+  const wrap = document.getElementById('install-wrap');
+  const installBtn = document.getElementById('install-btn');
+  const helpBtn = document.getElementById('install-help-btn');
+  if (!wrap || !installBtn || !helpBtn) return;
+
+  if (isStandaloneApp()) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  installBtn.textContent = 'Instrukcja';
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    document.getElementById('install-wrap').style.display = 'block';
+    wrap.style.display = 'block';
+    installBtn.textContent = 'Instaluj';
   });
-  document.getElementById('install-btn').addEventListener('click', async () => {
-    if (!deferredPrompt) return;
+
+  helpBtn.addEventListener('click', openInstallHelp);
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) {
+      openInstallHelp();
+      return;
+    }
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
     deferredPrompt = null;
-    document.getElementById('install-wrap').style.display = 'none';
+    wrap.style.display = 'none';
   });
+
+  window.addEventListener('appinstalled', () => {
+    wrap.style.display = 'none';
+  });
+}
+
+function isStandaloneApp() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function openInstallHelp() {
+  const steps = getInstallSteps();
+  document.getElementById('install-steps').innerHTML =
+    steps.map(s => `<div class="install-step">${s}</div>`).join('');
+  document.getElementById('install-sheet').classList.add('open');
+}
+
+function closeInstallHelp(e) {
+  const sheet = document.getElementById('install-sheet');
+  if (!e || e.target === sheet) sheet.classList.remove('open');
+}
+
+function getInstallSteps() {
+  const ua = navigator.userAgent || '';
+  const isiOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const isWindows = /Windows/i.test(ua);
+
+  if (isiOS) {
+    return [
+      'Na iPhone albo iPad otwórz tę stronę w Safari.',
+      'Dotknij przycisku Udostępnij.',
+      'Wybierz: Do ekranu początkowego.',
+      'Potwierdź: Dodaj.'
+    ];
+  }
+  if (isAndroid) {
+    return [
+      'Na Androidzie otwórz stronę w Chrome.',
+      'Dotknij Instaluj, jeśli przycisk jest widoczny.',
+      'Jeżeli go nie ma: menu ⋮ i opcja Dodaj do ekranu głównego albo Zainstaluj aplikację.',
+      'Po instalacji ikona pojawi się na ekranie telefonu.'
+    ];
+  }
+  if (isWindows) {
+    return [
+      'Na komputerze otwórz stronę w Chrome albo Edge.',
+      'Kliknij ikonę instalacji w pasku adresu albo menu przeglądarki.',
+      'Wybierz Zainstaluj aplikację.',
+      'Po instalacji aplikacja będzie dostępna w menu Start.'
+    ];
+  }
+  return [
+    'Otwórz stronę w Chrome, Edge albo Safari.',
+    'Użyj przycisku Instaluj, jeśli jest dostępny.',
+    'Jeżeli nie ma przycisku, użyj menu przeglądarki i wybierz Dodaj do ekranu głównego lub Zainstaluj aplikację.'
+  ];
 }
 
 /* ────────────────────────────────
@@ -1680,19 +1819,7 @@ init();
    SERVICE WORKER (offline cache)
 ──────────────────────────────── */
 if ('serviceWorker' in navigator) {
-  const swCode = `
-const CACHE='mow-v3';
-self.addEventListener('install',e=>e.waitUntil(
-  caches.open(CACHE).then(c=>c.addAll([self.registration.scope]))
-));
-self.addEventListener('activate',e=>e.waitUntil(
-  caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-));
-self.addEventListener('fetch',e=>e.respondWith(
-  caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>r))
-));`;
-  const swBlob = new Blob([swCode], {type:'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 </script>
 
