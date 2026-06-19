@@ -2414,9 +2414,19 @@ async function loadSampleWeeklyPlan() {
 
 function setWeeklyPlanFromPayload(payload, sourceLabel) {
   const extracted = extractWeeklyDashboard(payload);
+  if (extracted.ok === false) {
+    setWeeklyStatus(`Generator Harmonogram-MOW zwrócił błąd: ${extracted.error || 'brak szczegółów'}. Sprawdź VIEW_TOKEN/ADMIN_TOKEN i czy link /exec jest z aktualnego wdrożenia.`);
+    return;
+  }
   const normalized = normalizeWeeklyPayload(extracted);
   if (!normalized.weeks.length) {
-    setWeeklyStatus('Odpowiedź z generatora nie zawiera tygodniowego planu.');
+    const details = [
+      extracted.status ? `status: ${extracted.status}` : '',
+      extracted.action ? `akcja: ${extracted.action}` : '',
+      extracted.appName ? `aplikacja: ${extracted.appName}` : '',
+      extracted.error ? `błąd: ${extracted.error}` : ''
+    ].filter(Boolean).join(', ');
+    setWeeklyStatus(`Odpowiedź z generatora nie zawiera tygodniowego planu${details ? ` (${details})` : ''}. Sprawdź, czy generator ma już zeskanowane grafiki i czy token daje dostęp do widoku.`);
     return;
   }
   weeklyPlan = normalized;
@@ -2429,7 +2439,8 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
 
 function extractWeeklyDashboard(payload) {
   if (!payload) return {};
-  if (payload.data && (payload.data.weeks || payload.data.dashboard)) return extractWeeklyDashboard(payload.data);
+  if (payload.ok === false) return payload;
+  if (payload.data && (payload.data.weeks || payload.data.dashboard || payload.data.ok === false)) return extractWeeklyDashboard(payload.data);
   if (payload.dashboard) return extractWeeklyDashboard(payload.dashboard);
   if (payload.result) return extractWeeklyDashboard(payload.result);
   return payload;

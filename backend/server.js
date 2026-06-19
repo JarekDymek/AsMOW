@@ -287,6 +287,23 @@ async function fetchWeeklyPlan(payload = {}) {
       err.status = 502;
       throw err;
     }
+    if (data.ok === false) {
+      const err = new Error(data.error || 'Generator Harmonogram-MOW odmówił dostępu albo zwrócił błąd.');
+      err.status = /token|dostęp|uprawnie/i.test(err.message) ? 403 : 502;
+      err.code = 'HARMONOGRAM_BACKEND_ERROR';
+      throw err;
+    }
+    const candidate = data.data || data.dashboard || data;
+    const weeks = Array.isArray(candidate.weeks) ? candidate.weeks : Array.isArray(data.weeks) ? data.weeks : [];
+    if (!weeks.length) {
+      return {
+        ok: true,
+        proxied: true,
+        warning: 'NO_WEEKS',
+        message: 'Generator odpowiedział, ale nie przekazał tablicy weeks. Najczęściej oznacza to brak zeskanowanych grafików albo inny format odpowiedzi.',
+        data
+      };
+    }
     return { ok: true, proxied: true, data };
   } finally {
     clearTimeout(timer);
