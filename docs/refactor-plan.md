@@ -12,7 +12,12 @@
 - `assets/js/state.js` zawiera wspólny stan i klucze `localStorage`.
 - `assets/js/ui.js` zawiera nawigację, zegar, harmonogram dnia, render procedur, stopni i podstaw prawnych.
 - `assets/js/notes.js` zawiera notatnik dyżuru.
-- `assets/js/ai.js` zawiera czat AI, głos, historię, retry i wspólne czytanie plików.
+- `assets/js/utils.js` zawiera wspólne funkcje formatowania i escapowania tekstu.
+- `assets/js/files.js` zawiera wspólne czytanie TXT, Word, Excel i obrazów.
+- `assets/js/ai-config.js` zawiera konfigurację backendu AI i budowanie kontekstu odpowiedzi.
+- `assets/js/ai-chat.js` zawiera czat AI, historię, retry i załączniki czatu.
+- `assets/js/ai-voice.js` zawiera dyktowanie głosowe.
+- `assets/js/ai.js` pozostaje małym plikiem informacyjnym po podziale AI.
 - `assets/js/harmonogram.js` zawiera lokalne wgrywanie i analizę harmonogramu z pliku/screena.
 - `assets/js/weekly-plan.js` zawiera integrację z generatorem Harmonogram-MOW.
 - `assets/js/knowledge-base.js` zawiera bazę wiedzy, wzory dokumentów i zmiany czasowe.
@@ -23,10 +28,9 @@
 
 ## Następne bezpieczne etapy
 
-1. Uporządkować `ai.js`: osobno czat, pliki, dyktowanie głosowe i kontekst odpowiedzi.
-2. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
-3. Dodać test sprawdzający obecność wszystkich zasobów z `index.html` i `sw.js`.
-4. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
+1. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
+2. Rozważyć dalszy podział `ui.js` na procedury, stopnie i prawo.
+3. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
 
 ## Zasada utrzymania
 
