@@ -1,0 +1,10 @@
+﻿{
+  "name": "asmow-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:assets": "node tests/check-assets.mjs",
+    "check": "npm run test:assets && node --check backend/server.js && node --check assets/js/data.js && node --check assets/js/state.js && node --check assets/js/ui.js && node --check assets/js/notes.js && node --check assets/js/ai.js && node --check assets/js/harmonogram.js && node --check assets/js/weekly-plan.js && node --check assets/js/knowledge-base.js && node --check assets/js/pwa.js && node --check assets/js/app.js"
+  }
+}
