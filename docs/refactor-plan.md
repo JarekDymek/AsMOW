@@ -30,6 +30,8 @@
 - 2026-06-19: rozdzielono duży plik danych na pliki tematyczne.
 - 2026-06-19: rozdzielono duży plik komponentów CSS na style wspólne i style obszarów aplikacji.
 - 2026-06-19: rozdzielono bazę wiedzy na zapis, formularz, listę i kontekst AI.
+- 2026-06-19: dodano zwijane sekcje w zakładkach Procedury, Stopnie, Prawo i Harmonogram oraz zwijane tygodnie planu.
+- 2026-06-19: poprawiono instalację PWA na GitHub Pages, dodano względne ścieżki service workera i ikonę MOW.
 
 ## Następne bezpieczne etapy
 

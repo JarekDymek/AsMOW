@@ -9,9 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="Asystent MOW">
 <meta name="application-name" content="Asystent MOW">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/icon.svg">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="icon" href="assets/icons/icon-192.png" type="image/png">
 <title>Asystent MOW Malbork</title>
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/layout.css">
@@ -34,6 +34,7 @@
   <script src="assets/js/state.js" defer></script>
   <script src="assets/js/utils.js" defer></script>
   <script src="assets/js/files.js" defer></script>
+  <script src="assets/js/accordion.js" defer></script>
   <script src="assets/js/navigation.js" defer></script>
   <script src="assets/js/clock.js" defer></script>
   <script src="assets/js/day-schedule.js" defer></script>
@@ -61,7 +62,7 @@
 
 <!-- HEADER -->
 <header class="app-header">
-  <span class="hdr-icon">🏫</span>
+  <img class="hdr-logo" src="assets/icons/icon-192.png" alt="Logo MOW">
   <div class="hdr-text">
     <h1>Asystent MOW</h1>
     <p>nr 1 im. T. Kościuszki · Malbork</p>
@@ -112,12 +113,18 @@
     <span class="search-icon">🔍</span>
     <input type="text" id="proc-search" placeholder="Szukaj procedury..." oninput="filterProcs(this.value)">
   </div>
-  <p class="sec-title">🔴 Sytuacje kryzysowe</p>
-  <div class="card" style="padding:0"><div id="pl-crisis"></div></div>
-  <p class="sec-title">🟡 Bezpieczeństwo</p>
-  <div class="card" style="padding:0"><div id="pl-safety"></div></div>
-  <p class="sec-title">🟢 Inne procedury</p>
-  <div class="card" style="padding:0"><div id="pl-other"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="proc-crisis-card" onclick="toggleAccordion('proc-crisis-card')">
+    <span class="st-main">🔴 Sytuacje kryzysowe</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="proc-crisis-card" style="padding:0"><div id="pl-crisis"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="proc-safety-card" onclick="toggleAccordion('proc-safety-card')">
+    <span class="st-main">🟡 Bezpieczeństwo</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="proc-safety-card" style="padding:0"><div id="pl-safety"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="proc-other-card" onclick="toggleAccordion('proc-other-card')">
+    <span class="st-main">🟢 Inne procedury</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="proc-other-card" style="padding:0"><div id="pl-other"></div></div>
 </div>
 
 <!-- ════════════ STOPNIE ════════════ -->
@@ -130,16 +137,27 @@
     </div>
     <div class="mini-ai-hint">AI ma odwołać się do regulaminu stopni i wskazać, czego brakuje do jednoznacznej oceny.</div>
   </div>
-  <div class="abox info">
-    <span class="ai">ℹ️</span>
-    <div>Kwalifikacja do <strong>25. dnia miesiąca</strong> przez wychowawców i wychowanków wspólnie. Zmiana max. o 1 stopień wyżej (wyjątkowo 2). Stopień zerowy: min. 4 tyg. adaptacji.</div>
+  <button class="section-toggle" type="button" data-accordion-target="stop-rules-card" onclick="toggleAccordion('stop-rules-card')">
+    <span class="st-main">ℹ️ Zasady kwalifikacji</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="stop-rules-card">
+    <div class="abox info">
+      <span class="ai">ℹ️</span>
+      <div>Kwalifikacja do <strong>25. dnia miesiąca</strong> przez wychowawców i wychowanków wspólnie. Zmiana max. o 1 stopień wyżej (wyjątkowo 2). Stopień zerowy: min. 4 tyg. adaptacji.</div>
+    </div>
   </div>
-  <p class="sec-title">📉 Stopnie ujemne</p>
-  <div id="st-neg"></div>
-  <p class="sec-title">📈 Stopnie pozytywne</p>
-  <div id="st-pos"></div>
-  <p class="sec-title">⬇️ Automatyczny spadek stopnia</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="stop-neg-card" onclick="toggleAccordion('stop-neg-card')">
+    <span class="st-main">📉 Stopnie ujemne</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="stop-neg-card"><div id="st-neg"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="stop-pos-card" onclick="toggleAccordion('stop-pos-card')">
+    <span class="st-main">📈 Stopnie pozytywne</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="stop-pos-card"><div id="st-pos"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="stop-drop-card" onclick="toggleAccordion('stop-drop-card')">
+    <span class="st-main">⬇️ Automatyczny spadek stopnia</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="stop-drop-card"><div class="card-body">
     <div style="font-size:.88rem;line-height:2">
       <div>🥊 Czyn karalny → <strong>stopień –2</strong></div>
       <div>👊 Pobicie z urazem → <strong>spadek o 2</strong> (min. zero)</div>
@@ -208,11 +226,15 @@
     <div class="mini-ai-hint">AI ma wskazać źródło i rozdzielić przepisy prawa od dokumentów wewnętrznych MOW.</div>
   </div>
 
-  <p class="sec-title">📚 Podstawy prawne MOW</p>
-  <div class="card" style="padding:0"><div id="law-list-render"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="law-sources-card" onclick="toggleAccordion('law-sources-card')">
+    <span class="st-main">📚 Podstawy prawne MOW</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-sources-card" style="padding:0"><div id="law-list-render"></div></div>
 
-  <p class="sec-title">⚖️ Prawa wychowanka (UPN)</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="law-rights-card" onclick="toggleAccordion('law-rights-card')">
+    <span class="st-main">⚖️ Prawa wychowanka (UPN)</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-rights-card"><div class="card-body">
     <div style="font-size:.88rem;font-weight:800;color:var(--navy);margin-bottom:8px">Art. 4 – Środki wychowawcze:</div>
     <div style="font-size:.85rem;line-height:1.8;margin-bottom:12px">
       • upomnienie<br>• nadzór rodziców / kuratora<br>• nadzór organizacji społecznej<br>
@@ -231,8 +253,10 @@
     <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Źródło: Ustawa o postępowaniu w sprawach nieletnich (t.j. Dz.U. 2022 poz. 1082)</p>
   </div></div>
 
-  <p class="sec-title">⬇️ Środki przymusu bezpośredniego</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="law-force-card" onclick="toggleAccordion('law-force-card')">
+    <span class="st-main">⬇️ Środki przymusu bezpośredniego</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-force-card"><div class="card-body">
     <div class="abox warn" style="margin-bottom:10px">
       <span class="ai">⚠️</span>
       <div style="font-size:.8rem">Środki przymusu stosuje się <strong>tylko w ostateczności</strong>, gdy inne sposoby są nieskuteczne. Podstawa: Rozp. RM z 22.02.2011 r.</div>
@@ -254,8 +278,10 @@
     </div>
   </div></div>
 
-  <p class="sec-title">📞 Numery alarmowe i kontakty</p>
-  <div class="card" style="padding:0">
+  <button class="section-toggle" type="button" data-accordion-target="law-phones-card" onclick="toggleAccordion('law-phones-card')">
+    <span class="st-main">📞 Numery alarmowe i kontakty</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-phones-card" style="padding:0">
     <div class="info-row"><span class="il">🚒 Straż Pożarna</span><span class="iv"><a href="tel:998">998</a></span></div>
     <div class="info-row"><span class="il">👮 Policja</span><span class="iv"><a href="tel:997">997</a></span></div>
     <div class="info-row"><span class="il">🚑 Pogotowie</span><span class="iv"><a href="tel:999">999</a></span></div>
@@ -265,8 +291,10 @@
     <div class="info-row"><span class="il">🔵 Telefon zaufania MEN</span><span class="iv"><a href="tel:116111">116 111</a></span></div>
   </div>
 
-  <p class="sec-title">📄 Dokumenty wewnętrzne MOW</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="law-docs-card" onclick="toggleAccordion('law-docs-card')">
+    <span class="st-main">📄 Dokumenty wewnętrzne MOW</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-docs-card"><div class="card-body">
     <span class="tag gold">Statut MOW</span>
     <span class="tag">Reg. Stopni Uspołecznienia</span>
     <span class="tag">Procedury Postępowania</span>
@@ -276,8 +304,10 @@
     <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Dokumenty formalne MOW nr 1 im. T. Kościuszki w Malborku</p>
   </div></div>
 
-  <p class="sec-title">Baza wiedzy, wzory i zmiany czasowe</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="law-kb-form-card" onclick="toggleAccordion('law-kb-form-card')">
+    <span class="st-main">🗂️ Baza wiedzy, wzory i zmiany czasowe</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-kb-form-card"><div class="card-body">
     <div class="kb-form">
       <select id="kb-type">
         <option value="zmiana-czasowa">Zmiana czasowa / zarządzenie okresowe</option>
@@ -306,7 +336,11 @@
     </div>
     <div class="weekly-status" id="kb-status">Wpisy z datą „obowiązuje do” po tej dacie będą traktowane jako archiwalne.</div>
   </div></div>
-  <div id="knowledge-list"></div>
+
+  <button class="section-toggle" type="button" data-accordion-target="law-kb-list-card" onclick="toggleAccordion('law-kb-list-card')">
+    <span class="st-main">📌 Zapisane wpisy bazy wiedzy</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="law-kb-list-card"><div id="knowledge-list"></div></div>
 
 </div><!-- /s-prawo -->
 
@@ -318,8 +352,10 @@
     <div style="font-size:.92rem">Wgraj harmonogram: tekst, CSV, Word, Excel albo screen. Screen możesz potem powiększyć w aplikacji.</div>
   </div>
 
-  <p class="sec-title">Plan tygodniowy z generatora Harmonogram-MOW</p>
-  <div class="card"><div class="card-body">
+  <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')" data-default="open">
+    <span class="st-main">Plan tygodniowy z generatora Harmonogram-MOW</span><span class="st-state">Zwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="weekly-settings-card"><div class="card-body">
     <div class="weekly-settings">
       <input id="weekly-backend-url" type="url" placeholder="Adres Apps Script /exec z Harmonogram-MOW">
       <input id="weekly-token" type="password" placeholder="VIEW_TOKEN lub ADMIN_TOKEN (jeśli wymagany)">
@@ -338,18 +374,25 @@
     accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
     style="display:none" onchange="handleHarmFile(this)">
 
-  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">
-    <div class="uz-icon">📋</div>
-    <div class="uz-label">Dotknij aby wgrać harmonogram</div>
-    <div class="uz-hint">TXT, CSV, Word, Excel lub screen/zdjęcie</div>
+  <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
+    <span class="st-main">📋 Wczytaj harmonogram z pliku lub screena</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="harm-upload-card">
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">
+      <div class="uz-icon">📋</div>
+      <div class="uz-label">Dotknij aby wgrać harmonogram</div>
+      <div class="uz-hint">TXT, CSV, Word, Excel lub screen/zdjęcie</div>
+    </div>
+
+    <div class="file-list" id="harm-file-list"></div>
+    <div class="harm-preview" id="harm-preview" style="display:none"></div>
   </div>
 
-  <div class="file-list" id="harm-file-list"></div>
-  <div class="harm-preview" id="harm-preview" style="display:none"></div>
-
   <div id="harm-loaded" style="display:none">
-    <p class="sec-title">🔍 Zapytaj o wychowawcę</p>
-    <div class="card card-body">
+    <button class="section-toggle" type="button" data-accordion-target="harm-query-card" onclick="toggleAccordion('harm-query-card')" data-default="open">
+      <span class="st-main">🔍 Zapytaj o wychowawcę</span><span class="st-state">Zwiń</span>
+    </button>
+    <div class="card card-body collapsible-card accordion-panel" id="harm-query-card">
       <div style="display:flex;gap:8px;align-items:center">
         <input type="text" id="wych-input" placeholder="Imię i nazwisko wychowawcy..."
           style="flex:1;border:2px solid var(--border);border-radius:10px;padding:10px 13px;font-size:.9rem;font-family:inherit;outline:none;min-width:0"
@@ -360,8 +403,10 @@
     </div>
 
     <div id="harm-result" style="display:none">
-      <p class="sec-title">📊 Wynik</p>
-      <div class="wych-result" id="harm-result-body"></div>
+      <button class="section-toggle" type="button" data-accordion-target="harm-result-card" onclick="toggleAccordion('harm-result-card')" data-default="open">
+        <span class="st-main">📊 Wynik</span><span class="st-state">Zwiń</span>
+      </button>
+      <div class="wych-result collapsible-card accordion-panel" id="harm-result-card"><div id="harm-result-body"></div></div>
     </div>
 
     <div class="abox info" style="margin-top:4px">

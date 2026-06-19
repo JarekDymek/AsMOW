@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════
+/* ═══════════════════════════════════
    HARMONOGRAM UPLOAD
 ═══════════════════════════════════ */
 .upload-zone {
@@ -186,3 +186,30 @@
   color: var(--navy);
 }
 
+
+.weekly-card {
+  padding: 0;
+  overflow: hidden;
+}
+.weekly-toggle {
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: none;
+}
+.weekly-toggle .st-main {
+  text-transform: none;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+.weekly-range {
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+.weekly-body {
+  padding: 2px 12px 10px;
+}

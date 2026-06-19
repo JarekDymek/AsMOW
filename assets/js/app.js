@@ -1,4 +1,4 @@
-﻿/* ────────────────────────────────
+/* ────────────────────────────────
    INIT
 ──────────────────────────────── */
 function init() {
@@ -15,6 +15,7 @@ function init() {
   loadKnowledgeBase();
   renderKnowledgeList();
   loadNotes();
+  setupAccordions();
   startClock();
   setupWorkSafeguards();
   setupInstall();

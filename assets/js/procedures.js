@@ -25,6 +25,16 @@ function filterProcs(q) {
   document.querySelectorAll('.proc-item').forEach(el => {
     el.style.display = (!q || el.dataset.search.includes(q)) ? '' : 'none';
   });
+  if (!q) return;
+  [
+    ['pl-crisis', 'proc-crisis-card'],
+    ['pl-safety', 'proc-safety-card'],
+    ['pl-other', 'proc-other-card']
+  ].forEach(([listId, panelId]) => {
+    const hasMatch = [...document.querySelectorAll(`#${listId} .proc-item`)]
+      .some(el => el.style.display !== 'none');
+    setAccordionCollapsed(panelId, !hasMatch);
+  });
 }
 
 /* ────────────────────────────────

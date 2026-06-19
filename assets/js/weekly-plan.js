@@ -1,4 +1,4 @@
-﻿/* ────────────────────────────────
+/* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
 function loadWeeklyPlanState() {
@@ -137,25 +137,30 @@ function renderWeeklyPlan() {
     el.innerHTML = '';
     return;
   }
-  el.innerHTML = weeklyPlan.weeks.slice(0, 6).map(week => `
-    <div class="weekly-card">
-      <div class="weekly-head">
-        <span>${escapeHtml(week.label || 'Tydzień')}</span>
-        <span>${escapeHtml(week.range || '')}</span>
-      </div>
-      <div class="weekly-status">
-        Godziny: ${escapeHtml(week.summary?.totalHours ?? '0')} · Nadgodziny: ${escapeHtml(week.summary?.overtimeHours ?? '0')} · Weekend: ${escapeHtml(week.summary?.weekendHours ?? '0')}
-      </div>
-      ${(week.days || []).map(day => `
-        <div class="weekly-day">
-          <strong>${escapeHtml(day.name || '')} ${escapeHtml(day.date || '')}</strong>
-          ${day.shifts && day.shifts.length
-            ? day.shifts.map(formatWeeklyShift).join('')
-            : '<span class="weekly-empty">Brak dyżuru</span>'}
+  el.innerHTML = weeklyPlan.weeks.slice(0, 6).map((week, index) => {
+    const panelId = `weekly-week-${index}`;
+    const summary = `Godziny: ${escapeHtml(week.summary?.totalHours ?? '0')} · Nadgodziny: ${escapeHtml(week.summary?.overtimeHours ?? '0')} · Weekend: ${escapeHtml(week.summary?.weekendHours ?? '0')}`;
+    return `
+      <div class="weekly-card">
+        <button class="section-toggle weekly-toggle" type="button" data-accordion-target="${panelId}" onclick="toggleAccordion('${panelId}')">
+          <span class="st-main"><span>${escapeHtml(week.label || 'Tydzień')}</span><small>${summary}</small></span>
+          <span class="weekly-range">${escapeHtml(week.range || '')}</span>
+          <span class="st-state">Rozwiń</span>
+        </button>
+        <div class="weekly-body collapsible-card accordion-panel" id="${panelId}">
+          ${(week.days || []).map(day => `
+            <div class="weekly-day">
+              <strong>${escapeHtml(day.name || '')} ${escapeHtml(day.date || '')}</strong>
+              ${day.shifts && day.shifts.length
+                ? day.shifts.map(formatWeeklyShift).join('')
+                : '<span class="weekly-empty">Brak dyżuru</span>'}
+            </div>
+          `).join('')}
         </div>
-      `).join('')}
-    </div>
-  `).join('');
+      </div>
+    `;
+  }).join('');
+  setupAccordions(el);
 }
 
 function formatWeeklyShift(shift) {

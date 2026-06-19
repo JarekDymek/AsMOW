@@ -1,4 +1,4 @@
-﻿/* Extracted from index.html */
+/* Extracted from index.html */
 /* ═══════════════════════════════════
    RESET & BASE — mobile-first
 ═══════════════════════════════════ */
@@ -20,7 +20,7 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 /* ═══════════════════════════════════
@@ -37,9 +37,8 @@ body {
   --orange:     #a94800;
   --green:      #126334;
   --border:     #aebed0;
-  --muted:      #3f5368;
+  --muted:      #26394c;
   --shadow:     0 3px 16px rgba(16,47,78,.18);
   --radius:     12px;
   --nav-h:      76px;
 }
-

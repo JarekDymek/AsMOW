@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════
+/* ═══════════════════════════════════
    HEADER
 ═══════════════════════════════════ */
 .app-header {
@@ -13,8 +13,9 @@
   z-index: 90;
   box-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
-.hdr-icon { font-size: 1.6rem; flex-shrink: 0; }
-.hdr-text h1 { font-size: 1.05rem; font-weight: 900; line-height: 1.2; }
+.hdr-logo { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; object-fit: cover; background: var(--gold); }
+.hdr-text { min-width: 0; flex: 1; }
+.hdr-text h1 { font-size: 1.08rem; font-weight: 950; line-height: 1.2; }
 .hdr-text p  { font-size: .78rem; color: rgba(255,255,255,.86); font-weight: 750; }
 .hdr-badge {
   margin-left: auto;
@@ -28,8 +29,8 @@
   margin-left: auto;
   background: var(--gold); color: var(--navy);
   border: none; border-radius: 9px;
-  padding: 8px 10px;
-  font-size: .74rem; font-weight: 950;
+  padding: 10px 12px;
+  font-size: .82rem; font-weight: 950;
   white-space: nowrap; cursor: pointer;
 }
 .hdr-install + .hdr-badge { margin-left: 6px; }
@@ -57,7 +58,7 @@
 }
 .nav-btn { min-height: 62px; }
 .nav-btn .ni { font-size: 1.38rem; }
-.nav-btn .nl { font-size: .64rem; font-weight: 900; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nav-btn .nl { font-size: .69rem; font-weight: 900; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .nav-btn.active { color: var(--gold2); }
 
 /* ═══════════════════════════════════
@@ -77,3 +78,15 @@
 .screen.active { display: block; animation: fadeIn .2s ease; }
 @keyframes fadeIn { from {opacity:0;transform:translateY(5px)} to {opacity:1;transform:none} }
 
+
+@media (max-width: 430px) {
+  .app-header { padding: 10px 10px 9px; gap: 8px; }
+  .hdr-logo { width: 34px; height: 34px; border-radius: 8px; }
+  .hdr-text h1 { font-size: 1rem; }
+  .hdr-text p { font-size: .72rem; }
+  .hdr-badge { display: none; }
+  .hdr-install { padding: 9px 10px; font-size: .78rem; }
+  .main-wrap { padding-left: 10px; padding-right: 10px; }
+  .nav-btn .ni { font-size: 1.28rem; }
+  .nav-btn .nl { font-size: .62rem; }
+}

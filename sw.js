@@ -1,10 +1,11 @@
-const CACHE = 'mow-pwa-v18';
+const CACHE = 'mow-pwa-v20';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './assets/icons/icon-192.svg',
-  './assets/icons/icon-512.svg',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
+  './assets/icons/apple-touch-icon.png',
   './assets/css/base.css',
   './assets/css/layout.css',
   './assets/css/components.css',
@@ -26,6 +27,7 @@ const APP_SHELL = [
   './assets/js/state.js',
   './assets/js/utils.js',
   './assets/js/files.js',
+  './assets/js/accordion.js',
   './assets/js/navigation.js',
   './assets/js/clock.js',
   './assets/js/day-schedule.js',
