@@ -222,6 +222,33 @@ body {
   0%,100% { box-shadow: 0 0 0 0 rgba(201,151,43,.5); }
   50%      { box-shadow: 0 0 0 7px rgba(201,151,43,0); }
 }
+.section-toggle {
+  width: 100%;
+  background: var(--white);
+  color: var(--navy);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 14px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.section-toggle .st-main {
+  font-size: .9rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.section-toggle .st-state {
+  font-size: .8rem;
+  font-weight: 950;
+  color: var(--navy2);
+  white-space: nowrap;
+}
+.collapsible-card.collapsed { display: none; }
 
 /* ═══════════════════════════════════
    QUICK GRID
@@ -555,6 +582,55 @@ body {
 }
 .dot.online  { background: var(--green); }
 .dot.offline { background: #e74c3c; }
+.mini-ai {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-left: 6px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.mini-ai-title {
+  color: var(--navy);
+  font-size: .9rem;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+.mini-ai-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.mini-ai-input {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--navy);
+  font-size: .9rem;
+  font-weight: 800;
+  outline: none;
+}
+.mini-ai-btn {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: .86rem;
+  font-weight: 950;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mini-ai-hint {
+  font-size: .72rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 7px;
+  font-weight: 750;
+}
 
 /* ═══════════════════════════════════
    HARMONOGRAM UPLOAD
@@ -618,6 +694,61 @@ body {
   border-radius: 10px; padding: 10px 13px;
   font-weight: 950; cursor: pointer;
 }
+.weekly-grid {
+  display: grid;
+  gap: 10px;
+}
+.weekly-settings {
+  display: grid;
+  gap: 8px;
+}
+.weekly-settings input {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--navy);
+  font-size: .88rem;
+  font-weight: 800;
+}
+.weekly-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.weekly-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--navy);
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+.weekly-day {
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  font-size: .84rem;
+  line-height: 1.55;
+}
+.weekly-day:first-of-type { border-top: none; }
+.weekly-shift {
+  display: block;
+  color: #09233d;
+  font-weight: 850;
+}
+.weekly-empty {
+  color: var(--muted);
+  font-weight: 750;
+}
+.weekly-status {
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 800;
+  margin-top: 8px;
+}
 
 /* ═══════════════════════════════════
    UTILS
@@ -640,6 +771,13 @@ input, textarea {
 :focus-visible {
   outline: 3px solid var(--gold2);
   outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .mini-ai-row { flex-direction: column; }
+  .mini-ai-btn { width: 100%; padding: 10px 14px; }
+  .weekly-head { flex-direction: column; gap: 2px; }
+  .btn-row .btn { flex: 1 1 100%; }
 }
 
 @media (max-width: 380px) {
@@ -690,8 +828,11 @@ input, textarea {
     </div>
   </div>
 
-  <p class="sec-title">📋 Harmonogram dnia (dni robocze)</p>
-  <div class="card" style="padding:0"><div id="sched-list"></div></div>
+  <button class="section-toggle" type="button" id="day-schedule-toggle" onclick="toggleDaySchedule()">
+    <span class="st-main">📋 Harmonogram dnia</span>
+    <span class="st-state" id="day-schedule-state">Zwiń</span>
+  </button>
+  <div class="card collapsible-card" id="day-schedule-card" style="padding:0"><div id="sched-list"></div></div>
 
   <p class="sec-title">⚡ Szybkie akcje</p>
   <div class="quick-grid" id="quick-grid"></div>
@@ -700,6 +841,14 @@ input, textarea {
 
 <!-- ════════════ PROCEDURY ════════════ -->
 <div class="screen" id="s-proc">
+  <div class="mini-ai">
+    <div class="mini-ai-title">Zapytaj AI o procedurę</div>
+    <div class="mini-ai-row">
+      <input class="mini-ai-input" id="proc-ai-input" type="text" placeholder="Opisz sytuację, np. bójka, ucieczka, odmowa wykonania polecenia...">
+      <button class="mini-ai-btn" type="button" onclick="askAIFromTab('procedury','proc-ai-input')">Zapytaj</button>
+    </div>
+    <div class="mini-ai-hint">AI odpowie z pierwszeństwem procedur MOW. Gdy opis będzie zbyt ogólny, powinno dopytać.</div>
+  </div>
   <div class="search-bar">
     <span class="search-icon">🔍</span>
     <input type="text" id="proc-search" placeholder="Szukaj procedury..." oninput="filterProcs(this.value)">
@@ -714,6 +863,14 @@ input, textarea {
 
 <!-- ════════════ STOPNIE ════════════ -->
 <div class="screen" id="s-stop">
+  <div class="mini-ai">
+    <div class="mini-ai-title">Zapytaj AI o stopień uspołecznienia</div>
+    <div class="mini-ai-row">
+      <input class="mini-ai-input" id="stop-ai-input" type="text" placeholder="Opisz zachowanie wychowanka albo wątpliwość kwalifikacyjną...">
+      <button class="mini-ai-btn" type="button" onclick="askAIFromTab('stopnie','stop-ai-input')">Zapytaj</button>
+    </div>
+    <div class="mini-ai-hint">AI ma odwołać się do regulaminu stopni i wskazać, czego brakuje do jednoznacznej oceny.</div>
+  </div>
   <div class="abox info">
     <span class="ai">ℹ️</span>
     <div>Kwalifikacja do <strong>25. dnia miesiąca</strong> przez wychowawców i wychowanków wspólnie. Zmiana max. o 1 stopień wyżej (wyjątkowo 2). Stopień zerowy: min. 4 tyg. adaptacji.</div>
@@ -768,12 +925,12 @@ input, textarea {
       <div class="chat-input-wrap">
         <textarea class="chat-input" id="chat-input" rows="1"
           placeholder="Napisz pytanie..."
-          oninput="autoResizeTA(this)"
+          oninput="autoResizeTA(this); saveChatDraft()"
           onkeydown="chatKeydown(event)"></textarea>
       </div>
       <button class="chat-attach" onclick="document.getElementById('ai-file-input').click()" title="Dodaj dokument" aria-label="Dodaj dokument">📎</button>
       <button class="chat-voice" id="voice-btn" onclick="toggleVoiceInput()" title="Dyktuj pytanie" aria-label="Dyktuj pytanie">🎙</button>
-      <button class="chat-send" onclick="sendChat()" title="Wyślij">➤</button>
+      <button class="chat-send" id="chat-send-btn" onclick="sendChat()" title="Wyślij">➤</button>
     </div>
 
     <button class="btn sec" style="width:100%;margin-top:8px" onclick="clearChat()">🗑 Wyczyść historię</button>
@@ -782,6 +939,15 @@ input, textarea {
 
 <!-- ════════════ PRAWO ════════════ -->
 <div class="screen" id="s-prawo">
+
+  <div class="mini-ai">
+    <div class="mini-ai-title">Zapytaj AI o prawo i dokumentację</div>
+    <div class="mini-ai-row">
+      <input class="mini-ai-input" id="prawo-ai-input" type="text" placeholder="Np. podstawa prawna, dokumentacja zdarzenia, prawa wychowanka...">
+      <button class="mini-ai-btn" type="button" onclick="askAIFromTab('prawo','prawo-ai-input')">Zapytaj</button>
+    </div>
+    <div class="mini-ai-hint">AI ma wskazać źródło i rozdzielić przepisy prawa od dokumentów wewnętrznych MOW.</div>
+  </div>
 
   <p class="sec-title">📚 Podstawy prawne MOW</p>
   <div class="card" style="padding:0"><div id="law-list-render"></div></div>
@@ -860,6 +1026,22 @@ input, textarea {
     <span class="ai">📁</span>
     <div style="font-size:.92rem">Wgraj harmonogram: tekst, CSV, Word, Excel albo screen. Screen możesz potem powiększyć w aplikacji.</div>
   </div>
+
+  <p class="sec-title">Plan tygodniowy z generatora Harmonogram-MOW</p>
+  <div class="card"><div class="card-body">
+    <div class="weekly-settings">
+      <input id="weekly-backend-url" type="url" placeholder="Adres backendu Apps Script z aplikacji Harmonogram-MOW">
+      <input id="weekly-token" type="password" placeholder="VIEW_TOKEN lub ADMIN_TOKEN (jeśli wymagany)">
+      <input id="weekly-educator" type="text" placeholder="Wychowawca, np. Dymek">
+    </div>
+    <div class="btn-row">
+      <button class="btn" type="button" onclick="fetchWeeklyPlan()">Pobierz plan tygodniowy</button>
+      <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
+      <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
+    </div>
+    <div class="weekly-status" id="weekly-status">Wklej adres backendu z aplikacji Harmonogram-MOW albo użyj danych przykładowych.</div>
+  </div></div>
+  <div class="weekly-grid" id="weekly-plan"></div>
 
   <input type="file" id="harm-file-input"
     accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
@@ -1209,6 +1391,13 @@ let aiAttachments = [];
 let harmAttachment = null;
 let lastFailedChat = null;
 let imageZoom = 1;
+let weeklyPlan = null;
+let weeklyPlanMeta = null;
+let dayScheduleCollapsed = localStorage.getItem('mow_day_schedule_collapsed_v1') === '1';
+const CHAT_DRAFT_KEY = 'mow_chat_draft_v2';
+const WEEKLY_SETTINGS_KEY = 'mow_weekly_settings_v1';
+const WEEKLY_PLAN_KEY = 'mow_weekly_plan_v1';
+const WEEKLY_SAMPLE_URL = 'https://jarekdymek.github.io/Harmonogram-MOW/data/sample-weeks.json';
 
 /* ────────────────────────────────
    INIT
@@ -1221,8 +1410,12 @@ function init() {
   renderLaws();
   renderChatPills();
   loadChatHistory();
+  loadChatDraft();
+  loadWeeklyPlanState();
+  renderWeeklyPlan();
   loadNotes();
   startClock();
+  setupWorkSafeguards();
   setupInstall();
   checkOnline();
   setInterval(checkOnline, 15000);
@@ -1279,6 +1472,21 @@ function renderSchedule() {
           <div class="sched-tip">${s.tip}</div>
         </div>
       </div>`).join('');
+  applyDayScheduleState();
+}
+
+function toggleDaySchedule() {
+  dayScheduleCollapsed = !dayScheduleCollapsed;
+  localStorage.setItem('mow_day_schedule_collapsed_v1', dayScheduleCollapsed ? '1' : '0');
+  applyDayScheduleState();
+}
+
+function applyDayScheduleState() {
+  const card = document.getElementById('day-schedule-card');
+  const state = document.getElementById('day-schedule-state');
+  if (!card || !state) return;
+  card.classList.toggle('collapsed', dayScheduleCollapsed);
+  state.textContent = dayScheduleCollapsed ? 'Rozwiń' : 'Zwiń';
 }
 
 /* ────────────────────────────────
@@ -1367,6 +1575,24 @@ function renderLaws() {
 function renderChatPills() {
   document.getElementById('chat-pills').innerHTML =
     CHAT_PILLS.map(p => `<button class="pill" onclick="setQuestion('${p.replace(/'/g,"\\'")}')">💬 ${p}</button>`).join('');
+}
+
+function askAIFromTab(scope, inputId) {
+  const input = document.getElementById(inputId);
+  const text = input ? input.value.trim() : '';
+  const prefixes = {
+    procedury: 'Pytanie z zakładki PROCEDURY. Odpowiedz według dokumentów i procedur MOW nr 1 w Malborku. Jeśli opis jest zbyt ogólny, najpierw dopytaj o brakujące fakty.',
+    stopnie: 'Pytanie z zakładki STOPNIE USPOŁECZNIENIA. Odpowiedz według regulaminu stopni MOW. Oddziel ocenę zachowania od propozycji rozmowy wychowawczej.',
+    prawo: 'Pytanie z zakładki PRAWO. Wskaż podstawę prawną lub dokument MOW, a gdy nie masz pewności, zaznacz to i dopytaj.'
+  };
+  const question = `${prefixes[scope] || 'Pytanie do AI.'}\n\nPytanie użytkownika: ${text || 'Potrzebuję krótkiej konsultacji w tym obszarze.'}`;
+  if (input) input.value = '';
+  nav('s-ai', document.querySelector('.nav-btn:last-child'));
+  const ta = document.getElementById('chat-input');
+  ta.value = question;
+  autoResizeTA(ta);
+  saveChatDraft();
+  sendChat();
 }
 
 /* ────────────────────────────────
@@ -1473,8 +1699,10 @@ function chatKeydown(e) {
 }
 
 function clearChat() {
+  if (!confirm('Wyczyścić historię rozmowy AI na tym urządzeniu?')) return;
   chatHistory = [];
   localStorage.removeItem('mow_chat_history_v2');
+  localStorage.removeItem(CHAT_DRAFT_KEY);
   const win = document.getElementById('chat-window');
   win.innerHTML = '<div class="msg ai">Historia wyczyszczona. Zadaj nowe pytanie!</div>';
 }
@@ -1520,13 +1748,16 @@ function getAIHealthUrl() {
 
 async function sendChat() {
   const ta = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
   const q = ta.value.trim();
   if (!q && !aiAttachments.length) return;
   const attachmentsToSend = aiAttachments.slice();
   ta.value = '';
   ta.style.height = 'auto';
+  localStorage.removeItem(CHAT_DRAFT_KEY);
   aiAttachments = [];
   renderAIAttachments();
+  if (sendBtn) sendBtn.disabled = true;
 
   const userContent = q || 'Przeanalizuj załączone pliki.';
   appendMsg('user', userContent);
@@ -1539,11 +1770,15 @@ async function sendChat() {
   };
 
   const loading = appendMsg('loading', 'Szukam odpowiedzi w dokumentach i rozmowie...');
+  let timer = null;
 
   try {
+    const ctrl = new AbortController();
+    timer = setTimeout(() => ctrl.abort(), 90000);
     const res = await fetch(AI_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
       body: JSON.stringify({
         messages: chatHistory.slice(-18),
         attachments: attachmentsToSend,
@@ -1551,6 +1786,7 @@ async function sendChat() {
         clientTime: new Date().toISOString()
       })
     });
+    clearTimeout(timer);
 
     loading.remove();
 
@@ -1576,12 +1812,17 @@ async function sendChat() {
     appendMsg('ai', answer, data.sources || []);
 
   } catch (err) {
+    if (timer) clearTimeout(timer);
     loading.remove();
     if (!navigator.onLine) {
       appendMsg('err', 'Brak połączenia z Internetem. Sprawdź zasięg sieci.', [], { retry: true });
+    } else if (err.name === 'AbortError') {
+      appendMsg('err', 'Serwer AI odpowiada zbyt długo. Naciśnij „Powtórz”, żeby ponowić pytanie.', [], { retry: true });
     } else {
       appendMsg('err', `Nie mogę połączyć się z asystentem AI: ${err.message}`, [], { retry: true });
     }
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -1603,8 +1844,36 @@ function buildAssistantContext() {
       criteria: s.crit.map(stripHtml),
       privileges: s.przyw.map(stripHtml)
     })),
-    legalBases: LAWS.map(l => stripHtml(l.t))
+    legalBases: LAWS.map(l => stripHtml(l.t)),
+    weeklyPlan: weeklyPlan ? weeklyPlanToText().slice(0, 12000) : ''
   };
+}
+
+function saveChatDraft() {
+  const ta = document.getElementById('chat-input');
+  if (!ta) return;
+  const value = ta.value.trim();
+  if (value) localStorage.setItem(CHAT_DRAFT_KEY, value);
+  else localStorage.removeItem(CHAT_DRAFT_KEY);
+}
+
+function loadChatDraft() {
+  const draft = localStorage.getItem(CHAT_DRAFT_KEY);
+  if (!draft) return;
+  const ta = document.getElementById('chat-input');
+  if (!ta || ta.value.trim()) return;
+  ta.value = draft;
+  autoResizeTA(ta);
+}
+
+function setupWorkSafeguards() {
+  window.addEventListener('beforeunload', e => {
+    const draft = document.getElementById('chat-input')?.value.trim();
+    if (draft || aiAttachments.length) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 }
 
 function loadChatHistory() {
@@ -1944,6 +2213,190 @@ function closeImageViewer(e) {
 function zoomImage(delta) {
   imageZoom = Math.max(0.75, Math.min(3, imageZoom + delta));
   document.getElementById('image-viewer-img').style.setProperty('--zoom', imageZoom);
+}
+
+/* ────────────────────────────────
+   WEEKLY PLAN INTEGRATION
+──────────────────────────────── */
+function loadWeeklyPlanState() {
+  try {
+    const settings = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}');
+    const backend = document.getElementById('weekly-backend-url');
+    const token = document.getElementById('weekly-token');
+    const educator = document.getElementById('weekly-educator');
+    if (backend) backend.value = settings.backendUrl || '';
+    if (token) token.value = settings.token || '';
+    if (educator) educator.value = settings.educator || '';
+  } catch {}
+  try {
+    const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
+    if (saved && saved.weeks) {
+      weeklyPlan = saved;
+      weeklyPlanMeta = saved.meta || null;
+    }
+  } catch {}
+}
+
+function saveWeeklySettings() {
+  const settings = {
+    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || '',
+    token: document.getElementById('weekly-token')?.value.trim() || '',
+    educator: document.getElementById('weekly-educator')?.value.trim() || ''
+  };
+  localStorage.setItem(WEEKLY_SETTINGS_KEY, JSON.stringify(settings));
+  return settings;
+}
+
+function setWeeklyStatus(text) {
+  const el = document.getElementById('weekly-status');
+  if (el) el.textContent = text;
+}
+
+async function fetchWeeklyPlan() {
+  const settings = saveWeeklySettings();
+  if (!settings.backendUrl) {
+    setWeeklyStatus('Wklej adres backendu Apps Script z aplikacji Harmonogram-MOW.');
+    return;
+  }
+  setWeeklyStatus('Pobieram plan tygodniowy...');
+  try {
+    const url = new URL(settings.backendUrl);
+    url.searchParams.set('action', settings.token ? 'dashboard' : 'dashboard');
+    if (settings.educator) url.searchParams.set('educator', settings.educator);
+    if (settings.token) url.searchParams.set('token', settings.token);
+    url.searchParams.set('transport', 'bridge');
+    url.searchParams.set('_', Date.now());
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const res = await fetch(url.toString(), { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    setWeeklyPlanFromPayload(payload, 'Pobrano z Harmonogram-MOW');
+  } catch (err) {
+    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź adres backendu, token i uprawnienia publikacji Apps Script.`);
+  }
+}
+
+async function loadSampleWeeklyPlan() {
+  setWeeklyStatus('Pobieram dane przykładowe...');
+  try {
+    const res = await fetch(WEEKLY_SAMPLE_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    setWeeklyPlanFromPayload(payload, 'Dane przykładowe');
+  } catch (err) {
+    setWeeklyStatus(`Nie udało się pobrać danych przykładowych: ${err.message}`);
+  }
+}
+
+function setWeeklyPlanFromPayload(payload, sourceLabel) {
+  const extracted = extractWeeklyDashboard(payload);
+  const normalized = normalizeWeeklyPayload(extracted);
+  if (!normalized.weeks.length) {
+    setWeeklyStatus('Odpowiedź z generatora nie zawiera tygodniowego planu.');
+    return;
+  }
+  weeklyPlan = normalized;
+  weeklyPlanMeta = { source: sourceLabel, loadedAt: new Date().toISOString() };
+  weeklyPlan.meta = weeklyPlanMeta;
+  localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
+  renderWeeklyPlan();
+  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}.`);
+}
+
+function extractWeeklyDashboard(payload) {
+  if (!payload) return {};
+  if (payload.data && (payload.data.weeks || payload.data.dashboard)) return extractWeeklyDashboard(payload.data);
+  if (payload.dashboard) return extractWeeklyDashboard(payload.dashboard);
+  if (payload.result) return extractWeeklyDashboard(payload.result);
+  return payload;
+}
+
+function normalizeWeeklyPayload(payload) {
+  const weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
+  return {
+    updatedAt: payload.updatedAt || payload.generatedAt || '',
+    educator: payload.educator || '',
+    calendarEducator: payload.calendarEducator || '',
+    alerts: Array.isArray(payload.alerts) ? payload.alerts : [],
+    weeks: weeks.map(w => ({
+      label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
+      range: w.range || [w.dateFrom, w.dateTo].filter(Boolean).join(' - '),
+      summary: w.summary || {},
+      days: Array.isArray(w.days) ? w.days : []
+    }))
+  };
+}
+
+function renderWeeklyPlan() {
+  const el = document.getElementById('weekly-plan');
+  if (!el) return;
+  if (!weeklyPlan || !weeklyPlan.weeks || !weeklyPlan.weeks.length) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = weeklyPlan.weeks.slice(0, 6).map(week => `
+    <div class="weekly-card">
+      <div class="weekly-head">
+        <span>${escapeHtml(week.label || 'Tydzień')}</span>
+        <span>${escapeHtml(week.range || '')}</span>
+      </div>
+      <div class="weekly-status">
+        Godziny: ${escapeHtml(week.summary?.totalHours ?? '0')} · Nadgodziny: ${escapeHtml(week.summary?.overtimeHours ?? '0')} · Weekend: ${escapeHtml(week.summary?.weekendHours ?? '0')}
+      </div>
+      ${(week.days || []).map(day => `
+        <div class="weekly-day">
+          <strong>${escapeHtml(day.name || '')} ${escapeHtml(day.date || '')}</strong>
+          ${day.shifts && day.shifts.length
+            ? day.shifts.map(formatWeeklyShift).join('')
+            : '<span class="weekly-empty">Brak dyżuru</span>'}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function formatWeeklyShift(shift) {
+  const change = shift.replacesPerson
+    ? ` · zastępuje: ${shift.replacesPerson}`
+    : shift.replacedByPerson
+      ? ` · zastępowany przez: ${shift.replacedByPerson}`
+      : '';
+  return `<span class="weekly-shift">${escapeHtml(shift.label || 'Dyżur')} ${escapeHtml(shift.hours || '')}${escapeHtml(change)}</span>`;
+}
+
+function weeklyPlanToText() {
+  if (!weeklyPlan || !weeklyPlan.weeks) return '';
+  const who = weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca';
+  return [
+    `Plan tygodniowy dla: ${who}`,
+    weeklyPlan.updatedAt ? `Aktualizacja: ${weeklyPlan.updatedAt}` : '',
+    ...weeklyPlan.weeks.map(week => [
+      `\n${week.label || 'Tydzień'} ${week.range || ''}`,
+      `Podsumowanie: godziny ${week.summary?.totalHours ?? 0}, nadgodziny ${week.summary?.overtimeHours ?? 0}, weekend ${week.summary?.weekendHours ?? 0}`,
+      ...(week.days || []).map(day => {
+        const shifts = day.shifts && day.shifts.length
+          ? day.shifts.map(s => `${s.label || 'Dyżur'} ${s.hours || ''}${s.replacesPerson ? `, zastępuje ${s.replacesPerson}` : ''}${s.replacedByPerson ? `, zastępowany przez ${s.replacedByPerson}` : ''}`).join('; ')
+          : 'brak dyżuru';
+        return `${day.name || ''} ${day.date || ''}: ${shifts}`;
+      })
+    ].filter(Boolean).join('\n'))
+  ].filter(Boolean).join('\n');
+}
+
+function askAIAboutWeeklyPlan() {
+  if (!weeklyPlan || !weeklyPlan.weeks || !weeklyPlan.weeks.length) {
+    setWeeklyStatus('Najpierw pobierz plan tygodniowy albo użyj danych przykładowych.');
+    return;
+  }
+  nav('s-ai', document.querySelector('.nav-btn:last-child'));
+  const ta = document.getElementById('chat-input');
+  ta.value = `Przeanalizuj mój plan tygodniowy pracy z Harmonogram-MOW. Podsumuj dyżury, nadgodziny, weekendy, ryzyka organizacyjne i wskaż pytania doprecyzowujące, jeśli czegoś brakuje.\n\n--- PLAN TYGODNIOWY ---\n${weeklyPlanToText().slice(0, 12000)}`;
+  autoResizeTA(ta);
+  saveChatDraft();
+  sendChat();
 }
 
 /* ────────────────────────────────
