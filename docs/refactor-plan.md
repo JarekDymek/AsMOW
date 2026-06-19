@@ -1,9 +1,13 @@
 # Refaktoryzacja AsMOW
 
-## Stan po etapie 1-3
+## Stan po etapie 1-4
 
 - `index.html` zawiera strukturę widoków i odwołania do zasobów.
-- `assets/css/app.css` zawiera style aplikacji.
+- `assets/css/base.css` zawiera reset, podstawy i zmienne kolorystyczne.
+- `assets/css/layout.css` zawiera nagłówek, dolną nawigację i główne układy ekranów.
+- `assets/css/components.css` zawiera wspólne komponenty: karty, przyciski, listy, chat AI, notatnik i widoki szczegółów.
+- `assets/css/harmonogram.css` zawiera style wgrywania harmonogramu, podglądu obrazu, planu tygodniowego i bazy wiedzy.
+- `assets/css/utilities.css` zawiera style pomocnicze, responsywność i style arkusza notatnika.
 - `assets/js/data.js` zawiera stałe dane: harmonogram dnia, procedury, stopnie, szybkie pytania i podstawy prawne.
 - `assets/js/state.js` zawiera wspólny stan i klucze `localStorage`.
 - `assets/js/ui.js` zawiera nawigację, zegar, harmonogram dnia, render procedur, stopni i podstaw prawnych.
@@ -19,11 +23,10 @@
 
 ## Następne bezpieczne etapy
 
-1. Wydzielić CSS na `base.css`, `components.css`, `screens.css` i `mobile.css`.
-2. Uporządkować `ai.js`: osobno czat, pliki, dyktowanie głosowe i kontekst odpowiedzi.
-3. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
-4. Dodać test sprawdzający obecność wszystkich zasobów z `index.html` i `sw.js`.
-5. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
+1. Uporządkować `ai.js`: osobno czat, pliki, dyktowanie głosowe i kontekst odpowiedzi.
+2. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
+3. Dodać test sprawdzający obecność wszystkich zasobów z `index.html` i `sw.js`.
+4. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
 
 ## Zasada utrzymania
 
