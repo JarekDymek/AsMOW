@@ -100,5 +100,41 @@ function getInstallSteps() {
    SERVICE WORKER (offline cache)
 ──────────────────────────────── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(()=>{});
+  let refreshingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshingForUpdate) return;
+    refreshingForUpdate = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
+    .then(reg => {
+      setupServiceWorkerUpdate(reg);
+      setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
+    })
+    .catch(()=>{});
+}
+
+function setupServiceWorkerUpdate(reg) {
+  if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg);
+  reg.addEventListener('updatefound', () => {
+    const worker = reg.installing;
+    if (!worker) return;
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+        showUpdateToast(reg);
+      }
+    });
+  });
+}
+
+function showUpdateToast(reg) {
+  const toast = document.getElementById('update-toast');
+  const btn = document.getElementById('update-apply-btn');
+  if (!toast || !btn) return;
+  toast.hidden = false;
+  btn.onclick = () => {
+    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    else window.location.reload();
+  };
 }

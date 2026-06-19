@@ -1,0 +1,33 @@
+{
+  "version": "2026-06-20.1",
+  "updatedAt": "2026-06-20",
+  "source": "Centralna baza wiedzy MOW - wersja startowa",
+  "items": [
+    {
+      "id": "mow-procedury-start",
+      "key": "procedury-ogolne",
+      "type": "zmiana-stala",
+      "title": "Zasada pierwszeństwa procedur MOW",
+      "source": "Dokumenty wewnętrzne MOW nr 1 w Malborku",
+      "documentDate": "2026-06-20",
+      "validFrom": "2026-06-20",
+      "validTo": "",
+      "version": "1",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Przy pytaniach o sposób postępowania wychowawcy pierwszeństwo mają aktualne dokumenty MOW, procedury wewnętrzne, statut oraz zatwierdzone zarządzenia dyrektora. Jeżeli wpis lokalny użytkownika jest sprzeczny z centralnym wpisem zatwierdzonym i aktywnym, aplikacja ma wskazać konflikt i zastosować wpis centralny, chyba że użytkownik wyraźnie pyta o materiał roboczy."
+    },
+    {
+      "id": "mow-ochrona-danych-start",
+      "key": "ochrona-danych-ai",
+      "type": "zmiana-stala",
+      "title": "Zasada ochrony danych w pytaniach do AI",
+      "source": "Polityka bezpieczeństwa aplikacji Asystent MOW",
+      "documentDate": "2026-06-20",
+      "validFrom": "2026-06-20",
+      "validTo": "",
+      "version": "1",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Do AI nie należy wpisywać pełnych danych osobowych wychowanków, numerów PESEL, adresów, danych medycznych ani szczegółów umożliwiających łatwą identyfikację osoby. Zalecany zapis: inicjały, numer grupy, opis sytuacji bez danych identyfikujących."
+    }
+  ]
+}

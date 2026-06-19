@@ -1,4 +1,4 @@
-const CACHE = 'mow-pwa-v20';
+const CACHE = 'mow-pwa-v21';
 const APP_SHELL = [
   './',
   './index.html',
@@ -48,6 +48,7 @@ const APP_SHELL = [
   './assets/js/knowledge-form.js',
   './assets/js/knowledge-context.js',
   './assets/js/knowledge-base.js',
+  './assets/js/backup.js',
   './assets/js/pwa.js',
   './assets/js/app.js',
 ];
@@ -56,8 +57,11 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
       .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
   );
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

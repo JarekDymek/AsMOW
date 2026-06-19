@@ -13,7 +13,9 @@ function init() {
   loadWeeklyPlanState();
   renderWeeklyPlan();
   loadKnowledgeBase();
+  loadCentralKnowledgeCache();
   renderKnowledgeList();
+  refreshCentralKnowledgeBase();
   loadNotes();
   setupAccordions();
   startClock();

@@ -52,9 +52,10 @@
   <script src="assets/js/weekly-plan.js" defer></script>
   <script src="assets/js/knowledge-storage.js" defer></script>
 <script src="assets/js/knowledge-list.js" defer></script>
-<script src="assets/js/knowledge-form.js" defer></script>
-<script src="assets/js/knowledge-context.js" defer></script>
-<script src="assets/js/knowledge-base.js" defer></script>
+  <script src="assets/js/knowledge-form.js" defer></script>
+  <script src="assets/js/knowledge-context.js" defer></script>
+  <script src="assets/js/knowledge-base.js" defer></script>
+  <script src="assets/js/backup.js" defer></script>
   <script src="assets/js/pwa.js" defer></script>
   <script src="assets/js/app.js" defer></script>
 </head>
@@ -342,6 +343,22 @@
   </button>
   <div class="collapsible-card accordion-panel" id="law-kb-list-card"><div id="knowledge-list"></div></div>
 
+  <button class="section-toggle" type="button" data-accordion-target="local-backup-card" onclick="toggleAccordion('local-backup-card')">
+    <span class="st-main">💾 Kopia i czyszczenie danych urządzenia</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="local-backup-card"><div class="card-body">
+    <div class="backup-note">
+      Kopia zawiera dane zapisane tylko na tym urządzeniu: historię AI, notatki, lokalną bazę wiedzy, plan i ustawienia harmonogramu. Plik może zawierać dane służbowe.
+    </div>
+    <input type="file" id="backup-file-input" accept=".json,application/json" style="display:none" onchange="importLocalBackup(this)">
+    <div class="btn-row">
+      <button class="btn" type="button" onclick="exportLocalBackup()">Pobierz kopię</button>
+      <button class="btn sec" type="button" onclick="document.getElementById('backup-file-input').click()">Przywróć kopię</button>
+      <button class="btn red" type="button" onclick="clearLocalDeviceData()">Wyczyść urządzenie</button>
+    </div>
+    <div class="weekly-status" id="backup-status">Warto zrobić kopię przed czyszczeniem przeglądarki albo zmianą telefonu.</div>
+  </div></div>
+
 </div><!-- /s-prawo -->
 
 <!-- ════════════ HARMONOGRAM ════════════ -->
@@ -435,6 +452,15 @@
     <button type="button" onclick="zoomImage(-0.25)">-</button>
     <button type="button" onclick="closeImageViewer()">Zamknij</button>
   </div>
+</div>
+
+<div class="update-toast" id="update-toast" hidden>
+  <div>
+    <strong>Dostępna nowa wersja</strong>
+    <span>Odśwież aplikację, żeby wczytać poprawki.</span>
+  </div>
+  <button type="button" id="update-apply-btn">Odśwież</button>
+  <button type="button" class="update-later" onclick="document.getElementById('update-toast').hidden = true">Później</button>
 </div>
 
 <!-- BOTTOM NAV -->

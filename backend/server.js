@@ -50,6 +50,10 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/knowledge') {
+      return json(res, 200, loadCentralKnowledge());
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/chat') {
       if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
       const payload = await readJson(req);
@@ -400,6 +404,35 @@ function loadKnowledgeFiles() {
       return `\n--- ${name} ---\n${text}`;
     })
     .join('\n');
+}
+
+function loadCentralKnowledge() {
+  const file = path.join(__dirname, 'knowledge', 'central-knowledge.json');
+  if (!fs.existsSync(file)) {
+    return {
+      ok: true,
+      version: 'empty',
+      updatedAt: '',
+      items: []
+    };
+  }
+  try {
+    const raw = fs.readFileSync(file, 'utf8');
+    const parsed = JSON.parse(raw);
+    return {
+      ok: true,
+      version: String(parsed.version || '1'),
+      updatedAt: String(parsed.updatedAt || ''),
+      source: parsed.source || 'Centralna baza wiedzy MOW',
+      items: Array.isArray(parsed.items) ? parsed.items.slice(0, 200) : []
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Nie udało się odczytać centralnej bazy wiedzy: ${err.message}`,
+      items: []
+    };
+  }
 }
 
 async function askAnthropic(system, messages) {

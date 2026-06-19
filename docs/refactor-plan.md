@@ -32,6 +32,7 @@
 - 2026-06-19: rozdzielono bazę wiedzy na zapis, formularz, listę i kontekst AI.
 - 2026-06-19: dodano zwijane sekcje w zakładkach Procedury, Stopnie, Prawo i Harmonogram oraz zwijane tygodnie planu.
 - 2026-06-19: poprawiono instalację PWA na GitHub Pages, dodano względne ścieżki service workera i ikonę MOW.
+- 2026-06-20: dodano centralną bazę wiedzy z backendu, kopię/przywracanie danych lokalnych oraz komunikat o dostępnej aktualizacji PWA.
 
 ## Następne bezpieczne etapy
 

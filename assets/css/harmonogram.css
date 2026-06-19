@@ -153,10 +153,27 @@
 .kb-item.active { border-left-color: var(--green); }
 .kb-item.future { border-left-color: var(--gold); }
 .kb-item.expired { border-left-color: var(--muted); opacity: .82; }
+.kb-item.superseded { border-left-color: var(--orange); opacity: .88; }
 .kb-title {
   color: var(--navy);
   font-size: .9rem;
   font-weight: 950;
+}
+.kb-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 7px;
+  margin-right: 4px;
+  font-size: .66rem;
+  font-weight: 950;
+}
+.kb-badge.central {
+  background: var(--navy);
+  color: var(--gold2);
+}
+.kb-badge.local {
+  background: #e8eff7;
+  color: var(--navy);
 }
 .kb-meta {
   color: var(--muted);
@@ -184,6 +201,17 @@
 .kb-actions button.sec {
   background: var(--border);
   color: var(--navy);
+}
+.backup-note {
+  background: #eef3f8;
+  border-left: 5px solid var(--gold);
+  border-radius: 10px;
+  color: var(--navy);
+  font-size: .86rem;
+  font-weight: 850;
+  line-height: 1.5;
+  padding: 10px 12px;
+  margin-bottom: 10px;
 }
 
 
