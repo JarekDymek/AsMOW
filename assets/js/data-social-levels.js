@@ -1,0 +1,20 @@
+const STOPNIE = [
+  {id:"sn2",lvl:"–2",title:"Stopień –2",cls:"st-n2",kies:"20% kwoty bazowej",
+   crit:["czyn karalny na terenie MOW lub poza nim","rażące naruszenie porządku"],
+   przyw:["Kieszonkowe 20%","Brak telefonu komórkowego","Brak przepustek","Ograniczenie TV (piątki/soboty do 21:00)","Obniżenie oceny z zachowania","Powiadomienie sądu rodzinnego","Rozmowa ostrzegawcza wychowawcy i dyrektora"]},
+  {id:"sn1",lvl:"–1",title:"Stopień –1",cls:"st-n1",kies:"40% kwoty bazowej",
+   crit:["samookaleczenie","ucieczka","poważne naruszenie regulaminu"],
+   przyw:["Kieszonkowe 40%","Brak telefonu komórkowego","Brak przepustek do miasta","Ograniczenie TV","Wzmożony nadzór wychowawcy"]},
+  {id:"s0",lvl:"0 (adaptacyjny)",title:"Stopień zerowy",cls:"st-0",kies:"60% kwoty bazowej",
+   crit:["realizuje dyżury w internacie i szkole","przestrzega rozkładu dnia","poprawnie odnosi się do kolegów i pracowników","dba o higienę własną i mienie ośrodka","aktywnie uczestniczy w zajęciach nauki własnej","uczestniczy w zajęciach grupy i szkole"],
+   przyw:["Kieszonkowe 60%","Imprezy kulturalne na terenie MOW","Siłownia/pracownia komputerowa (w ramach grupy)","Pochwała wychowawcy","Możliwość ubiegania się o urlop (decyzja Dyrektora)","TV piątki/soboty do 21:30","Telefon 3×/tydzień po 30 min w miejscu wyznaczonym przez wychowawcę"]},
+  {id:"sp1",lvl:"+1",title:"Stopień +1",cls:"st-p1",kies:"80% kwoty bazowej",
+   crit:["samodzielnie realizuje dyżury","przestrzega rozkładu dnia","wyrobione nawyki higieniczno-porządkowe","nadrabia zaległości szkolne","pozytywne oceny odpowiednio do możliwości","uczestniczy w zajęciach wyrównawczych (jeśli potrzeba)","prawidłowe relacje z kolegami i pracownikami","punktualnie powraca z przepustek"],
+   przyw:["Kieszonkowe 80%","Zawody sportowe i konkursy poza MOW","Imprezy kulturalne poza MOW","Dyplom uznania (gabicha samorządu)","Telefon wg regulaminu","Przepustka do miasta, urlop do domu (święta, wakacje, ferie)","Wyjście do miasta z osobą odwiedzającą","Pochwała na forum ośrodka"]},
+  {id:"sp2",lvl:"+2",title:"Stopień +2",cls:"st-p2",kies:"100% kwoty bazowej",
+   crit:["spełnia kryteria stopnia +1","z kulturą i szacunkiem odnosi się do innych (nie używa wulgaryzmów)","pomaga innym wychowankom","dobre wyniki w nauce wg możliwości","realizuje dodatkowe zadania wychowawcy","zawsze terminowo powraca z przepustek","wspiera słabszych kolegów i nowo przybyłych"],
+   przyw:["Kieszonkowe 100%","Nagrody rzeczowe","Dopuszczenie do śródrocznej promocji","List pochwalny do rodziców","Pochwała dyrektora na forum placówki","Wpis do księgi nagród","Telefon we własnej sypialni","Urlop + dodatkowe dni","Wyjście na imprezy środowiska lokalnego","Poparcie wniosku o wcześniejsze zwolnienie"]},
+  {id:"sp3",lvl:"+3",title:"Stopień +3",cls:"st-p3",kies:"120% kwoty bazowej",
+   crit:["spełnia kryteria stopnia +2","wzorowo odnosi się do kolegów i pracowników MOW","dobre i bardzo dobre wyniki w nauce","min. 2 miesiące: zdrowy, higieniczny, wolny od nałogów tryb życia","aktywnie uczestniczy w projektach edukacyjnych (akademie, uroczystości)","podejmuje inicjatywy na rzecz grupy i zespołu klasowego"],
+   przyw:["Kieszonkowe 120%","Wszystkie przywileje stopnia +2","Reprezentowanie MOW na zewnątrz","Poparcie wcześniejszego zwolnienia"]}
+];
