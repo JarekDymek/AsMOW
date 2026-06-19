@@ -1,6 +1,6 @@
 # Refaktoryzacja AsMOW
 
-## Stan po etapie 1-7
+## Stan po etapie 1-8
 
 - `index.html` zawiera strukturę widoków i odwołania do zasobów.
 - `assets/css/base.css` zawiera reset, podstawy i zmienne kolorystyczne.
@@ -22,18 +22,19 @@
 - `assets/js/ui.js` pozostaje małym plikiem informacyjnym po podziale interfejsu.
 - `assets/js/harmonogram.js` zawiera lokalne wgrywanie i analizę harmonogramu z pliku/screena.
 - `assets/js/weekly-plan.js` zawiera integrację z generatorem Harmonogram-MOW.
-- `assets/js/knowledge-base.js` zawiera bazę wiedzy, wzory dokumentów i zmiany czasowe.
+- Baza wiedzy jest rozdzielona na `knowledge-storage.js`, `knowledge-form.js`, `knowledge-list.js`, `knowledge-context.js` oraz mały plik informacyjny `knowledge-base.js`.
 - `assets/js/pwa.js` zawiera instalację PWA i rejestrację service workera.
 - `assets/js/app.js` zawiera inicjalizację aplikacji.
 - `backend/server.js` serwuje pliki z katalogu `assets`.
 - `sw.js` zapisuje nowe zasoby w cache PWA.
 - 2026-06-19: rozdzielono duży plik danych na pliki tematyczne.
 - 2026-06-19: rozdzielono duży plik komponentów CSS na style wspólne i style obszarów aplikacji.
+- 2026-06-19: rozdzielono bazę wiedzy na zapis, formularz, listę i kontekst AI.
 
 ## Następne bezpieczne etapy
 
 1. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
-2. Rozważyć dalszy podział `ui.js` na procedury, stopnie i prawo.
+2. Rozważyć dalszy podział największych plików funkcjonalnych: `weekly-plan.js`, `ai-chat.js` i `harmonogram.js`.
 3. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
 
 ## Zasada utrzymania
