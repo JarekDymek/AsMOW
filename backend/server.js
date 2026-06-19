@@ -260,7 +260,9 @@ async function fetchWeeklyPlan(payload = {}) {
   url.searchParams.set('action', 'dashboard');
   if (payload.educator) url.searchParams.set('educator', String(payload.educator).slice(0, 120));
   if (payload.token) url.searchParams.set('token', String(payload.token).slice(0, 500));
-  url.searchParams.set('transport', 'bridge');
+  url.searchParams.delete('transport');
+  url.searchParams.set('format', 'jsonp');
+  url.searchParams.set('callback', '__mowSchedule');
   url.searchParams.set('_', Date.now());
 
   const ctrl = new AbortController();
@@ -278,7 +280,10 @@ async function fetchWeeklyPlan(payload = {}) {
     }
     const data = parseMaybeJson(text);
     if (!data) {
-      const err = new Error('Backend Harmonogram-MOW nie zwrócił poprawnego JSON.');
+      const hint = /<html|<!doctype|accounts\.google|ServiceLogin|Zaloguj/i.test(text)
+        ? ' Odpowiedź wygląda jak HTML albo ekran logowania. Użyj adresu wdrożenia Apps Script kończącego się na /exec i ustaw dostęp wdrożenia dla użytkowników z linkiem/każdego zgodnie z konfiguracją Harmonogram-MOW.'
+        : '';
+      const err = new Error('Backend Harmonogram-MOW nie zwrócił poprawnego JSON/JSONP.' + hint);
       err.status = 502;
       throw err;
     }
@@ -292,6 +297,17 @@ function parseMaybeJson(text) {
   const raw = String(text || '').trim();
   if (!raw) return null;
   try { return JSON.parse(raw); } catch {}
+
+  const jsonp = raw.match(/^[\w$]+\s*\(([\s\S]*)\)\s*;?\s*$/);
+  if (jsonp) {
+    try { return JSON.parse(jsonp[1]); } catch {}
+  }
+
+  const bridge = raw.match(/var\s+payload\s*=\s*({[\s\S]*?})\s*;\s*document\.getElementById/);
+  if (bridge) {
+    try { return JSON.parse(bridge[1]); } catch {}
+  }
+
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   if (!match) return null;
   try { return JSON.parse(match[0]); } catch { return null; }

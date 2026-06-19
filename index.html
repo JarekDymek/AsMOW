@@ -1133,7 +1133,7 @@ input, textarea {
   <p class="sec-title">Plan tygodniowy z generatora Harmonogram-MOW</p>
   <div class="card"><div class="card-body">
     <div class="weekly-settings">
-      <input id="weekly-backend-url" type="url" placeholder="Adres backendu Apps Script z aplikacji Harmonogram-MOW">
+      <input id="weekly-backend-url" type="url" placeholder="Adres Apps Script /exec z Harmonogram-MOW">
       <input id="weekly-token" type="password" placeholder="VIEW_TOKEN lub ADMIN_TOKEN (jeśli wymagany)">
       <input id="weekly-educator" type="text" placeholder="Wychowawca, np. Dymek">
     </div>
@@ -1142,7 +1142,7 @@ input, textarea {
       <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
       <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
     </div>
-    <div class="weekly-status" id="weekly-status">Wklej adres backendu z aplikacji Harmonogram-MOW albo użyj danych przykładowych.</div>
+    <div class="weekly-status" id="weekly-status">Wklej adres wdrożenia Apps Script kończący się na /exec albo użyj danych przykładowych.</div>
   </div></div>
   <div class="weekly-grid" id="weekly-plan"></div>
 
@@ -2370,7 +2370,11 @@ function setWeeklyStatus(text) {
 async function fetchWeeklyPlan() {
   const settings = saveWeeklySettings();
   if (!settings.backendUrl) {
-    setWeeklyStatus('Wklej adres backendu Apps Script z aplikacji Harmonogram-MOW.');
+    setWeeklyStatus('Wklej adres wdrożenia Apps Script z aplikacji Harmonogram-MOW. Powinien kończyć się na /exec.');
+    return;
+  }
+  if (!/\/exec(?:\?|$)/.test(settings.backendUrl)) {
+    setWeeklyStatus('Ten adres nie wygląda jak wdrożenie Apps Script. Wklej link typu https://script.google.com/macros/s/.../exec, nie adres GitHub Pages ani edytora skryptu.');
     return;
   }
   setWeeklyStatus('Pobieram plan tygodniowy...');
@@ -2392,7 +2396,7 @@ async function fetchWeeklyPlan() {
     if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
     setWeeklyPlanFromPayload(payload.data || payload, 'Pobrano przez Render z Harmonogram-MOW');
   } catch (err) {
-    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź adres backendu Apps Script i token. Pobieranie idzie teraz przez Render, więc błąd CORS nie powinien już blokować aplikacji.`);
+    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź, czy wkleiłeś adres /exec z Apps Script oraz poprawny VIEW_TOKEN albo ADMIN_TOKEN.`);
   }
 }
 
