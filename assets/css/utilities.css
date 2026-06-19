@@ -1,0 +1,64 @@
+﻿/* ═══════════════════════════════════
+   UTILS
+═══════════════════════════════════ */
+.divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.law-item { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: .8rem; line-height: 1.6; }
+.law-item:last-child { border-bottom: none; }
+.law-num { font-weight: 900; color: var(--navy); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+button, input, textarea {
+  font: inherit;
+}
+button {
+  min-height: 44px;
+}
+input, textarea {
+  caret-color: var(--navy);
+}
+:focus-visible {
+  outline: 3px solid var(--gold2);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .mini-ai-row { flex-direction: column; }
+  .mini-ai-btn { width: 100%; padding: 10px 14px; }
+  .weekly-head { flex-direction: column; gap: 2px; }
+  .kb-dates { grid-template-columns: 1fr; }
+  .btn-row .btn { flex: 1 1 100%; }
+}
+
+@media (max-width: 380px) {
+  html { font-size: 18px; }
+  .main-wrap { padding-left: 9px; padding-right: 9px; }
+  .quick-grid { gap: 8px; }
+  .qbtn { padding: 12px 7px; }
+  .clock-box { gap: 9px; padding: 13px 12px; }
+  .clock-time { font-size: 2rem; }
+  .chat-row { gap: 6px; }
+  .chat-send, .chat-voice { width: 48px; height: 48px; }
+}
+
+@media (min-width: 760px) {
+  .main-wrap { max-width: 760px; }
+  .quick-grid { grid-template-columns: repeat(4, 1fr); }
+  .chat-window { max-height: 60vh; }
+}
+
+/* Extracted note sheet styles */
+.nota-sheet {
+  display: none;
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(0,0,0,.45);
+}
+.nota-sheet.open { display: flex; align-items: flex-end; }
+.nota-inner {
+  background: var(--white); width: 100%;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom,0px));
+  max-height: 85dvh; overflow-y: auto;
+  animation: sheetUp .25s ease;
+}
+@keyframes sheetUp { from {transform:translateY(100%)} to {transform:none} }
+.nota-drag { width: 44px; height: 5px; background: var(--border); border-radius: 3px; margin: 0 auto 14px; }

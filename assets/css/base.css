@@ -1,0 +1,45 @@
+﻿/* Extracted from index.html */
+/* ═══════════════════════════════════
+   RESET & BASE — mobile-first
+═══════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+html {
+  font-size: 19px; /* mobile-first: wyraźna baza tekstu */
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #eef3f8;
+  color: #071827;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 650;
+}
+
+/* ═══════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════ */
+:root {
+  --navy:       #102f4e;
+  --navy2:      #1d4974;
+  --gold:       #d8a21f;
+  --gold2:      #ffd56a;
+  --cream:      #eef3f8;
+  --white:      #ffffff;
+  --red:        #a82618;
+  --orange:     #a94800;
+  --green:      #126334;
+  --border:     #aebed0;
+  --muted:      #3f5368;
+  --shadow:     0 3px 16px rgba(16,47,78,.18);
+  --radius:     12px;
+  --nav-h:      76px;
+}
+
