@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/(.:\/)/, '$1'));
@@ -31,7 +31,7 @@ if (inlineStyles.length || inlineScripts.length) {
 
 const shellMatch = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
 if (!shellMatch) throw new Error('sw.js nie zawiera APP_SHELL.');
-const shell = [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m => m[1].replace(/^\//, ''));
+const shell = [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m => m[1].replace(/^\.\//, '').replace(/^\//, ''));
 const notCached = assetRefs.filter(ref => !shell.includes(ref));
 if (notCached.length) {
   throw new Error(`Zasoby z index.html nie są wpisane do cache PWA: ${notCached.join(', ')}`);
