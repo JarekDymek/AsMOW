@@ -1,11 +1,12 @@
 # Refaktoryzacja AsMOW
 
-## Stan po etapie 1-6
+## Stan po etapie 1-7
 
 - `index.html` zawiera strukturę widoków i odwołania do zasobów.
 - `assets/css/base.css` zawiera reset, podstawy i zmienne kolorystyczne.
 - `assets/css/layout.css` zawiera nagłówek, dolną nawigację i główne układy ekranów.
-- `assets/css/components.css` zawiera wspólne komponenty: karty, przyciski, listy, chat AI, notatnik i widoki szczegółów.
+- `assets/css/components.css` zawiera podstawowe wspólne komponenty: tytuły sekcji, etykiety i karty.
+- `assets/css/home.css`, `procedures.css`, `social-levels.css`, `detail.css`, `notes.css` i `ai.css` zawierają style poszczególnych obszarów aplikacji.
 - `assets/css/harmonogram.css` zawiera style wgrywania harmonogramu, podglądu obrazu, planu tygodniowego i bazy wiedzy.
 - `assets/css/utilities.css` zawiera style pomocnicze, responsywność i style arkusza notatnika.
 - Dane aplikacji są rozdzielone na `data-schedule.js`, `data-procedures.js`, `data-social-levels.js`, `data-quick-actions.js`, `data-chat-pills.js` i `data-laws.js`; `data.js` pozostaje małym plikiem informacyjnym.
@@ -27,6 +28,7 @@
 - `backend/server.js` serwuje pliki z katalogu `assets`.
 - `sw.js` zapisuje nowe zasoby w cache PWA.
 - 2026-06-19: rozdzielono duży plik danych na pliki tematyczne.
+- 2026-06-19: rozdzielono duży plik komponentów CSS na style wspólne i style obszarów aplikacji.
 
 ## Następne bezpieczne etapy
 

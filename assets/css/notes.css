@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════
+   NOTATNIK
+═══════════════════════════════════ */
+.nota-area {
+  width: 100%; min-height: 140px;
+  border: 2px solid var(--border); border-radius: 12px;
+  padding: 12px; font-size: .95rem; font-family: inherit;
+  resize: vertical; outline: none; color: var(--navy); line-height: 1.6;
+}
+.nota-area:focus { border-color: var(--navy); }
+.btn {
+  background: var(--navy); color: #fff;
+  border: none; border-radius: 10px;
+  padding: 11px 18px; font-size: .85rem; font-weight: 800;
+  cursor: pointer; margin-top: 8px;
+}
+.btn:active { opacity: .85; }
+.btn.sec  { background: var(--border); color: var(--navy); }
+.btn.red  { background: var(--red); }
+.note-card {
+  background: var(--white); border-radius: 12px;
+  padding: 13px; margin-bottom: 9px; box-shadow: var(--shadow); position: relative;
+}
+.note-meta    { font-size: .65rem; color: var(--muted); margin-bottom: 5px; }
+.note-content { font-size: .94rem; line-height: 1.58; font-weight: 750; }
+.note-del {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer;
+}

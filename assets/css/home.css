@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════
+   CLOCK BOX
+═══════════════════════════════════ */
+.clock-box {
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 12px;
+}
+.clock-time { font-size: 2.4rem; font-weight: 900; color: var(--gold2); font-variant-numeric: tabular-nums; line-height: 1; }
+.clock-sub  { font-size: .78rem; color: rgba(255,255,255,.86); margin-top: 3px; font-weight: 750; }
+.clock-act  { font-size: 1rem; font-weight: 850; line-height: 1.35; }
+.clock-right { margin-left: auto; text-align: right; }
+
+/* ═══════════════════════════════════
+   SCHEDULE
+═══════════════════════════════════ */
+.sched-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sched-item:last-child { border-bottom: none; }
+.sched-time {
+  background: var(--navy);
+  color: var(--gold2);
+  font-size: .7rem; font-weight: 900;
+  padding: 4px 8px; border-radius: 8px;
+  white-space: nowrap; min-width: 82px;
+  text-align: center; flex-shrink: 0;
+}
+.sched-label { font-size: .96rem; font-weight: 900; }
+.sched-tip   { font-size: .82rem; color: #24384b; margin-top: 3px; line-height: 1.5; font-weight: 650; }
+.sched-item.now .sched-time {
+  background: var(--gold); color: var(--navy);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(201,151,43,.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(201,151,43,0); }
+}
+.section-toggle {
+  width: 100%;
+  background: var(--white);
+  color: var(--navy);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 14px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.section-toggle .st-main {
+  font-size: .9rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.section-toggle .st-state {
+  font-size: .8rem;
+  font-weight: 950;
+  color: var(--navy2);
+  white-space: nowrap;
+}
+.collapsible-card.collapsed { display: none; }
+
+/* ═══════════════════════════════════
+   QUICK GRID
+═══════════════════════════════════ */
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.qbtn {
+  background: var(--white);
+  border: none; border-radius: var(--radius);
+  padding: 14px 10px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; transition: transform .14s, box-shadow .14s;
+}
+.qbtn:active { transform: scale(.96); }
+.qbtn.qred  { background: #fdf2f2; border: 1.5px solid #f5b7b1; }
+.qbtn.qorn  { background: #fef6ee; border: 1.5px solid #f5cba7; }
+.qbtn.qgold { background: #fef9ee; border: 1.5px solid #f0d080; }
+.qbtn.qblue { background: #edf4fb; border: 1.5px solid #aed6f1; }
+.qbtn .qi { font-size: 1.8rem; }
+.qbtn .ql { font-size: .84rem; font-weight: 900; color: var(--navy); text-align: center; line-height: 1.35; }
+
+/* install banner */
+.install-banner {
+  background: var(--navy);
+  color: #fff; border-radius: var(--radius);
+  padding: 13px 15px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.ib-icon { font-size: 1.7rem; flex-shrink: 0; }
+.ib-text h3 { font-size: .94rem; font-weight: 950; }
+.ib-text p  { font-size: .78rem; color: rgba(255,255,255,.9); margin-top: 2px; font-weight: 700; line-height: 1.35; }
+.ib-btn {
+  margin-left: auto;
+  background: var(--gold); color: var(--navy);
+  border: none; border-radius: 9px;
+  padding: 10px 14px;
+  font-size: .82rem; font-weight: 950;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.ib-help {
+  background: rgba(255,255,255,.14); color: #fff;
+  border: 1px solid rgba(255,255,255,.38); border-radius: 9px;
+  padding: 10px 12px; font-size: .82rem; font-weight: 900;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.install-sheet {
+  display: none; position: fixed; inset: 0; z-index: 260;
+  background: rgba(7,24,39,.62); padding: 14px;
+  align-items: flex-end; justify-content: center;
+}
+.install-sheet.open { display: flex; }
+.install-panel {
+  width: min(620px, 100%); background: #fff; color: #071827;
+  border-radius: 16px; padding: 18px; box-shadow: 0 8px 28px rgba(0,0,0,.32);
+}
+.install-panel h2 { font-size: 1.15rem; color: var(--navy); font-weight: 950; margin-bottom: 8px; }
+.install-steps { display: grid; gap: 9px; margin: 12px 0; }
+.install-step {
+  background: #eef3f8; border-left: 5px solid var(--gold);
+  padding: 10px 12px; border-radius: 9px; font-size: .92rem;
+  line-height: 1.45; font-weight: 800;
+}
+.install-close {
+  width: 100%; background: var(--navy); color: #fff;
+  border: none; border-radius: 10px; padding: 12px;
+  font-size: .95rem; font-weight: 950; cursor: pointer;
+}

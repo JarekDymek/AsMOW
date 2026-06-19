@@ -1,0 +1,31 @@
+/* ═══════════════════════════════════
+   PROCEDURE LIST
+═══════════════════════════════════ */
+.proc-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: background .14s;
+}
+.proc-item:last-child { border-bottom: none; }
+.proc-item:active { background: #f0f5fb; }
+.proc-icon  { font-size: 1.6rem; flex-shrink: 0; }
+.proc-title { font-size: .98rem; font-weight: 950; line-height: 1.32; }
+.proc-sub   { font-size: .82rem; color: #2a3d50; margin-top: 2px; font-weight: 700; }
+.proc-arrow { margin-left: auto; font-size: 1.2rem; color: var(--muted); flex-shrink: 0; }
+.proc-item.danger .proc-title { color: var(--red); }
+.proc-item.warn   .proc-title { color: var(--orange); }
+.proc-item.ok     .proc-title { color: var(--green); }
+
+/* search */
+.search-bar {
+  background: var(--white); border-radius: var(--radius);
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; box-shadow: var(--shadow); margin-bottom: 12px;
+}
+.search-bar input {
+  border: none; outline: none;
+  font-size: .95rem; flex: 1; background: transparent;
+  color: var(--navy); min-width: 0;
+}
+.search-icon { font-size: 1.1rem; color: var(--muted); flex-shrink: 0; }
