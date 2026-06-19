@@ -1,21 +1,29 @@
-﻿# Refaktoryzacja AsMOW
+# Refaktoryzacja AsMOW
 
-## Stan po etapie 1-2
+## Stan po etapie 1-3
 
 - `index.html` zawiera strukturę widoków i odwołania do zasobów.
 - `assets/css/app.css` zawiera style aplikacji.
 - `assets/js/data.js` zawiera stałe dane: harmonogram dnia, procedury, stopnie, szybkie pytania i podstawy prawne.
-- `assets/js/app.js` zawiera logikę aplikacji.
+- `assets/js/state.js` zawiera wspólny stan i klucze `localStorage`.
+- `assets/js/ui.js` zawiera nawigację, zegar, harmonogram dnia, render procedur, stopni i podstaw prawnych.
+- `assets/js/notes.js` zawiera notatnik dyżuru.
+- `assets/js/ai.js` zawiera czat AI, głos, historię, retry i wspólne czytanie plików.
+- `assets/js/harmonogram.js` zawiera lokalne wgrywanie i analizę harmonogramu z pliku/screena.
+- `assets/js/weekly-plan.js` zawiera integrację z generatorem Harmonogram-MOW.
+- `assets/js/knowledge-base.js` zawiera bazę wiedzy, wzory dokumentów i zmiany czasowe.
+- `assets/js/pwa.js` zawiera instalację PWA i rejestrację service workera.
+- `assets/js/app.js` zawiera inicjalizację aplikacji.
 - `backend/server.js` serwuje pliki z katalogu `assets`.
 - `sw.js` zapisuje nowe zasoby w cache PWA.
 
 ## Następne bezpieczne etapy
 
-1. Wydzielić `assets/js/ai.js`: czat AI, historia, retry, głos i załączniki.
-2. Wydzielić `assets/js/weekly-plan.js`: pobieranie i renderowanie planu tygodniowego.
-3. Wydzielić `assets/js/knowledge-base.js`: baza wiedzy, wzory dokumentów i zmiany czasowe.
-4. Wydzielić `assets/js/files.js`: odczyt TXT, Word, Excel i obrazów.
-5. Wydzielić `assets/js/pwa.js`: instalacja PWA i kontrola offline.
+1. Wydzielić CSS na `base.css`, `components.css`, `screens.css` i `mobile.css`.
+2. Uporządkować `ai.js`: osobno czat, pliki, dyktowanie głosowe i kontekst odpowiedzi.
+3. Dodać prosty tryb diagnostyczny dla harmonogramu tygodniowego.
+4. Dodać test sprawdzający obecność wszystkich zasobów z `index.html` i `sw.js`.
+5. Rozważyć migrację na moduły ES dopiero po pełnym przetestowaniu klasycznego podziału.
 
 ## Zasada utrzymania
 

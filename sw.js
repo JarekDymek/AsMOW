@@ -1,4 +1,4 @@
-const CACHE = 'mow-pwa-v11';
+const CACHE = 'mow-pwa-v12';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,6 +6,14 @@ const APP_SHELL = [
   '/icon.svg',
   '/assets/css/app.css',
   '/assets/js/data.js',
+  '/assets/js/state.js',
+  '/assets/js/ui.js',
+  '/assets/js/notes.js',
+  '/assets/js/ai.js',
+  '/assets/js/harmonogram.js',
+  '/assets/js/weekly-plan.js',
+  '/assets/js/knowledge-base.js',
+  '/assets/js/pwa.js',
   '/assets/js/app.js'
 ];
 
