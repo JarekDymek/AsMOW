@@ -1,9 +1,11 @@
-const CACHE = 'mow-pwa-v9';
+const CACHE = 'mow-pwa-v10';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icon.svg'
+  '/icon.svg',
+  '/assets/css/app.css',
+  '/assets/js/app.js'
 ];
 
 self.addEventListener('install', event => {
@@ -27,7 +29,7 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  if (url.pathname === '/api/chat' || url.pathname === '/health') {
+  if (url.pathname === '/api/chat' || url.pathname === '/api/weekly-plan' || url.pathname === '/api/extract-file' || url.pathname === '/health') {
     event.respondWith(fetch(req));
     return;
   }

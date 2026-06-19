@@ -98,6 +98,15 @@ const server = http.createServer(async (req, res) => {
       return sendFile(res, asset.file, asset.type);
     }
 
+    if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
+      const relativeAsset = decodeURIComponent(url.pathname.replace(/^\/assets\//, '')).replace(/\\/g, '/');
+      if (!relativeAsset || relativeAsset.includes('..')) {
+        return json(res, 400, { error: 'Nieprawidłowa ścieżka zasobu.' });
+      }
+      const file = path.join(__dirname, '..', 'assets', relativeAsset);
+      return sendFile(res, file, getAssetContentType(file));
+    }
+
     return json(res, 404, { error: 'Nie znaleziono endpointu.' });
   } catch (err) {
     console.error(err);
@@ -511,6 +520,17 @@ function sendFile(res, file, contentType) {
     res.writeHead(200, { 'content-type': contentType, 'cache-control': 'no-store' });
     res.end(body);
   });
+}
+
+function getAssetContentType(file) {
+  const ext = path.extname(file).toLowerCase();
+  if (ext === '.css') return 'text/css; charset=utf-8';
+  if (ext === '.js') return 'application/javascript; charset=utf-8';
+  if (ext === '.svg') return 'image/svg+xml; charset=utf-8';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.webp') return 'image/webp';
+  return 'application/octet-stream';
 }
 
 function json(res, status, payload) {
