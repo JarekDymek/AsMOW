@@ -2,6 +2,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
+import { ImapFlow } from 'imapflow';
+import { simpleParser } from 'mailparser';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 
@@ -18,6 +21,8 @@ const PROVIDER = resolveProvider();
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
+const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 
 const rate = new Map();
 const STATIC_FILES = new Map([
@@ -77,6 +82,13 @@ const server = http.createServer(async (req, res) => {
       const payload = await readJson(req);
       const plan = await fetchWeeklyPlan(payload);
       return json(res, 200, plan);
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/current-info-mail') {
+      if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
+      const payload = await readJson(req);
+      const result = await fetchCurrentInfoMail(payload);
+      return json(res, 200, result);
     }
 
     if (req.method === 'POST' && url.pathname === '/api/extract-file') {
@@ -341,6 +353,183 @@ function parseMaybeJson(text) {
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   if (!match) return null;
   try { return JSON.parse(match[0]); } catch { return null; }
+}
+
+async function fetchCurrentInfoMail(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token);
+  const config = getCurrentInfoMailConfig();
+  const since = normalizeCurrentInfoSince(payload.since || config.since);
+  const limit = Math.min(Math.max(Number(payload.limit || 120), 1), 300);
+
+  const client = new ImapFlow({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.password
+    },
+    logger: false
+  });
+
+  const items = [];
+  await client.connect();
+  const lock = await client.getMailboxLock(config.mailbox);
+  try {
+    const uids = await client.search({ since: new Date(`${since}T00:00:00Z`), from: config.from });
+    const selected = uids.slice(-limit);
+    if (!selected.length) {
+      return {
+        ok: true,
+        source: config.from,
+        since,
+        count: 0,
+        items: []
+      };
+    }
+    for await (const message of client.fetch(selected, {
+      uid: true,
+      envelope: true,
+      source: true,
+      internalDate: true
+    })) {
+      const parsed = await simpleParser(message.source);
+      const item = normalizeCurrentInfoMailMessage(message, parsed, config.from);
+      if (item && !isScheduleCurrentInfoText(`${item.title}\n${item.topic}\n${item.body}`)) items.push(item);
+    }
+  } finally {
+    lock.release();
+    await client.logout().catch(() => {});
+  }
+
+  items.sort((a, b) => `${a.date} ${a.id}`.localeCompare(`${b.date} ${b.id}`));
+  return {
+    ok: true,
+    source: config.from,
+    since,
+    count: items.length,
+    items
+  };
+}
+
+function assertCurrentInfoSyncToken(token) {
+  const expected = process.env.CURRENT_INFO_SYNC_TOKEN;
+  if (!expected) {
+    const err = new Error('Synchronizacja poczty nie jest jeszcze skonfigurowana w Renderze. Dodaj CURRENT_INFO_SYNC_TOKEN oraz dane IMAP.');
+    err.status = 400;
+    err.code = 'CURRENT_INFO_SYNC_NOT_CONFIGURED';
+    throw err;
+  }
+  if (!token || String(token) !== expected) {
+    const err = new Error('Brak dostępu do synchronizacji poczty. Wpisz poprawny token synchronizacji.');
+    err.status = 403;
+    err.code = 'CURRENT_INFO_SYNC_FORBIDDEN';
+    throw err;
+  }
+}
+
+function getCurrentInfoMailConfig() {
+  const user = process.env.CURRENT_INFO_IMAP_USER || process.env.CURRENT_INFO_EMAIL_USER;
+  const password = process.env.CURRENT_INFO_IMAP_PASSWORD || process.env.CURRENT_INFO_EMAIL_PASSWORD;
+  if (!user || !password) {
+    const err = new Error('Brak danych skrzynki w Renderze. Uzupełnij CURRENT_INFO_IMAP_USER i CURRENT_INFO_IMAP_PASSWORD.');
+    err.status = 400;
+    err.code = 'CURRENT_INFO_IMAP_NOT_CONFIGURED';
+    throw err;
+  }
+  return {
+    host: process.env.CURRENT_INFO_IMAP_HOST || 'imap.wp.pl',
+    port: Number(process.env.CURRENT_INFO_IMAP_PORT || 993),
+    secure: String(process.env.CURRENT_INFO_IMAP_SECURE || 'true') !== 'false',
+    user,
+    password,
+    from: CURRENT_INFO_FROM,
+    since: CURRENT_INFO_SINCE,
+    mailbox: process.env.CURRENT_INFO_IMAP_MAILBOX || 'INBOX'
+  };
+}
+
+function normalizeCurrentInfoSince(value) {
+  const text = String(value || CURRENT_INFO_SINCE).trim();
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  if (!match) return CURRENT_INFO_SINCE;
+  return match[0] < '2026-01-01' ? '2026-01-01' : match[0];
+}
+
+function normalizeCurrentInfoMailMessage(message, parsed, expectedFrom) {
+  const fromText = parsed.from?.text || message.envelope?.from?.map(formatAddress).join(', ') || expectedFrom;
+  const subject = String(parsed.subject || message.envelope?.subject || '').trim();
+  const body = String(parsed.text || stripHtml(parsed.html || '') || '').trim();
+  if (!subject && !body) return null;
+  const date = normalizeMailDate(parsed.date || message.internalDate || new Date());
+  const idSeed = `${message.uid}|${date}|${subject}|${body.slice(0, 120)}`;
+  return {
+    id: `mail-${message.uid || shortHash(idSeed)}-${shortHash(idSeed)}`,
+    date,
+    title: (subject || buildMailTitle(body)).slice(0, 180),
+    topic: detectCurrentInfoMailTopic(subject, body).slice(0, 100),
+    source: fromText.slice(0, 120),
+    body: body.slice(0, 40_000),
+    createdAt: new Date().toISOString()
+  };
+}
+
+function formatAddress(address = {}) {
+  const name = address.name ? `${address.name} ` : '';
+  const value = address.address || '';
+  return `${name}<${value}>`.trim();
+}
+
+function normalizeMailDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
+function stripHtml(html = '') {
+  return String(html)
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildMailTitle(body = '') {
+  return String(body).split(/\n/).map(line => line.trim()).find(Boolean) || 'Bieżąca informacja';
+}
+
+function detectCurrentInfoMailTopic(title = '', body = '') {
+  const text = normalizeMailSearch(`${title} ${body}`);
+  if (text.includes('telefon')) return 'telefony';
+  if (text.includes('przepust') || text.includes('urlop')) return 'przepustki/urlopy';
+  if (text.includes('wakac') || text.includes('feri')) return 'organizacja wolnego';
+  if (text.includes('rada') || text.includes('zebr')) return 'zebranie';
+  if (text.includes('regulamin') || text.includes('zarzadzen')) return 'regulamin/zarządzenie';
+  return 'informacja';
+}
+
+function isScheduleCurrentInfoText(text = '') {
+  const normalized = normalizeMailSearch(text);
+  const scheduleWords = ['harmonogram', 'dyzur', 'grafik', 'plan pracy', 'zastepuje', 'nadgodzin'];
+  return scheduleWords.some(word => normalized.includes(word)) && !normalized.includes('zarzadzen');
+}
+
+function normalizeMailSearch(value = '') {
+  return String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function shortHash(value = '') {
+  return crypto.createHash('sha1').update(String(value)).digest('hex').slice(0, 12);
 }
 
 function isPrivateHost(hostname = '') {

@@ -14,3 +14,19 @@ services:
         value: gemini-2.5-flash-lite
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: CURRENT_INFO_IMAP_HOST
+        value: imap.wp.pl
+      - key: CURRENT_INFO_IMAP_PORT
+        value: "993"
+      - key: CURRENT_INFO_IMAP_SECURE
+        value: "true"
+      - key: CURRENT_INFO_FROM
+        value: dgorski5@wp.pl
+      - key: CURRENT_INFO_SINCE
+        value: "2026-01-01"
+      - key: CURRENT_INFO_IMAP_USER
+        sync: false
+      - key: CURRENT_INFO_IMAP_PASSWORD
+        sync: false
+      - key: CURRENT_INFO_SYNC_TOKEN
+        sync: false

@@ -9,8 +9,35 @@
   gap: 9px;
 }
 
+.current-info-sync {
+  display: grid;
+  gap: 8px;
+  border: 1.5px solid #c7d6e4;
+  border-radius: 8px;
+  background: #f7fbff;
+  padding: 10px;
+}
+
+.current-info-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--navy);
+  font-size: .84rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.current-info-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--navy);
+  flex: 0 0 auto;
+}
+
 .current-info-form input,
 .current-info-form textarea,
+.current-info-sync input[type="password"],
 .current-info-search {
   width: 100%;
   border: 1.5px solid #9fb2c6;

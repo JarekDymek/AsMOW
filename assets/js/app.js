@@ -25,6 +25,7 @@ function init() {
   setupInstall();
   checkOnline();
   setInterval(checkOnline, 15000);
+  setInterval(autoSyncCurrentInfoMail, 30 * 60 * 1000);
 }
 
 

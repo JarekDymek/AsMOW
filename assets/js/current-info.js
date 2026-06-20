@@ -11,7 +11,9 @@ function loadCurrentInfo() {
   }
   currentInfoItems = currentInfoItems.map(normalizeCurrentInfoItem).filter(Boolean);
   saveCurrentInfo(false);
+  loadCurrentInfoSyncSettings();
   renderCurrentInfoList();
+  autoSyncCurrentInfoMail();
 }
 
 function saveCurrentInfo(updateView = true) {
@@ -270,6 +272,109 @@ function updateCurrentInfoCounter(visible, total) {
 function setCurrentInfoStatus(text) {
   const el = document.getElementById('current-info-status');
   if (el) el.textContent = text;
+}
+
+function loadCurrentInfoSyncSettings() {
+  const settings = getCurrentInfoSyncSettings();
+  const tokenEl = document.getElementById('current-info-sync-token');
+  const autoEl = document.getElementById('current-info-sync-auto');
+  if (tokenEl) tokenEl.value = settings.token || '';
+  if (autoEl) autoEl.checked = Boolean(settings.auto);
+  setCurrentInfoSyncMeta(settings.lastSyncAt || '');
+}
+
+function getCurrentInfoSyncSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CURRENT_INFO_SYNC_KEY) || '{}');
+    return {
+      token: String(parsed.token || ''),
+      auto: Boolean(parsed.auto),
+      lastSyncAt: String(parsed.lastSyncAt || '')
+    };
+  } catch {
+    return { token: '', auto: false, lastSyncAt: '' };
+  }
+}
+
+function saveCurrentInfoSyncSettings(extra = {}) {
+  const tokenEl = document.getElementById('current-info-sync-token');
+  const autoEl = document.getElementById('current-info-sync-auto');
+  const current = getCurrentInfoSyncSettings();
+  const settings = {
+    token: tokenEl ? tokenEl.value.trim() : current.token,
+    auto: autoEl ? autoEl.checked : current.auto,
+    lastSyncAt: current.lastSyncAt,
+    ...extra
+  };
+  localStorage.setItem(CURRENT_INFO_SYNC_KEY, JSON.stringify(settings));
+  setCurrentInfoSyncMeta(settings.lastSyncAt);
+  setCurrentInfoStatus('Zapisano ustawienia synchronizacji.');
+  return settings;
+}
+
+function setCurrentInfoSyncMeta(lastSyncAt = '') {
+  const el = document.getElementById('current-info-sync-meta');
+  if (!el) return;
+  el.textContent = lastSyncAt
+    ? `Ostatnia synchronizacja: ${new Date(lastSyncAt).toLocaleString('pl-PL')}`
+    : 'Synchronizacja nie była jeszcze uruchomiona.';
+}
+
+async function autoSyncCurrentInfoMail() {
+  const settings = getCurrentInfoSyncSettings();
+  if (!settings.auto || !settings.token) return;
+  const last = settings.lastSyncAt ? new Date(settings.lastSyncAt).getTime() : 0;
+  const sixHours = 6 * 60 * 60 * 1000;
+  if (last && Date.now() - last < sixHours) return;
+  await syncCurrentInfoMail(false);
+}
+
+async function syncCurrentInfoMail(manual = true) {
+  const settings = saveCurrentInfoSyncSettings({ lastSyncAt: getCurrentInfoSyncSettings().lastSyncAt });
+  if (!settings.token) {
+    setCurrentInfoStatus('Wpisz token synchronizacji poczty.');
+    return;
+  }
+  try {
+    setCurrentInfoStatus(manual ? 'Pobieram wiadomości z poczty...' : 'Automatycznie sprawdzam pocztę...');
+    const response = await fetch(`${getAIBackendBaseUrl()}/api/current-info-mail`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        token: settings.token,
+        since: CURRENT_INFO_START_DATE,
+        limit: 180
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `Błąd synchronizacji HTTP ${response.status}`);
+    }
+    const before = currentInfoItems.length;
+    mergeCurrentInfoItems(data.items || []);
+    const added = currentInfoItems.length - before;
+    const lastSyncAt = new Date().toISOString();
+    saveCurrentInfoSyncSettings({ lastSyncAt });
+    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.`);
+  } catch (err) {
+    setCurrentInfoStatus(`Nie udało się pobrać poczty: ${err.message}`);
+  }
+}
+
+function mergeCurrentInfoItems(items = []) {
+  const known = new Set(currentInfoItems.map(getCurrentInfoFingerprint));
+  items.map(normalizeCurrentInfoItem).filter(Boolean).forEach(item => {
+    if (isScheduleCurrentInfo(item)) return;
+    const fingerprint = getCurrentInfoFingerprint(item);
+    if (known.has(fingerprint)) return;
+    known.add(fingerprint);
+    currentInfoItems.push(item);
+  });
+  saveCurrentInfo();
+}
+
+function getCurrentInfoFingerprint(item) {
+  return normalizeForCurrentInfoSearch(`${item.date}|${item.title}|${String(item.body || '').slice(0, 220)}`);
 }
 
 function getCurrentInfoContext() {

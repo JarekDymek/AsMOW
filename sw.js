@@ -1,4 +1,4 @@
-const CACHE = 'mow-pwa-v23';
+const CACHE = 'mow-pwa-v24';
 const APP_SHELL = [
   './',
   './index.html',
@@ -79,7 +79,7 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  if (url.pathname === '/api/chat' || url.pathname === '/api/weekly-plan' || url.pathname === '/api/extract-file' || url.pathname === '/health') {
+  if (url.pathname === '/api/chat' || url.pathname === '/api/weekly-plan' || url.pathname === '/api/current-info-mail' || url.pathname === '/api/extract-file' || url.pathname === '/health') {
     event.respondWith(fetch(req));
     return;
   }
