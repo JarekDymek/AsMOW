@@ -61,7 +61,7 @@ const server = http.createServer(async (req, res) => {
       if (!messages.length) return json(res, 400, { error: 'Brak pytania.' });
 
       const attachments = await normalizeAttachments(payload.attachments);
-      const system = buildSystemPrompt(payload.context, payload.clientTime);
+      const system = buildSystemPrompt(payload.context, payload.clientTime, messages);
       const enrichedMessages = addAttachmentContext(messages, attachments);
       const answer = PROVIDER === 'gemini'
         ? await askGemini(system, enrichedMessages, attachments)
@@ -353,9 +353,10 @@ function isPrivateHost(hostname = '') {
     || /^172\.(1[6-9]|2\d|3[0-1])\./.test(h);
 }
 
-function buildSystemPrompt(context = {}, clientTime = '') {
+function buildSystemPrompt(context = {}, clientTime = '', messages = []) {
   const structuredContext = JSON.stringify(compactContext(context), null, 2).slice(0, 45_000);
-  const localKnowledge = loadKnowledgeFiles().slice(0, 55_000);
+  const knowledgeQuery = buildKnowledgeQuery(messages, context);
+  const localKnowledge = loadKnowledgeFiles(knowledgeQuery).slice(0, 85_000);
 
   return `Jesteś kuratorem oświaty, znawcą prawa oświatowego oraz mentorem wychowawcy w Młodzieżowym Ośrodku Wychowawczym nr 1 w Malborku.
 
@@ -392,18 +393,89 @@ function compactContext(context) {
   };
 }
 
-function loadKnowledgeFiles() {
+function buildKnowledgeQuery(messages = [], context = {}) {
+  const lastUserMessage = [...messages].reverse().find(message => message.role === 'user')?.content || '';
+  const selectedKnowledge = context?.knowledgeBase?.items
+    ?.map(item => `${item.title || ''} ${item.type || ''} ${item.source || ''}`)
+    .join('\n') || '';
+  return `${lastUserMessage}\n${selectedKnowledge}`.slice(0, 16_000);
+}
+
+function loadKnowledgeFiles(query = '') {
   const dir = path.join(__dirname, 'knowledge');
   if (!fs.existsSync(dir)) return '';
+  const terms = extractSearchTerms(query);
   return fs.readdirSync(dir)
     .filter(name => /\.(txt|md|json)$/i.test(name))
     .sort()
     .map(name => {
       const full = path.join(dir, name);
-      const text = fs.readFileSync(full, 'utf8').slice(0, 30_000);
-      return `\n--- ${name} ---\n${text}`;
+      const text = fs.readFileSync(full, 'utf8');
+      const selectedText = selectKnowledgeSnippets(text, terms);
+      return `\n--- ${name} ---\n${selectedText}`;
     })
     .join('\n');
+}
+
+function extractSearchTerms(query = '') {
+  const stopWords = new Set([
+    'oraz', 'albo', 'jest', 'jako', 'ktore', 'ktory', 'ktora', 'tego', 'tych',
+    'przy', 'przez', 'moze', 'moga', 'czyli', 'kiedy', 'gdzie', 'prosze',
+    'pytanie', 'odpowiedz', 'aplikacji', 'mow', 'asystent'
+  ]);
+  const words = normalizeForSearch(query).match(/[a-z0-9]{4,}/g) || [];
+  return [...new Set(words)]
+    .filter(word => !stopWords.has(word))
+    .slice(0, 45);
+}
+
+function selectKnowledgeSnippets(text = '', terms = []) {
+  const clean = String(text)
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n');
+  const intro = clean.slice(0, 3_500);
+  if (!terms.length || clean.length <= 35_000) return clean.slice(0, 35_000);
+
+  const chunks = [];
+  for (let index = 0; index < clean.length; index += 1_800) {
+    chunks.push({ index, text: clean.slice(index, index + 2_200) });
+  }
+
+  const scored = chunks
+    .map(chunk => {
+      const normalized = normalizeForSearch(chunk.text);
+      const score = terms.reduce((sum, term) => sum + countOccurrences(normalized, term), 0);
+      return { ...chunk, score };
+    })
+    .filter(chunk => chunk.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .sort((a, b) => a.index - b.index);
+
+  const matches = scored
+    .map(chunk => `\n[trafny fragment, pozycja ${chunk.index}, wynik ${chunk.score}]\n${chunk.text}`)
+    .join('\n');
+
+  return `${intro}\n${matches}`.slice(0, 35_000);
+}
+
+function countOccurrences(text, term) {
+  if (!term) return 0;
+  let count = 0;
+  let position = text.indexOf(term);
+  while (position !== -1) {
+    count += 1;
+    position = text.indexOf(term, position + term.length);
+  }
+  return count;
+}
+
+function normalizeForSearch(value = '') {
+  return String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
 
 function loadCentralKnowledge() {

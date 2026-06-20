@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-20.1",
+  "version": "2026-06-20.2",
   "updatedAt": "2026-06-20",
   "source": "Centralna baza wiedzy MOW - wersja startowa",
   "items": [
@@ -28,6 +28,32 @@
       "version": "1",
       "approvedBy": "Administrator aplikacji",
       "content": "Do AI nie należy wpisywać pełnych danych osobowych wychowanków, numerów PESEL, adresów, danych medycznych ani szczegółów umożliwiających łatwą identyfikację osoby. Zalecany zapis: inicjały, numer grupy, opis sytuacji bez danych identyfikujących."
+    },
+    {
+      "id": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich-tekst-jednolity-2026",
+      "key": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich",
+      "type": "ustawa",
+      "title": "Ustawa o wspieraniu i resocjalizacji nieletnich - tekst jednolity 2026",
+      "source": "Dz.U. 2026 poz. 163; obwieszczenie Marszałka Sejmu RP z dnia 5 lutego 2026 r.",
+      "documentDate": "2026-02-05",
+      "validFrom": "2026-02-12",
+      "validTo": "",
+      "version": "tekst jednolity 2026",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Stały dokument prawny w centralnej bazie Asystenta MOW. Pełny tekst został zapisany w backend/knowledge/01_ustawa_o_wspieraniu_i_resocjalizacji_nieletnich_tekst_jednolity_2026.txt. AI ma korzystać z niego przy pytaniach dotyczących nieletnich, demoralizacji, czynów karalnych, środków wychowawczych i poprawczych, postępowania z nieletnim oraz zasad pobytu w placówce, zawsze z uwzględnieniem pierwszeństwa aktualnych dokumentów i procedur MOW w sprawach organizacyjnych placówki."
+    },
+    {
+      "id": "prawo-rozporzadzenie-publiczne-placowki-systemu-oswiaty-2023",
+      "key": "prawo-rozporzadzenie-publiczne-placowki-oswiaty",
+      "type": "rozporzadzenie",
+      "title": "Rozporządzenie MEiN w sprawie niektórych publicznych placówek systemu oświaty",
+      "source": "Dz.U. 2023 poz. 651; rozporządzenie Ministra Edukacji i Nauki z dnia 30 marca 2023 r.",
+      "documentDate": "2023-03-30",
+      "validFrom": "2023-04-05",
+      "validTo": "",
+      "version": "Dz.U. 2023 poz. 651",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Stały dokument prawny w centralnej bazie Asystenta MOW. Pełny tekst został zapisany w backend/knowledge/02_rozporzadzenie_mein_publiczne_placowki_systemu_oswiaty_2023.txt. AI ma korzystać z niego przy pytaniach dotyczących działania młodzieżowych ośrodków wychowawczych, warunków pobytu wychowanków, urlopów i przepustek, dokumentowania pobytu, nieletnich matek i ich dzieci, odpłatności oraz wolontariuszy. Przy pytaniach proceduralnych należy zestawiać ten akt z aktualnymi procedurami i zarządzeniami MOW."
     }
   ]
 }

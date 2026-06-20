@@ -58,6 +58,7 @@ function labelKnowledgeType(type) {
     'wzor-dokumentu': 'Wzór dokumentu',
     opinia: 'Opinia',
     wniosek: 'Wniosek',
+    ustawa: 'Ustawa',
     rozporzadzenie: 'Rozporządzenie'
   }[type] || type || 'Wpis';
 }

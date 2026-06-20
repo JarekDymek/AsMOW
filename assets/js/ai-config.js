@@ -19,7 +19,8 @@ const MOW_DOCUMENTS = [
   'Procedury, niebezpieczne przedmioty, odwiedziny i korespondencja dotycząca wychowanków MOW w Malborku (2).pdf',
   'STANDARDY-OCHRONY-MALOLETNICH.pdf',
   'Poradnik dla wychowawców w Młodzieżowym Ośrodku Wychowawczym nr 1 w Malborku.docx.pdf',
-  'Ustawa z dnia 9 czerwca 2022 r. o wspieraniu i resocjalizacji nieletnich (Dz.U. z 2022 r. poz. 1700) Wybrane zagadnienia.pdf'
+  'Ustawa o wspieraniu i resocjalizacji nieletnich - tekst jednolity Dz.U. 2026 poz. 163',
+  'Rozporządzenie MEiN z dnia 30 marca 2023 r. w sprawie niektórych publicznych placówek systemu oświaty - Dz.U. 2023 poz. 651'
 ];
 
 function getAIHealthUrl() {
