@@ -376,7 +376,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   try {
     await client.connect();
   } catch (err) {
-    throwCurrentInfoMailError(err, 'połączenie lub logowanie do poczty');
+    throwCurrentInfoMailError(err, 'połączenie lub logowanie do poczty', config);
   }
 
   let lock;
@@ -384,7 +384,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     lock = await client.getMailboxLock(config.mailbox);
   } catch (err) {
     await client.logout().catch(() => {});
-    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`);
+    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`, config);
   }
 
   try {
@@ -413,7 +413,7 @@ async function fetchCurrentInfoMail(payload = {}) {
       if (!isScheduleCurrentInfoText(`${item.title}\n${item.topic}\n${item.body}`)) items.push(item);
     }
   } catch (err) {
-    throwCurrentInfoMailError(err, 'pobieranie wiadomości');
+    throwCurrentInfoMailError(err, 'pobieranie wiadomości', config);
   } finally {
     if (lock) lock.release();
     await client.logout().catch(() => {});
@@ -449,33 +449,46 @@ function isGenericImapCommandFailure(err) {
   return /command failed|search|bad|no/i.test(text);
 }
 
-function throwCurrentInfoMailError(err, stage) {
+function throwCurrentInfoMailError(err, stage, config = {}) {
   const raw = `${err?.message || ''} ${err?.responseText || ''} ${err?.serverResponse || ''}`.trim();
-  const message = mapCurrentInfoMailError(raw, stage);
+  const message = mapCurrentInfoMailError(raw, stage, config);
   const wrapped = new Error(message);
   wrapped.status = /token|dostęp/i.test(message) ? 403 : 502;
   wrapped.code = 'CURRENT_INFO_MAIL_ERROR';
   throw wrapped;
 }
 
-function mapCurrentInfoMailError(raw = '', stage = 'obsługa poczty') {
+function mapCurrentInfoMailError(raw = '', stage = 'obsługa poczty', config = {}) {
   const text = raw || 'brak szczegółów błędu';
+  const details = formatMailConfigDetails(config);
   if (/auth|login|password|credentials|authentication|invalid/i.test(text)) {
-    return `Nie udało się zalogować do poczty. Sprawdź CURRENT_INFO_IMAP_USER i CURRENT_INFO_IMAP_PASSWORD w Renderze. Jeżeli poczta wymaga hasła aplikacyjnego, zwykłe hasło do skrzynki może nie wystarczyć.`;
+    return `Nie udało się zalogować do poczty. ${details} Dla Gmaila użyj pełnego adresu Gmail w CURRENT_INFO_IMAP_USER oraz 16-znakowego hasła aplikacyjnego w CURRENT_INFO_IMAP_PASSWORD. Sprawdź też, czy CURRENT_INFO_IMAP_HOST to imap.gmail.com, a nie stary imap.wp.pl.`;
   }
   if (/certificate|tls|ssl|secure/i.test(text)) {
-    return `Serwer poczty odrzucił połączenie SSL/TLS. Sprawdź CURRENT_INFO_IMAP_HOST, PORT i SECURE w Renderze.`;
+    return `Serwer poczty odrzucił połączenie SSL/TLS. ${details} Sprawdź CURRENT_INFO_IMAP_HOST, PORT i SECURE w Renderze.`;
   }
   if (/mailbox|folder|select|inbox/i.test(text)) {
-    return `Nie udało się otworzyć folderu poczty. Sprawdź CURRENT_INFO_IMAP_MAILBOX; domyślnie używany jest INBOX.`;
+    return `Nie udało się otworzyć folderu poczty. ${details} Sprawdź CURRENT_INFO_IMAP_MAILBOX; domyślnie używany jest INBOX.`;
   }
   if (/timeout|timed|network|econn|enotfound|refused/i.test(text)) {
-    return `Nie udało się połączyć z serwerem poczty. Sprawdź host IMAP, port i czy skrzynka ma włączony dostęp IMAP.`;
+    return `Nie udało się połączyć z serwerem poczty. ${details} Sprawdź host IMAP, port i czy skrzynka ma włączony dostęp IMAP.`;
   }
   if (/command failed/i.test(text)) {
-    return `Serwer poczty odrzucił komendę podczas etapu: ${stage}. Dodałem tryb awaryjny, ale jeśli ten komunikat wróci, trzeba sprawdzić ustawienia IMAP skrzynki.`;
+    return `Serwer poczty odrzucił komendę podczas etapu: ${stage}. ${details} Dodałem tryb awaryjny, ale jeśli ten komunikat wróci, trzeba sprawdzić ustawienia IMAP skrzynki.`;
   }
-  return `Nie udało się pobrać poczty podczas etapu: ${stage}. Szczegóły: ${text}`;
+  return `Nie udało się pobrać poczty podczas etapu: ${stage}. ${details} Szczegóły: ${text}`;
+}
+
+function formatMailConfigDetails(config = {}) {
+  return `Aktualna próba: host ${config.host || 'brak'}, port ${config.port || 'brak'}, użytkownik ${maskEmail(config.user || '')}.`;
+}
+
+function maskEmail(email = '') {
+  const text = String(email || '');
+  const [name, domain] = text.split('@');
+  if (!name || !domain) return text ? '***' : 'brak';
+  const visible = name.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(3, name.length - 2))}@${domain}`;
 }
 
 function assertCurrentInfoSyncToken(token) {
