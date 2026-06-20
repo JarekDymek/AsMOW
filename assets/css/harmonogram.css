@@ -238,6 +238,18 @@
   font-weight: 950;
   white-space: nowrap;
 }
+.weekly-relation {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--navy);
+  font-size: .66rem;
+  font-style: normal;
+  font-weight: 950;
+  vertical-align: middle;
+}
 .weekly-body {
   padding: 2px 12px 10px;
 }
