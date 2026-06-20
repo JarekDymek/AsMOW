@@ -373,10 +373,23 @@ async function fetchCurrentInfoMail(payload = {}) {
   });
 
   const items = [];
-  await client.connect();
-  const lock = await client.getMailboxLock(config.mailbox);
   try {
-    const uids = await client.search({ since: new Date(`${since}T00:00:00Z`), from: config.from });
+    await client.connect();
+  } catch (err) {
+    throwCurrentInfoMailError(err, 'połączenie lub logowanie do poczty');
+  }
+
+  let lock;
+  try {
+    lock = await client.getMailboxLock(config.mailbox);
+  } catch (err) {
+    await client.logout().catch(() => {});
+    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`);
+  }
+
+  try {
+    const sinceDate = new Date(`${since}T00:00:00Z`);
+    const uids = await searchCurrentInfoMail(client, sinceDate, config.from);
     const selected = uids.slice(-limit);
     if (!selected.length) {
       return {
@@ -395,10 +408,14 @@ async function fetchCurrentInfoMail(payload = {}) {
     })) {
       const parsed = await simpleParser(message.source);
       const item = normalizeCurrentInfoMailMessage(message, parsed, config.from);
-      if (item && !isScheduleCurrentInfoText(`${item.title}\n${item.topic}\n${item.body}`)) items.push(item);
+      if (!item) continue;
+      if (!isExpectedCurrentInfoSender(item.source, config.from)) continue;
+      if (!isScheduleCurrentInfoText(`${item.title}\n${item.topic}\n${item.body}`)) items.push(item);
     }
+  } catch (err) {
+    throwCurrentInfoMailError(err, 'pobieranie wiadomości');
   } finally {
-    lock.release();
+    if (lock) lock.release();
     await client.logout().catch(() => {});
   }
 
@@ -410,6 +427,55 @@ async function fetchCurrentInfoMail(payload = {}) {
     count: items.length,
     items
   };
+}
+
+async function searchCurrentInfoMail(client, sinceDate, from) {
+  try {
+    return await client.search({ since: sinceDate, from });
+  } catch (err) {
+    if (!isGenericImapCommandFailure(err)) throw err;
+    return client.search({ since: sinceDate });
+  }
+}
+
+function isExpectedCurrentInfoSender(source = '', expected = '') {
+  const normalizedSource = normalizeMailSearch(source);
+  const normalizedExpected = normalizeMailSearch(expected);
+  return !normalizedExpected || normalizedSource.includes(normalizedExpected);
+}
+
+function isGenericImapCommandFailure(err) {
+  const text = `${err?.message || ''} ${err?.responseText || ''} ${err?.serverResponse || ''}`;
+  return /command failed|search|bad|no/i.test(text);
+}
+
+function throwCurrentInfoMailError(err, stage) {
+  const raw = `${err?.message || ''} ${err?.responseText || ''} ${err?.serverResponse || ''}`.trim();
+  const message = mapCurrentInfoMailError(raw, stage);
+  const wrapped = new Error(message);
+  wrapped.status = /token|dostęp/i.test(message) ? 403 : 502;
+  wrapped.code = 'CURRENT_INFO_MAIL_ERROR';
+  throw wrapped;
+}
+
+function mapCurrentInfoMailError(raw = '', stage = 'obsługa poczty') {
+  const text = raw || 'brak szczegółów błędu';
+  if (/auth|login|password|credentials|authentication|invalid/i.test(text)) {
+    return `Nie udało się zalogować do poczty. Sprawdź CURRENT_INFO_IMAP_USER i CURRENT_INFO_IMAP_PASSWORD w Renderze. Jeżeli poczta wymaga hasła aplikacyjnego, zwykłe hasło do skrzynki może nie wystarczyć.`;
+  }
+  if (/certificate|tls|ssl|secure/i.test(text)) {
+    return `Serwer poczty odrzucił połączenie SSL/TLS. Sprawdź CURRENT_INFO_IMAP_HOST, PORT i SECURE w Renderze.`;
+  }
+  if (/mailbox|folder|select|inbox/i.test(text)) {
+    return `Nie udało się otworzyć folderu poczty. Sprawdź CURRENT_INFO_IMAP_MAILBOX; domyślnie używany jest INBOX.`;
+  }
+  if (/timeout|timed|network|econn|enotfound|refused/i.test(text)) {
+    return `Nie udało się połączyć z serwerem poczty. Sprawdź host IMAP, port i czy skrzynka ma włączony dostęp IMAP.`;
+  }
+  if (/command failed/i.test(text)) {
+    return `Serwer poczty odrzucił komendę podczas etapu: ${stage}. Dodałem tryb awaryjny, ale jeśli ten komunikat wróci, trzeba sprawdzić ustawienia IMAP skrzynki.`;
+  }
+  return `Nie udało się pobrać poczty podczas etapu: ${stage}. Szczegóły: ${text}`;
 }
 
 function assertCurrentInfoSyncToken(token) {
