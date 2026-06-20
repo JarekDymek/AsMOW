@@ -58,9 +58,9 @@ function normalizeInfoDate(value) {
 
 function sortCurrentInfo(items) {
   return [...items].sort((a, b) => {
-    const byDate = String(a.date).localeCompare(String(b.date));
+    const byDate = String(b.date).localeCompare(String(a.date));
     if (byDate) return byDate;
-    return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+    return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
   });
 }
 
@@ -343,7 +343,7 @@ async function syncCurrentInfoMail(manual = true) {
       body: JSON.stringify({
         token: settings.token,
         since: CURRENT_INFO_START_DATE,
-        limit: 180
+        limit: 800
       })
     });
     const data = await response.json().catch(() => ({}));
@@ -355,7 +355,8 @@ async function syncCurrentInfoMail(manual = true) {
     const added = currentInfoItems.length - before;
     const lastSyncAt = new Date().toISOString();
     saveCurrentInfoSyncSettings({ lastSyncAt });
-    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.`);
+    const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
+    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}`);
   } catch (err) {
     setCurrentInfoStatus(`Nie udało się pobrać poczty: ${err.message}`);
   }
@@ -379,7 +380,7 @@ function getCurrentInfoFingerprint(item) {
 
 function getCurrentInfoContext() {
   return sortCurrentInfo(currentInfoItems)
-    .slice(-40)
+    .slice(0, 40)
     .map(item => ({
       date: item.date,
       title: item.title,

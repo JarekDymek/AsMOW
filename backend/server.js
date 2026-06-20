@@ -359,7 +359,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   assertCurrentInfoSyncToken(payload.token);
   const config = getCurrentInfoMailConfig();
   const since = normalizeCurrentInfoSince(payload.since || config.since);
-  const limit = Math.min(Math.max(Number(payload.limit || 120), 1), 300);
+  const limit = Math.min(Math.max(Number(payload.limit || 500), 1), 1200);
 
   const client = new ImapFlow({
     host: config.host,
@@ -373,6 +373,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   });
 
   const items = [];
+  let scannedCount = 0;
   try {
     await client.connect();
   } catch (err) {
@@ -391,6 +392,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     const sinceDate = new Date(`${since}T00:00:00Z`);
     const uids = await searchCurrentInfoMail(client, sinceDate, config.from);
     const selected = uids.slice(-limit);
+    scannedCount = selected.length;
     if (!selected.length) {
       return {
         ok: true,
@@ -419,12 +421,15 @@ async function fetchCurrentInfoMail(payload = {}) {
     await client.logout().catch(() => {});
   }
 
-  items.sort((a, b) => `${a.date} ${a.id}`.localeCompare(`${b.date} ${b.id}`));
+  items.sort((a, b) => `${b.date} ${b.id}`.localeCompare(`${a.date} ${a.id}`));
+  const newestDate = items[0]?.date || '';
   return {
     ok: true,
     source: config.from,
     since,
     count: items.length,
+    scanned: scannedCount,
+    newestDate,
     items
   };
 }
