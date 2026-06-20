@@ -17,6 +17,8 @@ function init() {
   renderKnowledgeList();
   refreshCentralKnowledgeBase();
   loadNotes();
+  loadCurrentInfo();
+  clearCurrentInfoForm();
   setupAccordions();
   startClock();
   setupWorkSafeguards();

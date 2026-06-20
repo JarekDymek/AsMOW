@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="assets/css/notes.css">
 <link rel="stylesheet" href="assets/css/ai.css">
 <link rel="stylesheet" href="assets/css/harmonogram.css">
+<link rel="stylesheet" href="assets/css/current-info.css">
 <link rel="stylesheet" href="assets/css/utilities.css">
   <script src="assets/js/data-schedule.js" defer></script>
   <script src="assets/js/data-procedures.js" defer></script>
@@ -43,6 +44,7 @@
   <script src="assets/js/social-levels.js" defer></script>
   <script src="assets/js/law.js" defer></script>
   <script src="assets/js/notes.js" defer></script>
+  <script src="assets/js/current-info.js" defer></script>
   <script src="assets/js/ai-config.js" defer></script>
   <script src="assets/js/ai-chat.js" defer></script>
   <script src="assets/js/ai-voice.js" defer></script>
@@ -362,6 +364,50 @@
 
 </div><!-- /s-prawo -->
 
+<!-- ════════════ BIEŻĄCE INFORMACJE ════════════ -->
+<div class="screen" id="s-info">
+  <div class="mini-ai">
+    <div class="mini-ai-title">Zapytaj AI o bieżące informacje</div>
+    <div class="mini-ai-row">
+      <input class="mini-ai-input" id="info-ai-input" type="text" placeholder="Np. które komunikaty są ważne na najbliższy dyżur?">
+      <button class="mini-ai-btn" type="button" onclick="askAIFromTab('bieżące informacje','info-ai-input')">Zapytaj</button>
+    </div>
+    <div class="mini-ai-hint">AI otrzyma zapisane komunikaty jako kontekst pracy wychowawcy.</div>
+  </div>
+
+  <button class="section-toggle" type="button" data-accordion-target="current-info-form-card" onclick="toggleAccordion('current-info-form-card')" data-default="open">
+    <span class="st-main">📣 Dodaj informację od dyrekcji</span><span class="st-state">Zwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="current-info-form-card"><div class="card-body">
+    <input type="file" id="current-info-file-input" accept=".txt,.eml,text/plain,message/rfc822" style="display:none" onchange="importCurrentInfoFile(this)">
+    <div class="current-info-form">
+      <input id="current-info-date" type="date" title="Data wiadomości">
+      <input id="current-info-title" type="text" placeholder="Tytuł wiadomości">
+      <input id="current-info-topic" type="text" placeholder="Czego dotyczy, np. telefony, przepustki, zebranie">
+      <input id="current-info-source" type="email" value="dgorski5@wp.pl" placeholder="Adres nadawcy">
+      <textarea id="current-info-body-input" placeholder="Wklej treść wiadomości od dyrektora internatu..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn" type="button" onclick="saveCurrentInfoFromForm()">Zapisz</button>
+      <button class="btn sec" type="button" onclick="document.getElementById('current-info-file-input').click()">Wczytaj plik</button>
+      <button class="btn sec" type="button" onclick="clearCurrentInfoForm()">Wyczyść</button>
+      <button class="btn qblue" type="button" onclick="askAIAboutCurrentInfo()">Zapytaj AI</button>
+    </div>
+    <div class="current-info-status" id="current-info-status">Harmonogramy dyżurów są pomijane i powinny trafiać do zakładki Harmonogram.</div>
+  </div></div>
+
+  <button class="section-toggle" type="button" data-accordion-target="current-info-list-card" onclick="toggleAccordion('current-info-list-card')" data-default="open">
+    <span class="st-main">🗂️ Archiwum od 2026 r.</span><span class="st-state">Zwiń</span>
+  </button>
+  <div class="collapsible-card accordion-panel" id="current-info-list-card">
+    <div class="current-info-tools">
+      <input class="current-info-search" id="current-info-search" type="text" placeholder="Szukaj w informacjach..." oninput="renderCurrentInfoList()">
+      <div class="current-info-count" id="current-info-count">Wpisy: 0</div>
+      <div class="current-info-list" id="current-info-list"></div>
+    </div>
+  </div>
+</div><!-- /s-info -->
+
 <!-- ════════════ HARMONOGRAM ════════════ -->
 <div class="screen" id="s-harm">
 
@@ -477,6 +523,9 @@
   </button>
   <button class="nav-btn" onclick="nav('s-prawo',this)">
     <span class="ni">⚖️</span><span class="nl">Prawo</span>
+  </button>
+  <button class="nav-btn" onclick="nav('s-info',this)">
+    <span class="ni">📣</span><span class="nl">Inf.</span>
   </button>
   <button class="nav-btn" onclick="nav('s-harm',this)">
     <span class="ni">📁</span><span class="nl">Harmonogram</span>

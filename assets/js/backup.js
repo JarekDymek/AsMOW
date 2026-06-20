@@ -8,6 +8,7 @@ const BACKUP_STORAGE_KEYS = [
   WEEKLY_PLAN_KEY,
   KNOWLEDGE_KEY,
   CENTRAL_KNOWLEDGE_KEY,
+  CURRENT_INFO_KEY,
   'mow_notes_v2',
   'mow_day_schedule_collapsed_v1'
 ];

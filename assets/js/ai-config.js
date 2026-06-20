@@ -55,6 +55,7 @@ function buildAssistantContext() {
     })),
     legalBases: LAWS.map(l => stripHtml(l.t)),
     weeklyPlan: weeklyPlan ? weeklyPlanToText().slice(0, 12000) : '',
+    currentInfo: typeof getCurrentInfoContext === 'function' ? getCurrentInfoContext() : [],
     knowledgeBase: getKnowledgeContext()
   };
 }
