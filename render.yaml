@@ -15,7 +15,7 @@ services:
       - key: ALLOWED_ORIGINS
         value: "*"
       - key: CURRENT_INFO_IMAP_HOST
-        value: imap.wp.pl
+        value: imap.gmail.com
       - key: CURRENT_INFO_IMAP_PORT
         value: "993"
       - key: CURRENT_INFO_IMAP_SECURE

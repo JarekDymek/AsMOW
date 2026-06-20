@@ -504,7 +504,7 @@ function getCurrentInfoMailConfig() {
     throw err;
   }
   return {
-    host: process.env.CURRENT_INFO_IMAP_HOST || 'imap.wp.pl',
+    host: process.env.CURRENT_INFO_IMAP_HOST || 'imap.gmail.com',
     port: Number(process.env.CURRENT_INFO_IMAP_PORT || 993),
     secure: String(process.env.CURRENT_INFO_IMAP_SECURE || 'true') !== 'false',
     user,
