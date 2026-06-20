@@ -99,6 +99,17 @@
   line-height: 1.55;
 }
 .weekly-day:first-of-type { border-top: none; }
+.weekly-day--notice {
+  background: #fff7d6;
+  border: 2px solid #d69e00;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+.weekly-day--notice .weekly-empty {
+  display: block;
+  color: #3b2a00;
+}
 .weekly-shift {
   display: block;
   color: #09233d;

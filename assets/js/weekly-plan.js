@@ -116,23 +116,54 @@ function extractWeeklyDashboard(payload) {
 
 function normalizeWeeklyPayload(payload) {
   const weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
+  const history = Array.isArray(payload.history) ? payload.history : [];
+  const normalizedWeeks = [
+    ...weeks.map(normalizeWeeklyWeek),
+    ...history.map(normalizeWeeklyHistoryWeek)
+  ];
   const normalized = {
     updatedAt: payload.updatedAt || payload.generatedAt || '',
     educator: payload.educator || '',
     calendarEducator: payload.calendarEducator || '',
     alerts: Array.isArray(payload.alerts) ? payload.alerts : [],
-    weeks: weeks.map(w => ({
-      label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
-      range: w.range || [w.dateFrom, w.dateTo].filter(Boolean).join(' - '),
-      weekNumber: w.weekNumber || '',
-      dateFrom: w.dateFrom || '',
-      dateTo: w.dateTo || '',
-      summary: w.summary || {},
-      days: Array.isArray(w.days) ? w.days : []
-    }))
+    weeks: normalizedWeeks
   };
   normalized.weeks = classifyWeeklyWeeks(normalized.weeks);
   return normalized;
+}
+
+function normalizeWeeklyWeek(w = {}) {
+  return {
+    label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
+    range: w.range || [w.dateFrom, w.dateTo].filter(Boolean).join(' - '),
+    weekNumber: w.weekNumber || '',
+    dateFrom: w.dateFrom || w.weekStart || '',
+    dateTo: w.dateTo || w.weekEnd || '',
+    summary: w.summary || {
+      totalHours: w.totalHours ?? 0,
+      overtimeHours: w.overtimeHours ?? 0,
+      weekendHours: w.weekendHours ?? 0
+    },
+    days: Array.isArray(w.days) ? w.days : [],
+    sourceFilename: w.sourceFilename || w.source || '',
+    partialFromHistory: !!w.partialFromHistory
+  };
+}
+
+function normalizeWeeklyHistoryWeek(w = {}) {
+  return normalizeWeeklyWeek({
+    ...w,
+    label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
+    dateFrom: w.dateFrom || w.weekStart || '',
+    dateTo: w.dateTo || w.weekEnd || '',
+    summary: {
+      totalHours: w.totalHours ?? 0,
+      overtimeHours: w.overtimeHours ?? 0,
+      weekendHours: w.weekendHours ?? 0
+    },
+    days: [],
+    partialFromHistory: true
+  });
 }
 
 function mergeWeeklyPlans(existing, incoming) {
@@ -140,7 +171,10 @@ function mergeWeeklyPlans(existing, incoming) {
   const map = new Map();
   const addWeeks = weeks => (weeks || []).forEach(week => {
     const key = getWeeklyIdentity(week);
-    if (key) map.set(key, { ...week });
+    if (!key) return;
+    const previous = map.get(key);
+    if (previous && !previous.partialFromHistory && week.partialFromHistory) return;
+    map.set(key, { ...week });
   });
   addWeeks(existing?.weeks);
   addWeeks(incoming.weeks);
@@ -285,6 +319,13 @@ function renderWeeklyPlan() {
           <span class="st-state">Rozwiń</span>
         </button>
         <div class="weekly-body collapsible-card accordion-panel" id="${panelId}">
+          ${week.partialFromHistory ? `
+            <div class="weekly-day weekly-day--notice">
+              <strong>Wykryto grafik w historii generatora</strong>
+              <span class="weekly-empty">Aktywne wdrożenie Apps Script nie zwraca jeszcze szczegółów tego tygodnia. Po aktualizacji backendu pojawią się dni i dyżury.</span>
+              ${week.sourceFilename ? `<span class="weekly-empty">Źródło: ${escapeHtml(week.sourceFilename)}</span>` : ''}
+            </div>
+          ` : ''}
           ${(week.days || []).map(day => `
             <div class="weekly-day">
               <strong>${escapeHtml(day.name || '')} ${escapeHtml(day.date || '')}</strong>
