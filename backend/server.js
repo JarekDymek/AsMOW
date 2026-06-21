@@ -283,7 +283,7 @@ async function fetchWeeklyPlan(payload = {}) {
   }
 
   const requestedAction = String(payload.action || 'dashboard');
-  const action = requestedAction === 'forceRescan' ? 'forceRescan' : 'dashboard';
+  const action = ['scan', 'forceRescan'].includes(requestedAction) ? requestedAction : 'dashboard';
   url.searchParams.set('action', action);
   if (payload.educator) url.searchParams.set('educator', String(payload.educator).slice(0, 120));
   if (payload.token) url.searchParams.set('token', String(payload.token).slice(0, 500));
@@ -293,7 +293,7 @@ async function fetchWeeklyPlan(payload = {}) {
   url.searchParams.set('_', Date.now());
 
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25_000);
+  const timer = setTimeout(() => ctrl.abort(), action === 'dashboard' ? 25_000 : 115_000);
   try {
     const upstream = await fetch(url.toString(), {
       signal: ctrl.signal,

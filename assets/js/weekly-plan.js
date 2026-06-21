@@ -49,7 +49,7 @@ async function fetchWeeklyPlan(options = {}) {
   setWeeklyStatus(rescan ? 'Skanuję pocztę generatora i pobieram plan...' : 'Pobieram plan tygodniowy...');
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), rescan ? 60000 : 25000);
+    const timer = setTimeout(() => ctrl.abort(), rescan ? 120000 : 25000);
     const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,7 +58,7 @@ async function fetchWeeklyPlan(options = {}) {
         targetUrl: settings.backendUrl,
         token: settings.token,
         educator: settings.educator,
-        action: rescan ? 'forceRescan' : 'dashboard'
+        action: rescan ? 'scan' : 'dashboard'
       })
     });
     clearTimeout(timer);
@@ -105,7 +105,7 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
   weeklyPlan.meta = weeklyPlanMeta;
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
   renderWeeklyPlan();
-  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)}`);
+  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)} ${getWeeklyGeneratorDiagnostic(extracted)}`.trim());
 }
 
 function extractWeeklyDashboard(payload) {
@@ -133,6 +133,13 @@ function normalizeWeeklyPayload(payload) {
   };
   normalized.weeks = classifyWeeklyWeeks(normalized.weeks);
   return normalized;
+}
+
+function getWeeklyGeneratorDiagnostic(payload = {}) {
+  if (Array.isArray(payload.dashboardWeekStarts)) {
+    return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.`;
+  }
+  return 'Uwaga: aktywny generator nie zwraca pola dashboardWeekStarts, więc może nadal działać stare wdrożenie Apps Script.';
 }
 
 function normalizeWeeklyWeek(w = {}) {
