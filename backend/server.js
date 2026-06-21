@@ -282,7 +282,9 @@ async function fetchWeeklyPlan(payload = {}) {
     throw err;
   }
 
-  url.searchParams.set('action', 'dashboard');
+  const requestedAction = String(payload.action || 'dashboard');
+  const action = requestedAction === 'forceRescan' ? 'forceRescan' : 'dashboard';
+  url.searchParams.set('action', action);
   if (payload.educator) url.searchParams.set('educator', String(payload.educator).slice(0, 120));
   if (payload.token) url.searchParams.set('token', String(payload.token).slice(0, 500));
   url.searchParams.delete('transport');

@@ -35,7 +35,7 @@ function setWeeklyStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function fetchWeeklyPlan() {
+async function fetchWeeklyPlan(options = {}) {
   const settings = saveWeeklySettings();
   if (!settings.backendUrl) {
     setWeeklyStatus('Wklej adres wdrożenia Apps Script z aplikacji Harmonogram-MOW. Powinien kończyć się na /exec.');
@@ -45,10 +45,11 @@ async function fetchWeeklyPlan() {
     setWeeklyStatus('Ten adres nie wygląda jak wdrożenie Apps Script. Wklej link typu https://script.google.com/macros/s/.../exec, nie adres GitHub Pages ani edytora skryptu.');
     return;
   }
-  setWeeklyStatus('Pobieram plan tygodniowy...');
+  const rescan = !!options.rescan;
+  setWeeklyStatus(rescan ? 'Skanuję pocztę generatora i pobieram plan...' : 'Pobieram plan tygodniowy...');
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const timer = setTimeout(() => ctrl.abort(), rescan ? 60000 : 25000);
     const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,15 +57,17 @@ async function fetchWeeklyPlan() {
       body: JSON.stringify({
         targetUrl: settings.backendUrl,
         token: settings.token,
-        educator: settings.educator
+        educator: settings.educator,
+        action: rescan ? 'forceRescan' : 'dashboard'
       })
     });
     clearTimeout(timer);
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-    setWeeklyPlanFromPayload(payload.data || payload, 'Pobrano przez Render z Harmonogram-MOW');
+    setWeeklyPlanFromPayload(payload.data || payload, rescan ? 'Przeskanowano i pobrano przez Render z Harmonogram-MOW' : 'Pobrano przez Render z Harmonogram-MOW');
   } catch (err) {
-    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź, czy wkleiłeś adres /exec z Apps Script oraz poprawny VIEW_TOKEN albo ADMIN_TOKEN.`);
+    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
+    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź, czy wkleiłeś adres /exec z Apps Script. ${tokenHint}`);
   }
 }
 
