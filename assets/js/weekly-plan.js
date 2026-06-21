@@ -223,7 +223,7 @@ function classifyWeeklyWeeks(weeks = []) {
       relation = 'archiwalny tydzień';
     } else if (range.start && range.start > today) {
       const futureIndex = futureWeeks.findIndex(item => getWeeklyIdentity(item) === identity);
-      relation = futureIndex === 0 ? 'następny tydzień' : futureIndex === 1 ? 'kolejny tydzień' : 'dalszy tydzień';
+      relation = futureIndex === 0 ? 'następny tydzień' : futureIndex === 1 ? 'kolejny tydzień' : `za ${futureIndex + 1} tygodnie`;
     }
     return { ...week, relation };
   });
@@ -295,7 +295,7 @@ function toDateKey(date) {
 
 function getWeeklyCoverageText(plan) {
   const labels = classifyWeeklyWeeks(plan.weeks || [])
-    .filter(week => ['poprzedni tydzień', 'bieżący tydzień', 'następny tydzień', 'kolejny tydzień'].includes(week.relation))
+    .filter(week => ['poprzedni tydzień', 'bieżący tydzień', 'następny tydzień', 'kolejny tydzień'].includes(week.relation) || /^za \d+ tygodnie$/.test(week.relation || ''))
     .map(week => `${week.relation}: ${week.label || week.range || 'tydzień'}`);
   return labels.length ? `Dostępne: ${labels.join(', ')}.` : '';
 }
@@ -342,7 +342,8 @@ function renderWeeklyPlan() {
 }
 
 function shouldShowWeeklyWeek(week) {
-  return ['poprzedni tydzień', 'bieżący tydzień', 'następny tydzień', 'kolejny tydzień', 'dalszy tydzień'].includes(week.relation || '');
+  return ['poprzedni tydzień', 'bieżący tydzień', 'następny tydzień', 'kolejny tydzień', 'dalszy tydzień'].includes(week.relation || '')
+    || /^za \d+ tygodnie$/.test(week.relation || '');
 }
 
 function formatWeeklyShift(shift) {
