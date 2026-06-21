@@ -105,7 +105,7 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
   weeklyPlan.meta = weeklyPlanMeta;
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
   renderWeeklyPlan();
-  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)} ${getWeeklyGeneratorDiagnostic(extracted)}`.trim());
+  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)} ${getWeeklyAllWeeksText(weeklyPlan)} ${getWeeklyGeneratorDiagnostic(extracted)}`.trim());
 }
 
 function extractWeeklyDashboard(payload) {
@@ -118,6 +118,7 @@ function extractWeeklyDashboard(payload) {
 }
 
 function normalizeWeeklyPayload(payload) {
+  payload = repairWeeklyMojibake(payload);
   const weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
   const history = Array.isArray(payload.history) ? payload.history : [];
   const normalizedWeeks = [
@@ -135,11 +136,49 @@ function normalizeWeeklyPayload(payload) {
   return normalized;
 }
 
-function getWeeklyGeneratorDiagnostic(payload = {}) {
-  if (Array.isArray(payload.dashboardWeekStarts)) {
-    return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.`;
+function repairWeeklyMojibake(value) {
+  if (typeof value === 'string') return repairWeeklyMojibakeText(value);
+  if (Array.isArray(value)) return value.map(repairWeeklyMojibake);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, repairWeeklyMojibake(item)]));
   }
-  return 'Uwaga: aktywny generator nie zwraca pola dashboardWeekStarts, więc może nadal działać stare wdrożenie Apps Script.';
+  return value;
+}
+
+function repairWeeklyMojibakeText(value = '') {
+  return String(value)
+    .replace(/\u00C4\u2026/g, '\u0105')
+    .replace(/\u00C4\u2021/g, '\u0107')
+    .replace(/\u00C4\u2122/g, '\u0119')
+    .replace(/\u00C5\u201A/g, '\u0142')
+    .replace(/\u00C5\u201E/g, '\u0144')
+    .replace(/\u00C3\u00B3/g, '\u00F3')
+    .replace(/\u00C5\u203A/g, '\u015B')
+    .replace(/\u00C5\u015F/g, '\u017A')
+    .replace(/\u00C5\u013D/g, '\u017C')
+    .replace(/\u00C4\u201E/g, '\u0104')
+    .replace(/\u00C4\u2020/g, '\u0106')
+    .replace(/\u00C4\u02DC/g, '\u0118')
+    .replace(/\u00C5\u0081/g, '\u0141')
+    .replace(/\u00C5\u192/g, '\u0143')
+    .replace(/\u00C3\u201C/g, '\u00D3')
+    .replace(/\u00C5\u0161/g, '\u015A')
+    .replace(/\u00C5\u00BB/g, '\u017B')
+    .replace(/\u00C5\u00B9/g, '\u0179')
+    .replace(/\u00E2\u20AC\u201C/g, '\u2013')
+    .replace(/\u00E2\u20AC\u201D/g, '\u2014')
+    .replace(/\u00E2\u2020\u2019/g, '\u2192')
+    .replace(/\u00E2\u20AC\u00A2/g, '\u2022')
+    .replace(/\u00E2\u20AC\u017E/g, '\u201E')
+    .replace(/\u00E2\u20AC\u009D/g, '\u201D');
+}
+
+function getWeeklyGeneratorDiagnostic(payload = {}) {
+  const version = payload.backendVersion ? ` Wersja generatora: ${payload.backendVersion}.` : '';
+  if (Array.isArray(payload.dashboardWeekStarts)) {
+    return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.${version}`;
+  }
+  return `Uwaga: aktywny generator nie zwraca pola dashboardWeekStarts, więc może nadal działać stare wdrożenie Apps Script.${version}`;
 }
 
 function normalizeWeeklyWeek(w = {}) {
@@ -308,6 +347,15 @@ function getWeeklyCoverageText(plan) {
     .filter(week => ['poprzedni tydzień', 'bieżący tydzień', 'następny tydzień', 'kolejny tydzień'].includes(week.relation) || /^za \d+ tygodnie$/.test(week.relation || ''))
     .map(week => `${week.relation}: ${week.label || week.range || 'tydzień'}`);
   return labels.length ? `Dostępne: ${labels.join(', ')}.` : '';
+}
+
+function getWeeklyAllWeeksText(plan) {
+  const labels = classifyWeeklyWeeks(plan.weeks || [])
+    .map(week => {
+      const range = week.range || [week.dateFrom, week.dateTo].filter(Boolean).join(' - ') || 'bez dat';
+      return `${week.label || 'Tydzień'} ${range} (${week.relation || 'bez relacji'})`;
+    });
+  return labels.length ? `Odebrane tygodnie: ${labels.join('; ')}.` : '';
 }
 
 function renderWeeklyPlan() {
