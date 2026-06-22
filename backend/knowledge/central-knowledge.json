@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.1",
+  "version": "2026-06-22.2",
   "updatedAt": "2026-06-22",
   "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
   "rules": [
@@ -83,9 +83,9 @@
       "documentDate": "2026-03-12",
       "validFrom": "2026-03-12",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22",
+      "version": "wyciag aktywny 2026-06-22.2",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/04_wyciag_mow_praca_wychowawcy_awans_czas_pracy.md."
+      "content": "Aktywny plik: backend/knowledge/04_wyciag_mow_praca_wychowawcy_awans_czas_pracy.md. Kluczowa korekta: dla wychowawcy w mlodziezowym osrodku wychowawczym pensum wynosi 24 godziny tygodniowo zgodnie z art. 42 ust. 3 Karty Nauczyciela, tabela, lp. 8 lit. c. Nie nalezy mylic tego z art. 42 ust. 1, ktory wskazuje, ze czas pracy nauczyciela zatrudnionego w pelnym wymiarze nie moze przekraczac 40 godzin tygodniowo."
     },
     {
       "id": "bezpieczenstwo-dokumentacja-pomoc-wyciag",

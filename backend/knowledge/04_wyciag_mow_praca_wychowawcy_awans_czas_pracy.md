@@ -12,6 +12,9 @@ Status w aplikacji: aktywny wyciag roboczy dla AI.
 ## Najwazniejsze zasady dla AI
 
 - Dla nauczycieli podstawowym aktem jest Karta Nauczyciela. Kodeks pracy stosuje sie pomocniczo w zakresie nieuregulowanym lub gdy odsyla do niego przepis.
+- Nie myl maksymalnego tygodniowego czasu pracy nauczyciela z pensum. Art. 42 ust. 1 Karty Nauczyciela mowi, ze czas pracy nauczyciela zatrudnionego w pelnym wymiarze zajec nie moze przekraczac 40 godzin tygodniowo. To nie oznacza, ze pensum wychowawcy MOW wynosi 40 godzin.
+- Pensum wychowawcy w mlodziezowym osrodku wychowawczym wynosi 24 godziny tygodniowo. Wynika to z art. 42 ust. 3 Karty Nauczyciela, tabela, lp. 8 lit. c: wychowawcy w specjalnych osrodkach szkolno-wychowawczych, okregowych osrodkach wychowawczych, zakladach poprawczych, schroniskach dla nieletnich, swietlicach szkol specjalnych, mlodziezowych osrodkach wychowawczych i wskazanych zespolach zajec - 24 godziny.
+- Odpowiedz na pytanie "ile wynosi etat/pensum wychowawcy w MOW" powinna brzmiec: pelny etat nauczyciela-wychowawcy obejmuje maksymalnie do 40 godzin czasu pracy tygodniowo, ale tygodniowy obowiazkowy wymiar zajec bezposrednich, czyli pensum wychowawcy MOW, wynosi 24 godziny.
 - Harmonogram dyzurow nie jest samodzielna podstawa prawna czasu pracy. Trzeba go zestawic z arkuszem organizacji, regulaminem pracy, umowa/aktem zatrudnienia, poleceniami dyrektora i przepisami Karty Nauczyciela.
 - MOW jest placowka pracujaca w trybie ciaglym lub zblizonym do ciaglego, dlatego odpowiedzi o nocy, weekendach, swietach i nadgodzinach musza byc ostrozne: najpierw ustalic status pracownika, rodzaj zajec, okres rozliczeniowy, sposob ewidencji, decyzje dyrektora i lokalny regulamin.
 - Przy awansie zawodowym AI powinno pomagac praktycznie: porzadkowac dowody pracy, laczyc dzialania wychowawcze z wymaganiami awansu, proponowac jezyk sprawozdania, ale nie potwierdzac spelnienia wymagan bez dokumentow.
