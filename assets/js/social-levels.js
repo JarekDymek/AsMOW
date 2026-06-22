@@ -4,11 +4,15 @@
 function renderStopnie() {
   STOPNIE.forEach(s => {
     const el = document.createElement('div');
+    const preview = s.crit.slice(0, 3);
+    const more = s.crit.length > preview.length
+      ? `<li class="st-more">+ ${s.crit.length - preview.length} kolejne - dotknij, aby zobaczyć pełne kryteria</li>`
+      : '';
     el.className = `st-card ${s.cls}`;
     el.innerHTML = `
       <div class="st-title">Stopień ${s.lvl}</div>
       <div class="st-kies">💰 Kieszonkowe: ${s.kies}</div>
-      <div class="st-crit"><ul>${s.crit.map(c=>`<li>${c}</li>`).join('')}</ul></div>`;
+      <div class="st-crit"><ul>${preview.map(c=>`<li>${c}</li>`).join('')}${more}</ul></div>`;
     el.addEventListener('click', () => openStopien(s));
     document.getElementById(s.lvl.startsWith('–') ? 'st-neg' : 'st-pos').appendChild(el);
   });

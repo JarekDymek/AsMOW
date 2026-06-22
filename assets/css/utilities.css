@@ -2,10 +2,49 @@
    UTILS
 ═══════════════════════════════════ */
 .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
-.law-item { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: .8rem; line-height: 1.6; }
-.law-item:last-child { border-bottom: none; }
+.law-item {
+  background: #fff;
+  border: 1.5px solid #c6d4e4;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(16,47,78,.1);
+  padding: 12px;
+  font-size: .8rem;
+  font-weight: 850;
+  line-height: 1.55;
+}
 .law-num { font-weight: 900; color: var(--navy); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+#law-list-render {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+#knowledge-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 10px;
+}
+#knowledge-list .kb-item {
+  margin-bottom: 0;
+}
+.tile-screen .chat-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.tile-screen .pill {
+  border-radius: 12px;
+  padding: 11px 10px;
+  min-height: 58px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.35;
+  background: #fff;
+}
 
 button, input, textarea {
   font: inherit;
@@ -43,6 +82,8 @@ input, textarea {
 @media (min-width: 760px) {
   .main-wrap { max-width: 760px; }
   .quick-grid { grid-template-columns: repeat(4, 1fr); }
+  .tile-screen.active { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tile-screen .chat-pills { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .chat-window { max-height: 60vh; }
 }
 

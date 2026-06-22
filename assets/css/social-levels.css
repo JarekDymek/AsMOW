@@ -3,9 +3,11 @@
 ═══════════════════════════════════ */
 .st-card {
   border-radius: 12px;
-  padding: 14px; margin-bottom: 10px;
+  padding: 14px;
+  margin-bottom: 0;
   cursor: pointer; border: 2px solid transparent;
   transition: transform .14s;
+  box-shadow: 0 2px 10px rgba(16,47,78,.1);
 }
 .st-card:active { transform: scale(.98); }
 .st-n2  { background:#fdf2f2; border-color:#e74c3c; }
@@ -22,6 +24,25 @@
 }
 .st-crit { font-size: .88rem; line-height: 1.65; font-weight: 750; }
 .st-crit li { margin-left: 16px; margin-bottom: 1px; }
+.st-more {
+  margin-top: 5px;
+  color: var(--navy2);
+  font-weight: 950;
+}
+
+#st-neg,
+#st-pos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 620px) {
+  #st-neg,
+  #st-pos {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
 
 /* ═══════════════════════════════════
    ALERT BOX
