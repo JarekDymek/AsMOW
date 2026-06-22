@@ -935,7 +935,7 @@ function loadKnowledgeFiles(query = '') {
   if (!fs.existsSync(dir)) return '';
   const terms = extractSearchTerms(query);
   return fs.readdirSync(dir)
-    .filter(name => /\.(txt|md|json)$/i.test(name))
+    .filter(name => !name.startsWith('_') && /\.(txt|md|json)$/i.test(name))
     .sort()
     .map(name => {
       const full = path.join(dir, name);

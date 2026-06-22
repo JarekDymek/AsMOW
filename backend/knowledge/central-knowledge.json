@@ -1,59 +1,104 @@
 {
-  "version": "2026-06-20.2",
-  "updatedAt": "2026-06-20",
-  "source": "Centralna baza wiedzy MOW - wersja startowa",
+  "version": "2026-06-22.1",
+  "updatedAt": "2026-06-22",
+  "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
+  "rules": [
+    "Przy pytaniach proceduralnych pierwszenstwo maja aktualne dokumenty MOW nr 1 w Malborku: statut, procedury, regulaminy, standardy ochrony maloletnich, zarzadzenia dyrektora i wpisy w bazie zmian czasowych.",
+    "Aktywne odpowiedzi AI maja korzystac przede wszystkim z krotkich wyciagow w backend/knowledge/*.md. Pelne teksty aktow prawnych sa przechowywane jako archiwum zrodlowe w backend/knowledge/_archiwum_pelne_teksty i nie powinny byc bezposrednio ladowane do kazdego pytania.",
+    "Jezeli pytanie jest zbyt ogolne, AI ma dopytac o kontekst zamiast odpowiadac na sile.",
+    "AI nie powinno prosic o pelne dane osobowe wychowanka. Zalecane sa inicjaly, grupa i opis zdarzenia bez danych identyfikujacych."
+  ],
   "items": [
     {
-      "id": "mow-procedury-start",
+      "id": "mow-procedury-pierwszenstwo",
       "key": "procedury-ogolne",
-      "type": "zmiana-stala",
-      "title": "Zasada pierwszeństwa procedur MOW",
-      "source": "Dokumenty wewnętrzne MOW nr 1 w Malborku",
-      "documentDate": "2026-06-20",
-      "validFrom": "2026-06-20",
+      "type": "zasada-stala",
+      "title": "Pierwszenstwo dokumentow MOW",
+      "source": "Dokumenty wewnetrzne MOW nr 1 w Malborku",
+      "documentDate": "2026-06-22",
+      "validFrom": "2026-06-22",
       "validTo": "",
       "version": "1",
       "approvedBy": "Administrator aplikacji",
-      "content": "Przy pytaniach o sposób postępowania wychowawcy pierwszeństwo mają aktualne dokumenty MOW, procedury wewnętrzne, statut oraz zatwierdzone zarządzenia dyrektora. Jeżeli wpis lokalny użytkownika jest sprzeczny z centralnym wpisem zatwierdzonym i aktywnym, aplikacja ma wskazać konflikt i zastosować wpis centralny, chyba że użytkownik wyraźnie pyta o materiał roboczy."
+      "content": "Przy pytaniach o sposob postepowania wychowawcy pierwszenstwo maja aktualne dokumenty MOW, statut, procedury, regulaminy, standardy ochrony maloletnich oraz zatwierdzone zarzadzenia dyrektora. Akty prawne sa rama nadrzedna, ale codzienny tryb dzialania placowki wynika z dokumentow wewnetrznych."
     },
     {
-      "id": "mow-ochrona-danych-start",
+      "id": "mow-ochrona-danych-ai",
       "key": "ochrona-danych-ai",
-      "type": "zmiana-stala",
-      "title": "Zasada ochrony danych w pytaniach do AI",
-      "source": "Polityka bezpieczeństwa aplikacji Asystent MOW",
-      "documentDate": "2026-06-20",
-      "validFrom": "2026-06-20",
+      "type": "zasada-stala",
+      "title": "Ochrona danych w pytaniach do AI",
+      "source": "Polityka bezpieczenstwa aplikacji Asystent MOW",
+      "documentDate": "2026-06-22",
+      "validFrom": "2026-06-22",
       "validTo": "",
       "version": "1",
       "approvedBy": "Administrator aplikacji",
-      "content": "Do AI nie należy wpisywać pełnych danych osobowych wychowanków, numerów PESEL, adresów, danych medycznych ani szczegółów umożliwiających łatwą identyfikację osoby. Zalecany zapis: inicjały, numer grupy, opis sytuacji bez danych identyfikujących."
+      "content": "Do AI nie nalezy wpisywac pelnych danych osobowych wychowankow, numerow PESEL, adresow, danych medycznych ani szczegolow pozwalajacych latwo zidentyfikowac osobe. Zalecany zapis: inicjaly, grupa, opis zdarzenia i kontekst bez danych identyfikujacych."
     },
     {
-      "id": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich-tekst-jednolity-2026",
+      "id": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich-wyciag-2026",
       "key": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich",
-      "type": "ustawa",
-      "title": "Ustawa o wspieraniu i resocjalizacji nieletnich - tekst jednolity 2026",
-      "source": "Dz.U. 2026 poz. 163; obwieszczenie Marszałka Sejmu RP z dnia 5 lutego 2026 r.",
+      "type": "ustawa-wyciag",
+      "title": "Ustawa o wspieraniu i resocjalizacji nieletnich - wyciag MOW",
+      "source": "Dz.U. 2026 poz. 163; obwieszczenie Marszalka Sejmu RP z 5 lutego 2026 r.",
       "documentDate": "2026-02-05",
       "validFrom": "2026-02-12",
       "validTo": "",
-      "version": "tekst jednolity 2026",
+      "version": "wyciag aktywny 2026-06-22",
       "approvedBy": "Administrator aplikacji",
-      "content": "Stały dokument prawny w centralnej bazie Asystenta MOW. Pełny tekst został zapisany w backend/knowledge/01_ustawa_o_wspieraniu_i_resocjalizacji_nieletnich_tekst_jednolity_2026.txt. AI ma korzystać z niego przy pytaniach dotyczących nieletnich, demoralizacji, czynów karalnych, środków wychowawczych i poprawczych, postępowania z nieletnim oraz zasad pobytu w placówce, zawsze z uwzględnieniem pierwszeństwa aktualnych dokumentów i procedur MOW w sprawach organizacyjnych placówki."
+      "content": "Aktywny plik: backend/knowledge/01_wyciag_mow_ustawa_resocjalizacja_2026.md. Pelny tekst pozostaje w archiwum: backend/knowledge/_archiwum_pelne_teksty/01_ustawa_o_wspieraniu_i_resocjalizacji_nieletnich_tekst_jednolity_2026.txt."
     },
     {
-      "id": "prawo-rozporzadzenie-publiczne-placowki-systemu-oswiaty-2023",
+      "id": "prawo-rozporzadzenie-placowki-systemu-oswiaty-wyciag-2023",
       "key": "prawo-rozporzadzenie-publiczne-placowki-oswiaty",
-      "type": "rozporzadzenie",
-      "title": "Rozporządzenie MEiN w sprawie niektórych publicznych placówek systemu oświaty",
-      "source": "Dz.U. 2023 poz. 651; rozporządzenie Ministra Edukacji i Nauki z dnia 30 marca 2023 r.",
+      "type": "rozporzadzenie-wyciag",
+      "title": "Rozporzadzenie MEiN o niektorych publicznych placowkach systemu oswiaty - wyciag MOW",
+      "source": "Dz.U. 2023 poz. 651; rozporzadzenie MEiN z 30 marca 2023 r.",
       "documentDate": "2023-03-30",
       "validFrom": "2023-04-05",
       "validTo": "",
-      "version": "Dz.U. 2023 poz. 651",
+      "version": "wyciag aktywny 2026-06-22",
       "approvedBy": "Administrator aplikacji",
-      "content": "Stały dokument prawny w centralnej bazie Asystenta MOW. Pełny tekst został zapisany w backend/knowledge/02_rozporzadzenie_mein_publiczne_placowki_systemu_oswiaty_2023.txt. AI ma korzystać z niego przy pytaniach dotyczących działania młodzieżowych ośrodków wychowawczych, warunków pobytu wychowanków, urlopów i przepustek, dokumentowania pobytu, nieletnich matek i ich dzieci, odpłatności oraz wolontariuszy. Przy pytaniach proceduralnych należy zestawiać ten akt z aktualnymi procedurami i zarządzeniami MOW."
+      "content": "Aktywny plik: backend/knowledge/02_wyciag_mow_rozporzadzenie_placowki_2023.md. Pelny tekst pozostaje w archiwum: backend/knowledge/_archiwum_pelne_teksty/02_rozporzadzenie_mein_publiczne_placowki_systemu_oswiaty_2023.txt."
+    },
+    {
+      "id": "prawo-oswiatowe-organizacja-mow-wyciag",
+      "key": "prawo-oswiatowe-organizacja-mow",
+      "type": "ustawa-i-akty-wykonawcze",
+      "title": "Prawo oswiatowe i organizacja placowki - wyciag MOW",
+      "source": "Prawo oswiatowe Dz.U. 2026 poz. 820 oraz akty wykonawcze",
+      "documentDate": "2026-06-04",
+      "validFrom": "2026-06-04",
+      "validTo": "",
+      "version": "wyciag aktywny 2026-06-22",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Aktywny plik: backend/knowledge/03_wyciag_mow_prawo_oswiatowe_organizacja.md."
+    },
+    {
+      "id": "praca-wychowawcy-awans-czas-pracy-wyciag",
+      "key": "karta-nauczyciela-awans-kodeks-pracy",
+      "type": "prawo-pracy-i-awans",
+      "title": "Praca wychowawcy, czas pracy i awans zawodowy - wyciag",
+      "source": "Karta Nauczyciela Dz.U. 2026 poz. 515; awans zawodowy Dz.U. 2022 poz. 1914; Kodeks pracy Dz.U. 2025 poz. 277 z pozniejszymi zmianami",
+      "documentDate": "2026-03-12",
+      "validFrom": "2026-03-12",
+      "validTo": "",
+      "version": "wyciag aktywny 2026-06-22",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Aktywny plik: backend/knowledge/04_wyciag_mow_praca_wychowawcy_awans_czas_pracy.md."
+    },
+    {
+      "id": "bezpieczenstwo-dokumentacja-pomoc-wyciag",
+      "key": "bezpieczenstwo-dokumentacja-ppp-bhp-spb",
+      "type": "bezpieczenstwo-i-dokumentacja",
+      "title": "Bezpieczenstwo, dokumentacja i pomoc psychologiczno-pedagogiczna - wyciag",
+      "source": "Dz.U. 2026 poz. 244; Dz.U. 2020 poz. 1604 z pozniejszymi zmianami; Dz.U. 2023 poz. 1798; Dz.U. 2020 poz. 1309; Dz.U. 2024 poz. 50",
+      "documentDate": "2026-06-22",
+      "validFrom": "2026-06-22",
+      "validTo": "",
+      "version": "wyciag aktywny 2026-06-22",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Aktywny plik: backend/knowledge/05_wyciag_mow_bezpieczenstwo_dokumentacja_pomoc.md."
     }
   ]
 }

@@ -8,7 +8,10 @@ const SYSTEM_PROMPT = `Jesteś asystentem wychowawcy pracującego w Młodzieżow
 - technikach wychowawczych i resocjalizacyjnych
 - dokumentowaniu zdarzeń
 
-Odpowiadaj po polsku, zwięźle i praktycznie. Używaj list i nagłówków. Gdy chodzi o sytuacje kryzysowe – podkreślaj najważniejsze kroki. Podstawy prawne: UPN (Dz.U. 2022 poz. 1082), Rozp. MEN 2011, Rozp. RM 2011, Statut MOW.`;
+Odpowiadaj po polsku, zwięźle i praktycznie. Używaj list i nagłówków. Gdy chodzi o sytuacje kryzysowe – podkreślaj najważniejsze kroki.
+Przy pytaniach o codzienne postępowanie najpierw stosuj dokumenty MOW: statut, procedury, regulamin stopni, standardy ochrony małoletnich, zarządzenia dyrektora i aktualną bazę zmian czasowych. Akty prawne traktuj jako ramę i źródło do uzasadnienia.
+Jeżeli pytanie jest zbyt ogólne albo brakuje danych o sytuacji, dopytaj zamiast udzielać odpowiedzi na siłę.
+Podstawy prawne: ustawa o wspieraniu i resocjalizacji nieletnich (Dz.U. 2026 poz. 163), rozporządzenie MEiN o publicznych placówkach systemu oświaty (Dz.U. 2023 poz. 651), Prawo oświatowe (Dz.U. 2026 poz. 820), Karta Nauczyciela (Dz.U. 2026 poz. 515), akty BHP, dokumentacyjne, pomoc psychologiczno-pedagogiczna oraz aktualne dokumenty MOW.`;
 
 const DEFAULT_AI_BACKEND_URL = 'https://asmow.onrender.com/api/chat';
 const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || DEFAULT_AI_BACKEND_URL;
@@ -20,7 +23,14 @@ const MOW_DOCUMENTS = [
   'STANDARDY-OCHRONY-MALOLETNICH.pdf',
   'Poradnik dla wychowawców w Młodzieżowym Ośrodku Wychowawczym nr 1 w Malborku.docx.pdf',
   'Ustawa o wspieraniu i resocjalizacji nieletnich - tekst jednolity Dz.U. 2026 poz. 163',
-  'Rozporządzenie MEiN z dnia 30 marca 2023 r. w sprawie niektórych publicznych placówek systemu oświaty - Dz.U. 2023 poz. 651'
+  'Rozporządzenie MEiN z dnia 30 marca 2023 r. w sprawie niektórych publicznych placówek systemu oświaty - Dz.U. 2023 poz. 651',
+  'Prawo oświatowe - Dz.U. 2026 poz. 820',
+  'Karta Nauczyciela - Dz.U. 2026 poz. 515',
+  'Awans zawodowy nauczycieli - Dz.U. 2022 poz. 1914',
+  'Kodeks pracy - Dz.U. 2025 poz. 277 z późn. zm.',
+  'BHP w szkołach i placówkach - Dz.U. 2020 poz. 1604 z późn. zm.',
+  'Pomoc psychologiczno-pedagogiczna - Dz.U. 2023 poz. 1798',
+  'Dokumentacja przebiegu nauczania, wychowania i opieki - Dz.U. 2024 poz. 50'
 ];
 
 function getAIHealthUrl() {
