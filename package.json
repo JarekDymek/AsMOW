@@ -8,6 +8,7 @@
     "test:hooks": "node tests/check-html-hooks.mjs",
     "test:js": "node tests/check-js-syntax.mjs",
     "test:knowledge": "node tests/check-knowledge-golden.mjs",
+    "test:ai-live": "node tests/check-ai-live.mjs",
     "check": "node tests/check-assets.mjs && node tests/check-html-hooks.mjs && node tests/check-js-syntax.mjs && node tests/check-knowledge-golden.mjs"
   }
 }

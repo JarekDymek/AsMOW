@@ -26,14 +26,18 @@
     "question": "Czy harmonogram dyzurow jest jedyna podstawa rozliczenia czasu pracy?",
     "expected": "Nie, trzeba zestawic go z arkuszem organizacji, regulaminem pracy i Karta Nauczyciela.",
     "source": "Karta Nauczyciela; dokumenty organizacyjne MOW.",
-    "mustInclude": ["Harmonogram", "nie jest samodzielna", "arkuszem organizacji", "regulaminem pracy"]
+    "mustInclude": ["Harmonogram", "nie jest samodzielna", "arkuszem organizacji", "regulaminem pracy"],
+    "liveMustInclude": ["Harmonogram", "arkuszem organizacji", "regulaminem pracy"],
+    "liveMustIncludeAny": [["nie jest samodzielna", "musi byc zestawiony", "nie. harmonogram"]]
   },
   {
     "id": "work-night-weekend-caution",
     "question": "Jak odpowiadac o nadgodzinach, weekendach i pracy w nocy?",
     "expected": "Ostroznie, po ustaleniu statusu pracownika, rodzaju zajec, okresu rozliczeniowego i dokumentow.",
     "source": "Karta Nauczyciela; Kodeks pracy; regulamin pracy.",
-    "mustInclude": ["nocy", "weekendach", "nadgodzinach", "ostroznie"]
+    "mustInclude": ["nocy", "weekendach", "nadgodzinach", "ostroznie"],
+    "liveMustInclude": ["nocy", "ostroznie"],
+    "liveMustIncludeAny": [["weekendach", "weekendy"], ["nadgodzinach", "nadgodzin"]]
   },
   {
     "id": "juvenile-mow-measure",

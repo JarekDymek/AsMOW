@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.3",
+  "version": "2026-06-22.4",
   "updatedAt": "2026-06-22",
   "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
   "rules": [
@@ -111,7 +111,7 @@
       "validTo": "",
       "version": "1",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/06_odpowiedzi_wzorcowe_mow.md. Test automatyczny: tests/check-knowledge-golden.mjs oraz tests/knowledge-golden-cases.json. Aktualnie sprawdzane sa pytania kontrolne m.in. o pensum wychowawcy MOW 24 godziny, roznice miedzy 40 godzinami czasu pracy a pensum, urlop i przepustke, prawa wychowanka, pierwszenstwo dokumentow MOW, dane osobowe, sytuacje kryzysowe i aktualnosc zmian czasowych."
+      "content": "Aktywny plik: backend/knowledge/06_odpowiedzi_wzorcowe_mow.md. Test statyczny: tests/check-knowledge-golden.mjs oraz tests/knowledge-golden-cases.json. Test live realnego AI: tests/check-ai-live.mjs uruchamiany komenda npm run test:ai-live po ustawieniu ASMOW_LIVE_AI_URL. Aktualnie sprawdzane sa pytania kontrolne m.in. o pensum wychowawcy MOW 24 godziny, roznice miedzy 40 godzinami czasu pracy a pensum, urlop i przepustke, prawa wychowanka, pierwszenstwo dokumentow MOW, dane osobowe, sytuacje kryzysowe i aktualnosc zmian czasowych."
     }
   ]
 }
