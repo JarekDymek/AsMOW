@@ -1,0 +1,25 @@
+.test-access-banner {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  margin: 0;
+  padding: 10px 14px;
+  background: #fef3c7;
+  color: #082f49;
+  border-bottom: 2px solid #d99b00;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(8, 47, 73, .14);
+}
+
+body.test-mode #weekly-backend-url,
+body.test-mode #weekly-token,
+body.test-mode #current-info-sync-token {
+  background: #eaf3fb;
+  color: #0b3358;
+  border-color: #9bb7d0;
+}
+
+body.test-mode [data-test-admin-only="true"] {
+  display: none !important;
+}

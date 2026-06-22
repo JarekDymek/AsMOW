@@ -28,6 +28,23 @@ Zmienne środowiskowe dla Google Gemini:
 - opcjonalnie `ALLOWED_ORIGINS=https://twoja-domena.pl`
 - poczta Gmail: `CURRENT_INFO_IMAP_HOST=imap.gmail.com`, `CURRENT_INFO_IMAP_USER`, `CURRENT_INFO_IMAP_PASSWORD`, `CURRENT_INFO_SYNC_TOKEN`
 
+### Link testowy dla wychowawcĂłw
+
+W Renderze ustaw:
+
+- `TEST_ACCESS_TOKENS` - jeden albo kilka kodĂłw testowych po przecinku.
+- `TEST_WEEKLY_BACKEND_URL` - adres `/exec` z Apps Script Harmonogram-MOW.
+- `TEST_WEEKLY_VIEW_TOKEN` - tylko `VIEW_TOKEN`, nigdy `ADMIN_TOKEN`.
+- `TEST_WEEKLY_EDUCATOR=Dymek` albo inne nazwisko do podglÄ…du.
+
+Link dla testera ma format:
+
+```text
+https://jarekdymek.github.io/AsMOW/?tester=TU_WKLEJ_KOD_TESTOWY
+```
+
+Tester nie widzi tokenĂłw harmonogramu, poczty ani kluczy AI. Przycisk skanowania generatora jest ukryty, a backend wymusza tylko bezpieczny podglÄ…d.
+
 Jeżeli aplikacja PWA jest serwowana z tego samego Rendera, w `index.html` może zostać domyślne `AI_BACKEND_URL='/api/chat'`.
 Jeżeli frontend jest na innej domenie, ustaw w przeglądarce albo zmień w kodzie:
 

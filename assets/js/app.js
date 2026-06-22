@@ -2,6 +2,7 @@
    INIT
 ──────────────────────────────── */
 function init() {
+  setupTestAccessFromUrl();
   renderSchedule();
   renderQuickGrid();
   renderProcs();
@@ -23,6 +24,8 @@ function init() {
   startClock();
   setupWorkSafeguards();
   setupInstall();
+  applyTestModeUI();
+  refreshTestProfile();
   checkOnline();
   setInterval(checkOnline, 15000);
   setInterval(autoSyncCurrentInfoMail, 30 * 60 * 1000);

@@ -21,6 +21,14 @@ function loadWeeklyPlanState() {
 }
 
 function saveWeeklySettings() {
+  if (typeof isTestMode === 'function' && isTestMode()) {
+    const profile = getTestProfile();
+    return {
+      backendUrl: '',
+      token: '',
+      educator: profile.weeklyEducator || document.getElementById('weekly-educator')?.value.trim() || ''
+    };
+  }
   const settings = {
     backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || '',
     token: document.getElementById('weekly-token')?.value.trim() || '',
@@ -36,16 +44,17 @@ function setWeeklyStatus(text) {
 }
 
 async function fetchWeeklyPlan(options = {}) {
+  const testMode = typeof isTestMode === 'function' && isTestMode();
   const settings = saveWeeklySettings();
-  if (!settings.backendUrl) {
+  if (!testMode && !settings.backendUrl) {
     setWeeklyStatus('Wklej adres wdrożenia Apps Script z aplikacji Harmonogram-MOW. Powinien kończyć się na /exec.');
     return;
   }
-  if (!/\/exec(?:\?|$)/.test(settings.backendUrl)) {
+  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
     setWeeklyStatus('Ten adres nie wygląda jak wdrożenie Apps Script. Wklej link typu https://script.google.com/macros/s/.../exec, nie adres GitHub Pages ani edytora skryptu.');
     return;
   }
-  const rescan = !!options.rescan;
+  const rescan = !!options.rescan && !testMode;
   setWeeklyStatus(rescan ? 'Skanuję pocztę generatora i pobieram plan...' : 'Pobieram plan tygodniowy...');
   try {
     const ctrl = new AbortController();
@@ -55,8 +64,9 @@ async function fetchWeeklyPlan(options = {}) {
       headers: { 'Content-Type': 'application/json' },
       signal: ctrl.signal,
       body: JSON.stringify({
-        targetUrl: settings.backendUrl,
-        token: settings.token,
+        targetUrl: testMode ? '' : settings.backendUrl,
+        token: testMode ? '' : settings.token,
+        testAccessToken: testMode ? getTestAccessToken() : '',
         educator: settings.educator,
         action: rescan ? 'scan' : 'dashboard'
       })

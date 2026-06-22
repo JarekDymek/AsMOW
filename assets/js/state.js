@@ -25,5 +25,6 @@ const KNOWLEDGE_KEY = 'mow_knowledge_base_v1';
 const CENTRAL_KNOWLEDGE_KEY = 'mow_central_knowledge_cache_v1';
 const CURRENT_INFO_KEY = 'mow_current_info_v1';
 const CURRENT_INFO_SYNC_KEY = 'mow_current_info_sync_v1';
+const TEST_ACCESS_KEY = 'mow_test_access_v1';
 const APP_BACKUP_VERSION = '1';
 const WEEKLY_SAMPLE_URL = 'https://jarekdymek.github.io/Harmonogram-MOW/data/sample-weeks.json';

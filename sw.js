@@ -1,4 +1,4 @@
-const CACHE = 'mow-pwa-v37';
+const CACHE = 'mow-pwa-v38';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './assets/css/ai.css',
   './assets/css/harmonogram.css',
   './assets/css/current-info.css',
+  './assets/css/test-access.css',
   './assets/css/utilities.css',
   './assets/js/data-schedule.js',
   './assets/js/data-procedures.js',
@@ -25,6 +26,7 @@ const APP_SHELL = [
   './assets/js/data-chat-pills.js',
   './assets/js/data-laws.js',
   './assets/js/state.js',
+  './assets/js/test-access.js',
   './assets/js/utils.js',
   './assets/js/files.js',
   './assets/js/accordion.js',

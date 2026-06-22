@@ -231,6 +231,7 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
   const item = currentInfoItems.find(entry => String(entry.id) === String(itemId));
   const attachment = item?.attachments?.find(entry => String(entry.id) === String(attachmentId));
   const settings = getCurrentInfoSyncSettings();
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
   if (!item || !attachment) {
     setCurrentInfoStatus('Nie znaleziono załącznika w lokalnym archiwum.');
     return null;
@@ -239,7 +240,7 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
     setCurrentInfoStatus('Ten wpis nie ma identyfikatora wiadomości z poczty. Pobierz pocztę ponownie, aby odświeżyć metadane.');
     return null;
   }
-  if (!settings.token) {
+  if (!settings.token && !testAccessToken) {
     setCurrentInfoStatus('Wpisz token synchronizacji poczty, aby pobrać załącznik.');
     return null;
   }
@@ -250,7 +251,8 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        token: settings.token,
+        token: testAccessToken ? '' : settings.token,
+        testAccessToken,
         uid: item.mailUid,
         attachmentId: attachment.id,
         preview: options.preview !== false
@@ -491,13 +493,15 @@ function loadCurrentInfoSyncSettings() {
 function getCurrentInfoSyncSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(CURRENT_INFO_SYNC_KEY) || '{}');
-    return {
+    const settings = {
       token: String(parsed.token || ''),
       auto: Boolean(parsed.auto),
       lastSyncAt: String(parsed.lastSyncAt || '')
     };
+    if (typeof isTestMode === 'function' && isTestMode()) settings.auto = true;
+    return settings;
   } catch {
-    return { token: '', auto: false, lastSyncAt: '' };
+    return { token: '', auto: typeof isTestMode === 'function' && isTestMode(), lastSyncAt: '' };
   }
 }
 
@@ -505,6 +509,17 @@ function saveCurrentInfoSyncSettings(extra = {}) {
   const tokenEl = document.getElementById('current-info-sync-token');
   const autoEl = document.getElementById('current-info-sync-auto');
   const current = getCurrentInfoSyncSettings();
+  if (typeof isTestMode === 'function' && isTestMode()) {
+    const settings = {
+      token: '',
+      auto: true,
+      lastSyncAt: current.lastSyncAt,
+      ...extra
+    };
+    localStorage.setItem(CURRENT_INFO_SYNC_KEY, JSON.stringify(settings));
+    setCurrentInfoSyncMeta(settings.lastSyncAt);
+    return settings;
+  }
   const settings = {
     token: tokenEl ? tokenEl.value.trim() : current.token,
     auto: autoEl ? autoEl.checked : current.auto,
@@ -527,7 +542,8 @@ function setCurrentInfoSyncMeta(lastSyncAt = '') {
 
 async function autoSyncCurrentInfoMail() {
   const settings = getCurrentInfoSyncSettings();
-  if (!settings.auto || !settings.token) return;
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!settings.auto || (!settings.token && !testAccessToken)) return;
   const last = settings.lastSyncAt ? new Date(settings.lastSyncAt).getTime() : 0;
   const sixHours = 6 * 60 * 60 * 1000;
   if (last && Date.now() - last < sixHours) return;
@@ -536,7 +552,8 @@ async function autoSyncCurrentInfoMail() {
 
 async function syncCurrentInfoMail(manual = true) {
   const settings = saveCurrentInfoSyncSettings({ lastSyncAt: getCurrentInfoSyncSettings().lastSyncAt });
-  if (!settings.token) {
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!settings.token && !testAccessToken) {
     setCurrentInfoStatus('Wpisz token synchronizacji poczty.');
     return;
   }
@@ -546,7 +563,8 @@ async function syncCurrentInfoMail(manual = true) {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        token: settings.token,
+        token: testAccessToken ? '' : settings.token,
+        testAccessToken,
         since: CURRENT_INFO_START_DATE,
         limit: 800
       })

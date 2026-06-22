@@ -24,6 +24,9 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
+const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
+const TEST_WEEKLY_VIEW_TOKEN = process.env.TEST_WEEKLY_VIEW_TOKEN || '';
+const TEST_WEEKLY_EDUCATOR = process.env.TEST_WEEKLY_EDUCATOR || 'Dymek';
 
 const rate = new Map();
 const STATIC_FILES = new Map([
@@ -57,6 +60,11 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/api/knowledge') {
       return json(res, 200, loadCentralKnowledge());
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/test-profile') {
+      const payload = await readJson(req);
+      return json(res, 200, { ok: true, profile: getPublicTestProfile(payload.testAccessToken || payload.token) });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/chat') {
@@ -270,9 +278,15 @@ function isImageMime(mimeType) {
 }
 
 async function fetchWeeklyPlan(payload = {}) {
-  const targetUrl = String(payload.targetUrl || payload.backendUrl || '').trim();
+  const testProfile = payload.testAccessToken ? getPublicTestProfile(payload.testAccessToken) : null;
+  const targetUrl = testProfile ? TEST_WEEKLY_BACKEND_URL : String(payload.targetUrl || payload.backendUrl || '').trim();
   if (!targetUrl) {
-    const err = new Error('Brak adresu backendu Harmonogram-MOW.');
+    const err = new Error(testProfile ? 'Tryb testowy nie ma jeszcze ustawionego TEST_WEEKLY_BACKEND_URL w Renderze.' : 'Brak adresu backendu Harmonogram-MOW.');
+    err.status = 400;
+    throw err;
+  }
+  if (testProfile && !TEST_WEEKLY_VIEW_TOKEN) {
+    const err = new Error('Tryb testowy nie ma jeszcze ustawionego TEST_WEEKLY_VIEW_TOKEN w Renderze.');
     err.status = 400;
     throw err;
   }
@@ -290,10 +304,12 @@ async function fetchWeeklyPlan(payload = {}) {
   }
 
   const requestedAction = String(payload.action || 'dashboard');
-  const action = ['scan', 'forceRescan'].includes(requestedAction) ? requestedAction : 'dashboard';
+  const action = testProfile ? 'dashboard' : ['scan', 'forceRescan'].includes(requestedAction) ? requestedAction : 'dashboard';
   url.searchParams.set('action', action);
-  if (payload.educator) url.searchParams.set('educator', String(payload.educator).slice(0, 120));
-  if (payload.token) url.searchParams.set('token', String(payload.token).slice(0, 500));
+  const educator = testProfile ? (TEST_WEEKLY_EDUCATOR || testProfile.weeklyEducator || '') : payload.educator;
+  const token = testProfile ? TEST_WEEKLY_VIEW_TOKEN : payload.token;
+  if (educator) url.searchParams.set('educator', String(educator).slice(0, 120));
+  if (token) url.searchParams.set('token', String(token).slice(0, 500));
   url.searchParams.delete('transport');
   url.searchParams.set('format', 'jsonp');
   url.searchParams.set('callback', '__mowSchedule');
@@ -365,7 +381,7 @@ function parseMaybeJson(text) {
 }
 
 async function fetchCurrentInfoMail(payload = {}) {
-  assertCurrentInfoSyncToken(payload.token);
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
   const config = getCurrentInfoMailConfig();
   const since = normalizeCurrentInfoSince(payload.since || config.since);
   const limit = Math.min(Math.max(Number(payload.limit || 500), 1), 1200);
@@ -444,7 +460,7 @@ async function fetchCurrentInfoMail(payload = {}) {
 }
 
 async function fetchCurrentInfoAttachment(payload = {}) {
-  assertCurrentInfoSyncToken(payload.token);
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
   const config = getCurrentInfoMailConfig();
   const uid = String(payload.uid || '').trim();
   const attachmentId = String(payload.attachmentId || '').trim();
@@ -608,7 +624,45 @@ function throwHttpError(message, status = 400, code = 'REQUEST_ERROR') {
   throw err;
 }
 
-function assertCurrentInfoSyncToken(token) {
+function getConfiguredTestTokens() {
+  return String(process.env.TEST_ACCESS_TOKENS || process.env.TEST_ACCESS_TOKEN || '')
+    .split(',')
+    .map(token => token.trim())
+    .filter(Boolean);
+}
+
+function tokensMatch(input, expected) {
+  const left = Buffer.from(String(input || ''));
+  const right = Buffer.from(String(expected || ''));
+  return left.length === right.length && left.length > 0 && crypto.timingSafeEqual(left, right);
+}
+
+function assertTestAccessToken(token) {
+  const configured = getConfiguredTestTokens();
+  if (!configured.length) {
+    throwHttpError('Tryb testowy nie jest jeszcze skonfigurowany w Renderze. Dodaj TEST_ACCESS_TOKENS.', 400, 'TEST_ACCESS_NOT_CONFIGURED');
+  }
+  if (!configured.some(expected => tokensMatch(token, expected))) {
+    throwHttpError('Link testowy jest nieprawidlowy albo zostal wylaczony.', 403, 'TEST_ACCESS_FORBIDDEN');
+  }
+}
+
+function getPublicTestProfile(token) {
+  assertTestAccessToken(token);
+  return {
+    role: 'tester',
+    weeklyPlan: true,
+    currentInfo: true,
+    ai: true,
+    weeklyEducator: TEST_WEEKLY_EDUCATOR || 'Dymek'
+  };
+}
+
+function assertCurrentInfoSyncToken(token, testAccessToken = '') {
+  if (testAccessToken) {
+    assertTestAccessToken(testAccessToken);
+    return;
+  }
   const expected = process.env.CURRENT_INFO_SYNC_TOKEN;
   if (!expected) {
     const err = new Error('Synchronizacja poczty nie jest jeszcze skonfigurowana w Renderze. Dodaj CURRENT_INFO_SYNC_TOKEN oraz dane IMAP.');

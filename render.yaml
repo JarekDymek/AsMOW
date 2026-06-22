@@ -30,3 +30,11 @@ services:
         sync: false
       - key: CURRENT_INFO_SYNC_TOKEN
         sync: false
+      - key: TEST_ACCESS_TOKENS
+        sync: false
+      - key: TEST_WEEKLY_BACKEND_URL
+        sync: false
+      - key: TEST_WEEKLY_VIEW_TOKEN
+        sync: false
+      - key: TEST_WEEKLY_EDUCATOR
+        value: Dymek

@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="assets/css/ai.css">
 <link rel="stylesheet" href="assets/css/harmonogram.css">
 <link rel="stylesheet" href="assets/css/current-info.css">
+<link rel="stylesheet" href="assets/css/test-access.css">
 <link rel="stylesheet" href="assets/css/utilities.css">
   <script src="assets/js/data-schedule.js" defer></script>
   <script src="assets/js/data-procedures.js" defer></script>
@@ -32,6 +33,7 @@
   <script src="assets/js/data-chat-pills.js" defer></script>
   <script src="assets/js/data-laws.js" defer></script>
   <script src="assets/js/state.js" defer></script>
+  <script src="assets/js/test-access.js" defer></script>
   <script src="assets/js/utils.js" defer></script>
   <script src="assets/js/files.js" defer></script>
   <script src="assets/js/accordion.js" defer></script>
@@ -448,7 +450,7 @@
     </div>
     <div class="btn-row">
       <button class="btn" type="button" onclick="fetchWeeklyPlan()">Pobierz plan tygodniowy</button>
-      <button class="btn warn" type="button" onclick="fetchWeeklyPlan({ rescan: true })">Przeskanuj i pobierz</button>
+      <button class="btn warn" type="button" data-test-admin-only="true" onclick="fetchWeeklyPlan({ rescan: true })">Przeskanuj i pobierz</button>
       <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
       <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
     </div>
