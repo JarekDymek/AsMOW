@@ -182,6 +182,64 @@
   color: var(--navy);
 }
 
+.current-info-attachments {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.current-info-attachment {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: #f4f8fc;
+  border: 1.5px solid #c4d4e4;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.current-info-attachment-name {
+  color: var(--navy);
+  font-size: .82rem;
+  font-weight: 950;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.current-info-attachment-meta {
+  color: #4f6479;
+  font-size: .7rem;
+  font-weight: 850;
+  margin-top: 2px;
+}
+
+.current-info-attachment-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.current-info-attachment-actions button {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: .74rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.current-info-attachment-actions button:last-child {
+  background: #dce8f3;
+  color: var(--navy);
+}
+
 @media (max-width: 520px) {
   .current-info-list { grid-template-columns: 1fr; }
+  .current-info-attachment { grid-template-columns: 1fr; }
+  .current-info-attachment-actions { justify-content: stretch; }
+  .current-info-attachment-actions button { flex: 1 1 110px; }
 }

@@ -7,6 +7,7 @@ Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 - `POST /api/chat` - rozmowa z asystentem.
 - `POST /api/weekly-plan` - bezpieczne pobranie planu z Harmonogram-MOW.
 - `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
+- `POST /api/current-info-attachment` - pobranie wybranego załącznika z wiadomości dyrektora.
 - `POST /api/extract-file` - odczyt tekstu z plików przekazanych do analizy.
 - `GET /` - podgląd `index.html` z katalogu głównego projektu.
 

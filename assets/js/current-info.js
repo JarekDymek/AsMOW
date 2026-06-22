@@ -35,8 +35,27 @@ function normalizeCurrentInfoItem(item) {
     topic: String(item.topic || detectCurrentInfoTopic(title, body)).trim().slice(0, 100),
     source: String(item.source || DIRECTOR_EMAIL).trim().slice(0, 120),
     body: body.slice(0, 40_000),
+    mailUid: item.mailUid ? String(item.mailUid) : '',
+    attachments: normalizeCurrentInfoAttachments(item.attachments),
     createdAt: String(item.createdAt || new Date().toISOString())
   };
+}
+
+function normalizeCurrentInfoAttachments(attachments) {
+  if (!Array.isArray(attachments)) return [];
+  return attachments.slice(0, 12).map((attachment, index) => {
+    if (!attachment || typeof attachment !== 'object') return null;
+    const name = String(attachment.name || attachment.filename || `Załącznik ${index + 1}`).trim().slice(0, 180);
+    const id = String(attachment.id || attachment.attachmentId || index).trim();
+    const contentType = String(attachment.contentType || attachment.mimeType || '').trim().slice(0, 120);
+    const size = Number(attachment.size || 0);
+    return {
+      id: id || String(index),
+      name: name || `Załącznik ${index + 1}`,
+      contentType: contentType || 'application/octet-stream',
+      size: Number.isFinite(size) && size > 0 ? size : 0
+    };
+  }).filter(Boolean);
 }
 
 function normalizeInfoDate(value) {
@@ -134,14 +153,149 @@ function createCurrentInfoRow(item) {
   text.className = 'current-info-text';
   text.textContent = item.body || '(brak treści)';
   body.append(meta, text);
+  const attachments = createCurrentInfoAttachments(item);
+  if (attachments) body.appendChild(attachments);
 
   wrap.append(row, body);
+  return wrap;
+}
+
+function createCurrentInfoAttachments(item) {
+  if (!item.attachments || !item.attachments.length) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'current-info-attachments';
+
+  item.attachments.forEach(attachment => {
+    const row = document.createElement('div');
+    row.className = 'current-info-attachment';
+
+    const info = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'current-info-attachment-name';
+    name.textContent = `📎 ${attachment.name}`;
+    const meta = document.createElement('div');
+    meta.className = 'current-info-attachment-meta';
+    meta.textContent = [attachment.contentType, formatCurrentInfoAttachmentSize(attachment.size)]
+      .filter(Boolean)
+      .join(' · ');
+    info.append(name, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'current-info-attachment-actions';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.textContent = 'Otwórz';
+    open.onclick = () => openCurrentInfoAttachment(item.id, attachment.id);
+    const download = document.createElement('button');
+    download.type = 'button';
+    download.textContent = 'Pobierz';
+    download.onclick = () => downloadCurrentInfoAttachment(item.id, attachment.id);
+    actions.append(open, download);
+
+    row.append(info, actions);
+    wrap.appendChild(row);
+  });
+
   return wrap;
 }
 
 function toggleCurrentInfoBody(id, toggle, body) {
   const isOpen = body.classList.toggle('open');
   toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+async function openCurrentInfoAttachment(itemId, attachmentId) {
+  const file = await fetchCurrentInfoAttachment(itemId, attachmentId);
+  if (!file) return;
+  const url = URL.createObjectURL(file.blob);
+  const opened = window.open(url, '_blank');
+  if (!opened) downloadBlob(file.blob, file.filename);
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+async function downloadCurrentInfoAttachment(itemId, attachmentId) {
+  const file = await fetchCurrentInfoAttachment(itemId, attachmentId);
+  if (!file) return;
+  downloadBlob(file.blob, file.filename);
+}
+
+async function fetchCurrentInfoAttachment(itemId, attachmentId) {
+  const item = currentInfoItems.find(entry => String(entry.id) === String(itemId));
+  const attachment = item?.attachments?.find(entry => String(entry.id) === String(attachmentId));
+  const settings = getCurrentInfoSyncSettings();
+  if (!item || !attachment) {
+    setCurrentInfoStatus('Nie znaleziono załącznika w lokalnym archiwum.');
+    return null;
+  }
+  if (!item.mailUid) {
+    setCurrentInfoStatus('Ten wpis nie ma identyfikatora wiadomości z poczty. Pobierz pocztę ponownie, aby odświeżyć metadane.');
+    return null;
+  }
+  if (!settings.token) {
+    setCurrentInfoStatus('Wpisz token synchronizacji poczty, aby pobrać załącznik.');
+    return null;
+  }
+
+  try {
+    setCurrentInfoStatus(`Pobieram załącznik: ${attachment.name}...`);
+    const response = await fetch(`${getAIBackendBaseUrl()}/api/current-info-attachment`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        token: settings.token,
+        uid: item.mailUid,
+        attachmentId: attachment.id
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `Błąd pobierania HTTP ${response.status}`);
+    }
+    const blob = base64ToBlob(data.dataBase64 || '', data.contentType || attachment.contentType);
+    const filename = sanitizeCurrentInfoFileName(data.filename || attachment.name);
+    setCurrentInfoStatus(`Pobrano załącznik: ${filename}.`);
+    return { blob, filename };
+  } catch (err) {
+    setCurrentInfoStatus(`Nie udało się pobrać załącznika: ${err.message}`);
+    return null;
+  }
+}
+
+function base64ToBlob(base64, contentType = 'application/octet-stream') {
+  const binary = atob(base64);
+  const chunks = [];
+  for (let index = 0; index < binary.length; index += 8192) {
+    const slice = binary.slice(index, index + 8192);
+    const bytes = new Uint8Array(slice.length);
+    for (let byteIndex = 0; byteIndex < slice.length; byteIndex += 1) {
+      bytes[byteIndex] = slice.charCodeAt(byteIndex);
+    }
+    chunks.push(bytes);
+  }
+  return new Blob(chunks, { type: contentType || 'application/octet-stream' });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || 'zalacznik';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function sanitizeCurrentInfoFileName(name = '') {
+  return String(name || 'zalacznik').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 180) || 'zalacznik';
+}
+
+function formatCurrentInfoAttachmentSize(size = 0) {
+  const value = Number(size || 0);
+  if (!Number.isFinite(value) || value <= 0) return '';
+  if (value >= 1_048_576) return `${(value / 1_048_576).toFixed(1)} MB`;
+  if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+  return `${value} B`;
 }
 
 function deleteCurrentInfo(id) {
@@ -363,12 +517,18 @@ async function syncCurrentInfoMail(manual = true) {
 }
 
 function mergeCurrentInfoItems(items = []) {
-  const known = new Set(currentInfoItems.map(getCurrentInfoFingerprint));
   items.map(normalizeCurrentInfoItem).filter(Boolean).forEach(item => {
     if (isScheduleCurrentInfo(item)) return;
     const fingerprint = getCurrentInfoFingerprint(item);
-    if (known.has(fingerprint)) return;
-    known.add(fingerprint);
+    const existingIndex = currentInfoItems.findIndex(entry => getCurrentInfoFingerprint(entry) === fingerprint);
+    if (existingIndex >= 0) {
+      currentInfoItems[existingIndex] = {
+        ...currentInfoItems[existingIndex],
+        mailUid: item.mailUid || currentInfoItems[existingIndex].mailUid || '',
+        attachments: item.attachments?.length ? item.attachments : currentInfoItems[existingIndex].attachments || []
+      };
+      return;
+    }
     currentInfoItems.push(item);
   });
   saveCurrentInfo();
@@ -386,6 +546,7 @@ function getCurrentInfoContext() {
       title: item.title,
       topic: item.topic,
       source: item.source,
+      attachments: (item.attachments || []).map(attachment => attachment.name),
       body: item.body.slice(0, 4000)
     }));
 }

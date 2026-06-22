@@ -35,15 +35,20 @@
   gap: 9px;
 }
 .tile-screen .pill {
-  border-radius: 12px;
-  padding: 11px 10px;
-  min-height: 58px;
+  border-radius: var(--radius);
+  padding: 14px 10px;
+  min-height: 104px;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1.35;
   background: #fff;
+  border: 1.5px solid #bfd0e2;
+  box-shadow: 0 3px 14px rgba(16,47,78,.13);
+  color: var(--navy);
+  font-weight: 950;
+  white-space: normal;
 }
 
 button, input, textarea {
@@ -83,7 +88,7 @@ input, textarea {
   .main-wrap { max-width: 760px; }
   .quick-grid { grid-template-columns: repeat(4, 1fr); }
   .tile-screen.active { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .tile-screen .chat-pills { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tile-screen .chat-pills { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .chat-window { max-height: 60vh; }
 }
 

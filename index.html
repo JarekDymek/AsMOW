@@ -278,32 +278,6 @@
     </div>
   </div></div>
 
-  <button class="section-toggle" type="button" data-accordion-target="law-phones-card" onclick="toggleAccordion('law-phones-card')">
-    <span class="st-main">📞 Numery alarmowe i kontakty</span><span class="st-state">Rozwiń</span>
-  </button>
-  <div class="card collapsible-card accordion-panel" id="law-phones-card" style="padding:0">
-    <div class="info-row"><span class="il">🚒 Straż Pożarna</span><span class="iv"><a href="tel:998">998</a></span></div>
-    <div class="info-row"><span class="il">👮 Policja</span><span class="iv"><a href="tel:997">997</a></span></div>
-    <div class="info-row"><span class="il">🚑 Pogotowie</span><span class="iv"><a href="tel:999">999</a></span></div>
-    <div class="info-row"><span class="il">📞 Numer alarmowy</span><span class="iv"><a href="tel:112">112</a></span></div>
-    <div class="info-row"><span class="il">🏫 MOW Malbork (centrala)</span><span class="iv"><a href="tel:556473450">55 647 34 50</a></span></div>
-    <div class="info-row"><span class="il">⚖️ Sąd Rodzinny Malbork</span><span class="iv"><a href="tel:556472020">55 647 20 20</a></span></div>
-    <div class="info-row"><span class="il">🔵 Telefon zaufania MEN</span><span class="iv"><a href="tel:116111">116 111</a></span></div>
-  </div>
-
-  <button class="section-toggle" type="button" data-accordion-target="law-docs-card" onclick="toggleAccordion('law-docs-card')">
-    <span class="st-main">📄 Dokumenty wewnętrzne MOW</span><span class="st-state">Rozwiń</span>
-  </button>
-  <div class="card collapsible-card accordion-panel" id="law-docs-card"><div class="card-body">
-    <span class="tag gold">Statut MOW</span>
-    <span class="tag">Reg. Stopni Uspołecznienia</span>
-    <span class="tag">Procedury Postępowania</span>
-    <span class="tag">Procedury Niebezp. Przedmiotów</span>
-    <span class="tag">Poradnik Wychowawcy</span>
-    <span class="tag">Wymag. Dyplomowanie</span>
-    <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Dokumenty formalne MOW nr 1 im. T. Kościuszki w Malborku</p>
-  </div></div>
-
   <button class="section-toggle" type="button" data-accordion-target="law-kb-form-card" onclick="toggleAccordion('law-kb-form-card')">
     <span class="st-main">🗂️ Baza wiedzy, wzory i zmiany czasowe</span><span class="st-state">Rozwiń</span>
   </button>
@@ -358,6 +332,32 @@
     </div>
     <div class="weekly-status" id="backup-status">Warto zrobić kopię przed czyszczeniem przeglądarki albo zmianą telefonu.</div>
   </div></div>
+
+  <button class="section-toggle" type="button" data-accordion-target="law-docs-card" onclick="toggleAccordion('law-docs-card')">
+    <span class="st-main">📄 Dokumenty wewnętrzne MOW</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-docs-card"><div class="card-body">
+    <span class="tag gold">Statut MOW</span>
+    <span class="tag">Reg. Stopni Uspołecznienia</span>
+    <span class="tag">Procedury Postępowania</span>
+    <span class="tag">Procedury Niebezp. Przedmiotów</span>
+    <span class="tag">Poradnik Wychowawcy</span>
+    <span class="tag">Wymag. Dyplomowanie</span>
+    <p style="font-size:.65rem;color:var(--muted);margin-top:10px;font-style:italic">Dokumenty formalne MOW nr 1 im. T. Kościuszki w Malborku</p>
+  </div></div>
+
+  <button class="section-toggle" type="button" data-accordion-target="law-phones-card" onclick="toggleAccordion('law-phones-card')">
+    <span class="st-main">📞 Numery alarmowe i kontakty</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="law-phones-card" style="padding:0">
+    <div class="info-row"><span class="il">🚒 Straż Pożarna</span><span class="iv"><a href="tel:998">998</a></span></div>
+    <div class="info-row"><span class="il">👮 Policja</span><span class="iv"><a href="tel:997">997</a></span></div>
+    <div class="info-row"><span class="il">🚑 Pogotowie</span><span class="iv"><a href="tel:999">999</a></span></div>
+    <div class="info-row"><span class="il">📞 Numer alarmowy</span><span class="iv"><a href="tel:112">112</a></span></div>
+    <div class="info-row"><span class="il">🏫 MOW Malbork (centrala)</span><span class="iv"><a href="tel:556473450">55 647 34 50</a></span></div>
+    <div class="info-row"><span class="il">⚖️ Sąd Rodzinny Malbork</span><span class="iv"><a href="tel:556472020">55 647 20 20</a></span></div>
+    <div class="info-row"><span class="il">🔵 Telefon zaufania MEN</span><span class="iv"><a href="tel:116111">116 111</a></span></div>
+  </div>
 
 </div><!-- /s-prawo -->
 
@@ -426,9 +426,20 @@
     <div style="font-size:.92rem">Wgraj harmonogram: tekst, CSV, Word, Excel albo screen. Screen możesz potem powiększyć w aplikacji.</div>
   </div>
 
-  <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')" data-default="open">
-    <span class="st-main">Plan tygodniowy z generatora Harmonogram-MOW</span><span class="st-state">Zwiń</span>
+  <div class="weekly-grid" id="weekly-plan"></div>
+
+  <input type="file" id="harm-file-input"
+    accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
+    style="display:none" onchange="handleHarmFile(this)">
+
+  <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')">
+    <span class="st-main">Plan tygodniowy z generatora Harmonogram-MOW</span><span class="st-state">Rozwiń</span>
   </button>
+
+  <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
+    <span class="st-main">📋 Wczytaj harmonogram z pliku lub screena</span><span class="st-state">Rozwiń</span>
+  </button>
+
   <div class="card collapsible-card accordion-panel" id="weekly-settings-card"><div class="card-body">
     <div class="weekly-settings">
       <input id="weekly-backend-url" type="url" placeholder="Adres Apps Script /exec z Harmonogram-MOW">
@@ -443,15 +454,7 @@
     </div>
     <div class="weekly-status" id="weekly-status">Wklej adres wdrożenia Apps Script kończący się na /exec albo użyj danych przykładowych.</div>
   </div></div>
-  <div class="weekly-grid" id="weekly-plan"></div>
 
-  <input type="file" id="harm-file-input"
-    accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
-    style="display:none" onchange="handleHarmFile(this)">
-
-  <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
-    <span class="st-main">📋 Wczytaj harmonogram z pliku lub screena</span><span class="st-state">Rozwiń</span>
-  </button>
   <div class="collapsible-card accordion-panel" id="harm-upload-card">
     <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">
       <div class="uz-icon">📋</div>

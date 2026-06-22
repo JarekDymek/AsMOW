@@ -50,11 +50,14 @@
 .info-row .iv { font-weight: 800; }
 .info-row a   { color: var(--navy2); font-weight: 800; text-decoration: none; }
 
-#law-phones-card {
+#law-phones-card:not(.collapsed) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px;
   padding: 10px !important;
+}
+#law-phones-card.collapsed {
+  display: none;
 }
 #law-phones-card .info-row {
   border: 1.5px solid #c6d4e4;

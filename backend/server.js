@@ -23,6 +23,7 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
+const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
 
 const rate = new Map();
 const STATIC_FILES = new Map([
@@ -87,6 +88,13 @@ const server = http.createServer(async (req, res) => {
       if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
       const payload = await readJson(req);
       const result = await fetchCurrentInfoMail(payload);
+      return json(res, 200, result);
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/current-info-attachment') {
+      if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
+      const payload = await readJson(req);
+      const result = await fetchCurrentInfoAttachment(payload);
       return json(res, 200, result);
     }
 
@@ -408,7 +416,7 @@ async function fetchCurrentInfoMail(payload = {}) {
       envelope: true,
       source: true,
       internalDate: true
-    })) {
+    }, { uid: true })) {
       const parsed = await simpleParser(message.source);
       const item = normalizeCurrentInfoMailMessage(message, parsed, config.from);
       if (!item) continue;
@@ -435,12 +443,99 @@ async function fetchCurrentInfoMail(payload = {}) {
   };
 }
 
+async function fetchCurrentInfoAttachment(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token);
+  const config = getCurrentInfoMailConfig();
+  const uid = String(payload.uid || '').trim();
+  const attachmentId = String(payload.attachmentId || '').trim();
+  if (!/^\d+$/.test(uid) || !attachmentId) {
+    throwHttpError('Brak poprawnego identyfikatora wiadomości albo załącznika.', 400, 'CURRENT_INFO_ATTACHMENT_BAD_REQUEST');
+  }
+
+  const client = new ImapFlow({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.password
+    },
+    logger: false
+  });
+
+  try {
+    await client.connect();
+  } catch (err) {
+    throwCurrentInfoMailError(err, 'połączenie lub logowanie do poczty', config);
+  }
+
+  let lock;
+  try {
+    lock = await client.getMailboxLock(config.mailbox);
+  } catch (err) {
+    await client.logout().catch(() => {});
+    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`, config);
+  }
+
+  try {
+    let message = null;
+    for await (const entry of client.fetch(uid, { uid: true, envelope: true, source: true, internalDate: true }, { uid: true })) {
+      message = entry;
+      break;
+    }
+    if (!message?.source) {
+      throwHttpError('Nie znaleziono tej wiadomości w skrzynce pocztowej.', 404, 'CURRENT_INFO_MESSAGE_NOT_FOUND');
+    }
+
+    const parsed = await simpleParser(message.source);
+    const fromText = parsed.from?.text || message.envelope?.from?.map(formatAddress).join(', ') || config.from;
+    if (!isExpectedCurrentInfoSender(fromText, config.from)) {
+      throwHttpError('Ta wiadomość nie pochodzi z dozwolonego adresu dyrektora.', 403, 'CURRENT_INFO_ATTACHMENT_FORBIDDEN');
+    }
+
+    const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
+    const attachment = attachments.find((item, index) =>
+      getCurrentInfoAttachmentId(item, index) === attachmentId || String(index) === attachmentId
+    );
+    if (!attachment) {
+      throwHttpError('Nie znaleziono wybranego załącznika w tej wiadomości.', 404, 'CURRENT_INFO_ATTACHMENT_NOT_FOUND');
+    }
+
+    const buffer = Buffer.isBuffer(attachment.content)
+      ? attachment.content
+      : Buffer.from(attachment.content || '');
+    if (buffer.length > CURRENT_INFO_ATTACHMENT_LIMIT) {
+      throwHttpError(
+        `Załącznik jest za duży do pobrania przez aplikację (${Math.ceil(buffer.length / 1_048_576)} MB).`,
+        413,
+        'CURRENT_INFO_ATTACHMENT_TOO_LARGE'
+      );
+    }
+
+    return {
+      ok: true,
+      uid,
+      attachmentId,
+      filename: sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${attachmentId}`),
+      contentType: String(attachment.contentType || 'application/octet-stream').slice(0, 120),
+      size: buffer.length,
+      dataBase64: buffer.toString('base64')
+    };
+  } catch (err) {
+    if (err.status) throw err;
+    throwCurrentInfoMailError(err, 'pobieranie załącznika', config);
+  } finally {
+    if (lock) lock.release();
+    await client.logout().catch(() => {});
+  }
+}
+
 async function searchCurrentInfoMail(client, sinceDate, from) {
   try {
-    return await client.search({ since: sinceDate, from });
+    return await client.search({ since: sinceDate, from }, { uid: true });
   } catch (err) {
     if (!isGenericImapCommandFailure(err)) throw err;
-    return client.search({ since: sinceDate });
+    return client.search({ since: sinceDate }, { uid: true });
   }
 }
 
@@ -495,6 +590,13 @@ function maskEmail(email = '') {
   if (!name || !domain) return text ? '***' : 'brak';
   const visible = name.slice(0, 2);
   return `${visible}${'*'.repeat(Math.max(3, name.length - 2))}@${domain}`;
+}
+
+function throwHttpError(message, status = 400, code = 'REQUEST_ERROR') {
+  const err = new Error(message);
+  err.status = status;
+  err.code = code;
+  throw err;
 }
 
 function assertCurrentInfoSyncToken(token) {
@@ -555,8 +657,36 @@ function normalizeCurrentInfoMailMessage(message, parsed, expectedFrom) {
     topic: detectCurrentInfoMailTopic(subject, body).slice(0, 100),
     source: fromText.slice(0, 120),
     body: body.slice(0, 40_000),
+    mailUid: message.uid ? String(message.uid) : '',
+    attachments: normalizeCurrentInfoMailAttachments(parsed),
     createdAt: new Date().toISOString()
   };
+}
+
+function normalizeCurrentInfoMailAttachments(parsed) {
+  const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
+  return attachments.slice(0, 12).map((attachment, index) => ({
+    id: getCurrentInfoAttachmentId(attachment, index),
+    name: sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`),
+    contentType: String(attachment.contentType || 'application/octet-stream').slice(0, 120),
+    size: Number(attachment.size || attachment.content?.length || 0) || 0
+  }));
+}
+
+function getCurrentInfoAttachmentId(attachment = {}, index = 0) {
+  return shortHash([
+    index,
+    attachment.filename || '',
+    attachment.contentType || '',
+    attachment.size || attachment.content?.length || 0,
+    attachment.checksum || ''
+  ].join('|'));
+}
+
+function sanitizeMailAttachmentFilename(name = '') {
+  return String(name || 'zalacznik')
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .slice(0, 180) || 'zalacznik';
 }
 
 function formatAddress(address = {}) {
