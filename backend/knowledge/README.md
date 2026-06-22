@@ -34,3 +34,13 @@ Pelny tekst zrodlowy: sciezka do archiwum albo nazwa pliku.
 ## Dlaczego nie ladowac pelnych ustaw
 
 Pelne akty prawne sa potrzebne jako zrodlo kontroli, ale w codziennej pracy generuja duzo szumu. Krotkie wyciagi z metadanymi pomagaja AI szybciej odnalezc wlasciwy fragment i ograniczaja ryzyko odpowiedzi z nieistotnych przepisow.
+
+## Test odpowiedzi wzorcowych
+
+W projekcie dziala test regresji bazy wiedzy:
+
+```txt
+npm run test:knowledge
+```
+
+Test korzysta z `tests/knowledge-golden-cases.json` i sprawdza, czy aktywna baza zawiera odpowiedzi na pytania kontrolne oraz czy nie wrocily stare, bledne podstawy prawne. Gdy AI udzieli zlej odpowiedzi w praktyce, dodaj nowe pytanie kontrolne do tego pliku i dopisz odpowiedz wzorcowa w `06_odpowiedzi_wzorcowe_mow.md`.

@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-22.2",
+  "version": "2026-06-22.3",
   "updatedAt": "2026-06-22",
   "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
   "rules": [
@@ -99,6 +99,19 @@
       "version": "wyciag aktywny 2026-06-22",
       "approvedBy": "Administrator aplikacji",
       "content": "Aktywny plik: backend/knowledge/05_wyciag_mow_bezpieczenstwo_dokumentacja_pomoc.md."
+    },
+    {
+      "id": "odpowiedzi-wzorcowe-testy-regresji-ai",
+      "key": "odpowiedzi-wzorcowe-testy-ai",
+      "type": "testy-regresji-ai",
+      "title": "Odpowiedzi wzorcowe i pytania kontrolne dla AI",
+      "source": "Wewnetrzny test bazy wiedzy Asystenta MOW",
+      "documentDate": "2026-06-22",
+      "validFrom": "2026-06-22",
+      "validTo": "",
+      "version": "1",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Aktywny plik: backend/knowledge/06_odpowiedzi_wzorcowe_mow.md. Test automatyczny: tests/check-knowledge-golden.mjs oraz tests/knowledge-golden-cases.json. Aktualnie sprawdzane sa pytania kontrolne m.in. o pensum wychowawcy MOW 24 godziny, roznice miedzy 40 godzinami czasu pracy a pensum, urlop i przepustke, prawa wychowanka, pierwszenstwo dokumentow MOW, dane osobowe, sytuacje kryzysowe i aktualnosc zmian czasowych."
     }
   ]
 }

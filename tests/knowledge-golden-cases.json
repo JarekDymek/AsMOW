@@ -1,0 +1,291 @@
+[
+  {
+    "id": "work-pensum-mow-24",
+    "question": "Ile wynosi pensum wychowawcy w MOW?",
+    "expected": "Pensum wychowawcy w MOW wynosi 24 godziny tygodniowo.",
+    "source": "Karta Nauczyciela, art. 42 ust. 3, tabela, lp. 8 lit. c.",
+    "mustInclude": ["pensum wychowawcy", "24 godziny", "art. 42 ust. 3", "lp. 8 lit. c"],
+    "mustNotInclude": ["pensum wynosi 40 godzin", "pensum: 40 godzin"]
+  },
+  {
+    "id": "work-40-vs-24",
+    "question": "Czy etat wychowawcy w MOW to 40 godzin?",
+    "expected": "Trzeba rozroznic czas pracy do 40 godzin od pensum 24 godziny.",
+    "source": "Karta Nauczyciela, art. 42 ust. 1 i art. 42 ust. 3.",
+    "mustInclude": ["40 godzin", "pensum", "24 godziny", "rozroznic"]
+  },
+  {
+    "id": "work-labor-code-secondary",
+    "question": "Czy Kodeks pracy samodzielnie rozstrzyga czas pracy wychowawcy MOW?",
+    "expected": "Nie, podstawowa jest Karta Nauczyciela, a Kodeks pracy stosuje sie pomocniczo.",
+    "source": "Karta Nauczyciela; Kodeks pracy.",
+    "mustInclude": ["Karta Nauczyciela", "Kodeks pracy", "pomocniczo"]
+  },
+  {
+    "id": "work-schedule-not-only-source",
+    "question": "Czy harmonogram dyzurow jest jedyna podstawa rozliczenia czasu pracy?",
+    "expected": "Nie, trzeba zestawic go z arkuszem organizacji, regulaminem pracy i Karta Nauczyciela.",
+    "source": "Karta Nauczyciela; dokumenty organizacyjne MOW.",
+    "mustInclude": ["Harmonogram", "nie jest samodzielna", "arkuszem organizacji", "regulaminem pracy"]
+  },
+  {
+    "id": "work-night-weekend-caution",
+    "question": "Jak odpowiadac o nadgodzinach, weekendach i pracy w nocy?",
+    "expected": "Ostroznie, po ustaleniu statusu pracownika, rodzaju zajec, okresu rozliczeniowego i dokumentow.",
+    "source": "Karta Nauczyciela; Kodeks pracy; regulamin pracy.",
+    "mustInclude": ["nocy", "weekendach", "nadgodzinach", "ostroznie"]
+  },
+  {
+    "id": "juvenile-mow-measure",
+    "question": "Czy umieszczenie w MOW jest srodkiem wychowawczym?",
+    "expected": "Tak, art. 7 ustawy wskazuje umieszczenie w MOW jako srodek wychowawczy.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 7.",
+    "mustInclude": ["Art. 7", "umieszczenie", "mlodziezowym osrodku wychowawczym", "srodek wychowawczy"]
+  },
+  {
+    "id": "juvenile-rights-art-107",
+    "question": "Jakie prawa ma wychowanek MOW?",
+    "expected": "Nalezy wskazac art. 107 i wymienic prawa do godnosci, prywatnosci, nauki, kontaktu, pomocy i skarg.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 107.",
+    "mustInclude": ["Art. 107", "godnosci", "prywatnosci", "nauki", "skarg"]
+  },
+  {
+    "id": "juvenile-rights-limits-art-111",
+    "question": "Czy prawa wychowanka sa nieograniczone?",
+    "expected": "Nie, korzystanie z praw nie moze naruszac praw innych ani zaklocac porzadku wewnetrznego.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 111.",
+    "mustInclude": ["Art. 111", "nie moze naruszac", "porzadku wewnetrznego"]
+  },
+  {
+    "id": "juvenile-contact-restriction-art-115",
+    "question": "Czy mozna ograniczyc kontakt wychowanka z osobami spoza osrodka?",
+    "expected": "Mozna tylko w warunkach przewidzianych w art. 115 i procedurach MOW.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 115.",
+    "mustInclude": ["art. 115", "ograniczyc", "kontakt", "bezpieczenstwu"]
+  },
+  {
+    "id": "juvenile-monitoring-art-121",
+    "question": "Czy MOW moze stosowac monitoring?",
+    "expected": "Tak, w celu bezpieczenstwa i porzadku, z ograniczeniami.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 121.",
+    "mustInclude": ["art. 121", "monitoring", "bezpieczenstwa", "ograniczeniami"]
+  },
+  {
+    "id": "juvenile-admission-art-179",
+    "question": "Co nalezy zrobic po przyjeciu wychowanka do MOW?",
+    "expected": "Zapoznac z prawami, obowiazkami i zasadami pobytu oraz przeprowadzic rozmowe wstepna.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 179.",
+    "mustInclude": ["Art. 179", "zapoznaje", "prawami", "rozmowe wstepna"]
+  },
+  {
+    "id": "juvenile-return-after-escape",
+    "question": "Jak traktowac powrot po ucieczce albo nieusprawiedliwiony powrot?",
+    "expected": "Stosowac procedure MOW i art. 179 ust. 4.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 179 ust. 4.",
+    "mustInclude": ["ucieczce", "nieusprawiedliwionym powrocie", "art. 179 ust. 4"]
+  },
+  {
+    "id": "juvenile-urlop-vs-przepustka",
+    "question": "Czym rozni sie urlop od przepustki wychowanka MOW?",
+    "expected": "Urlop wymaga zgody sedziego rodzinnego, przepustka jest udzielana przez dyrektora, chyba ze sedzia zastrzegl zgode.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 180; rozporzadzenie MEiN, par. 14-15.",
+    "mustInclude": ["urlop", "zgody sedziego", "przepustka", "dyrektora osrodka", "par. 14-15"]
+  },
+  {
+    "id": "juvenile-temporary-leave-art-180",
+    "question": "Czy wychowanek moze czasowo opuscic MOW?",
+    "expected": "Tak, w przypadkach z art. 180: urlop, przepustka, szkola poza osrodkiem albo praktyczna nauka zawodu.",
+    "source": "Ustawa o wspieraniu i resocjalizacji nieletnich, art. 180.",
+    "mustInclude": ["art. 180", "urlop", "przepustka", "praktyczna nauka zawodu"]
+  },
+  {
+    "id": "mein-who-mow",
+    "question": "Dla kogo prowadzone sa MOW?",
+    "expected": "Dla dzieci i mlodziezy niedostosowanych spolecznie wymagajacych specjalnej organizacji nauki, wychowania, PPP i resocjalizacji.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 10.",
+    "mustInclude": ["Par. 10", "niedostosowanych spolecznie", "pomocy psychologiczno-pedagogicznej", "resocjalizacji"]
+  },
+  {
+    "id": "mein-task-mow",
+    "question": "Jakie jest zadanie MOW?",
+    "expected": "Eliminowanie przejawow niedostosowania spolecznego i przygotowanie do odpowiedzialnego zycia.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 11.",
+    "mustInclude": ["Par. 11", "eliminowanie przejawow niedostosowania", "samodzielnego", "odpowiedzialnego"]
+  },
+  {
+    "id": "mein-becomes-pupil",
+    "question": "Kiedy nieletni staje sie wychowankiem MOW?",
+    "expected": "Z dniem zawiadomienia dyrektora MOW przez komisje o skierowaniu.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 12.",
+    "mustInclude": ["Par. 12", "z dniem zawiadomienia", "dyrektora", "komisje"]
+  },
+  {
+    "id": "mein-rights-signature",
+    "question": "Co z dokumentacja przy zapoznaniu wychowanka z prawami i obowiazkami?",
+    "expected": "Podpis albo adnotacja o odmowie trafia do indywidualnej teczki.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 13.",
+    "mustInclude": ["Par. 13", "podpisem", "odmowie podpisu", "indywidualnej teczki"]
+  },
+  {
+    "id": "mein-urlop",
+    "question": "Kiedy mozna udzielic urlopu wychowankowi MOW?",
+    "expected": "W dniach bez zajec dydaktyczno-wychowawczych, z procedura i zgoda sedziego.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 14.",
+    "mustInclude": ["Par. 14", "urlop", "nie odbywaja sie zajecia", "sedziego"]
+  },
+  {
+    "id": "mein-przepustka-days",
+    "question": "Ile moze trwac przepustka?",
+    "expected": "Nie dluzej niz 5 dni, pierwsza zasadniczo po 30 dniach pobytu.",
+    "source": "Rozporzadzenie MEiN Dz.U. 2023 poz. 651, par. 15.",
+    "mustInclude": ["Par. 15", "nie dluzszy niz 5 dni", "30-dniowego okresu pobytu"]
+  },
+  {
+    "id": "crisis-aggression",
+    "question": "Co zrobic przy bojce albo agresji?",
+    "expected": "Zabezpieczyc osoby, wezwac wsparcie, powiadomic przelozonego, udzielic pomocy i dokumentowac fakty.",
+    "source": "Procedury MOW; akty BHP i bezpieczenstwa.",
+    "mustInclude": ["bojce", "zabezpiecz", "powiadom dyrektora", "udokumentuj fakty"]
+  },
+  {
+    "id": "crisis-suicide",
+    "question": "Co zrobic przy probie samobojczej lub samouszkodzeniu?",
+    "expected": "Natychmiast zabezpieczyc zycie i zdrowie, nie zostawiac wychowanka samego, wezwac pomoc i powiadomic dyrektora.",
+    "source": "Procedury MOW; zasady bezpieczenstwa.",
+    "mustInclude": ["probie samobojczej", "zabezpiecz zycie", "nie zostawiaj", "112"]
+  },
+  {
+    "id": "crisis-substances",
+    "question": "Co zrobic przy podejrzeniu narkotykow, alkoholu lub dopalaczy?",
+    "expected": "Zabezpieczyc wychowanka, powiadomic dyrektora, wezwac 112 przy zagrozeniu, zabezpieczyc substancje zgodnie z procedura.",
+    "source": "Procedury MOW; ustawa o wspieraniu i resocjalizacji nieletnich.",
+    "mustInclude": ["narkotykow", "alkoholu", "powiadom dyrektora", "zabezpiecz przedmiot"]
+  },
+  {
+    "id": "crisis-escape",
+    "question": "Co zrobic przy ucieczce wychowanka?",
+    "expected": "Dzialac wedlug procedury MOW, powiadomic dyrektora i wskazane osoby/sluzby, dokumentowac czas i czynnosci.",
+    "source": "Procedury MOW; ustawa o wspieraniu i resocjalizacji nieletnich.",
+    "mustInclude": ["ucieczce", "procedure MOW", "powiadom dyrektora", "dokumentuj"]
+  },
+  {
+    "id": "crisis-fire",
+    "question": "Co zrobic przy pozarze lub ewakuacji?",
+    "expected": "Alarmowac, ewakuowac, wezwac sluzby, przeliczyc wychowankow, powiadomic dyrektora i dokumentowac.",
+    "source": "Instrukcje BHP i procedury MOW.",
+    "mustInclude": ["pozarze", "ewakuuj", "wezwij sluzby", "przelicz wychowankow"]
+  },
+  {
+    "id": "force-not-punishment",
+    "question": "Czy srodek przymusu mozna stosowac jako kare?",
+    "expected": "Nie. Srodki przymusu sa ostateczne, proporcjonalne, dokumentowane i stosowane w granicach prawa.",
+    "source": "Ustawa o srodkach przymusu bezposredniego; procedury MOW.",
+    "mustInclude": ["nie", "Srodki przymusu", "ostatecznosci", "proporcjonalnie", "dokumentacja"]
+  },
+  {
+    "id": "documentation-facts",
+    "question": "Jak opisac zdarzenie w notatce?",
+    "expected": "Opisywac fakty: data, godzina, miejsce, osoby, przebieg, reakcja, swiadkowie, powiadomienia.",
+    "source": "Zasady dokumentacji MOW.",
+    "mustInclude": ["opisuj fakty", "Data", "godzina", "miejsce", "swiadkowie"]
+  },
+  {
+    "id": "privacy-ai",
+    "question": "Czy w pytaniu do AI mozna wpisac pelne dane wychowanka?",
+    "expected": "Nie, uzyc inicjalow, grupy i opisu bez danych identyfikujacych.",
+    "source": "Polityka bezpieczenstwa aplikacji Asystent MOW.",
+    "mustInclude": ["nie", "inicjalow", "PESEL", "danych medycznych"]
+  },
+  {
+    "id": "medical-112",
+    "question": "Kiedy wzywac pogotowie?",
+    "expected": "Przy zagrozeniu zycia lub zdrowia, utracie przytomnosci, obrazeniach, zatruciu, probie samobojczej lub ostrych objawach po substancjach.",
+    "source": "Procedury bezpieczenstwa MOW.",
+    "mustInclude": ["zagrozeniu zycia", "utracie przytomnosci", "zatruciu", "probie samobojczej"]
+  },
+  {
+    "id": "knowledge-newer-order",
+    "question": "Co jesli zarzadzenie dyrektora jest nowsze niz stara procedura?",
+    "expected": "Zastosowac aktualny, obowiazujacy wpis, o ile nie narusza prawa wyzszego rzedu.",
+    "source": "Zasady centralnej bazy wiedzy MOW.",
+    "mustInclude": ["Nowsze", "zarzadzenie", "pierwszenstwo", "okresie obowiazywania"]
+  },
+  {
+    "id": "knowledge-expired",
+    "question": "Co jesli zmiana czasowa wygasla?",
+    "expected": "Nie stosowac jej do dzisiejszej sytuacji; tylko do pytan o przeszlosc.",
+    "source": "Zasady centralnej bazy wiedzy MOW.",
+    "mustInclude": ["wygasla", "nie stosuj", "dzisiejszej", "przeszlosci"]
+  },
+  {
+    "id": "knowledge-central-conflict",
+    "question": "Co jesli lokalny wpis uzytkownika jest sprzeczny z centralna baza?",
+    "expected": "Wskazac konflikt i przy tej samej dacie stosowac wpis centralny.",
+    "source": "Zasady centralnej bazy wiedzy MOW.",
+    "mustInclude": ["lokalny wpis", "centralna baza", "wskaz konflikt", "wpis centralny"]
+  },
+  {
+    "id": "vague-question",
+    "question": "Co zrobic, gdy pytanie jest zbyt ogolne?",
+    "expected": "Dopytac o kontekst, a nie odpowiadac na sile.",
+    "source": "Instrukcja systemowa Asystenta MOW.",
+    "mustInclude": ["zbyt ogolne", "dopytaj", "kontekst"]
+  },
+  {
+    "id": "ai-not-decision-maker",
+    "question": "Czy AI moze zastapic decyzje dyrektora albo sadu?",
+    "expected": "Nie, AI pomaga porzadkowac informacje i zrodla, ale nie zastepuje osob uprawnionych.",
+    "source": "Zasady bezpieczenstwa Asystenta MOW.",
+    "mustInclude": ["nie", "zastapic decyzje", "dyrektora", "sadu"]
+  },
+  {
+    "id": "social-levels-specificity",
+    "question": "Jak AI ma odpowiadac o stopniu uspołecznienia?",
+    "expected": "Odwolac sie do regulaminu stopni i dopytac o konkretne zachowania.",
+    "source": "Regulamin stopni MOW.",
+    "mustInclude": ["stopniu", "regulaminu stopni", "dopytac", "konkretne zachowania"]
+  },
+  {
+    "id": "social-level-no-certainty",
+    "question": "Czy AI moze jednoznacznie przyznac stopien bez opisu zachowania?",
+    "expected": "Nie, musi dopytac o zachowania, obowiazki, relacje, naruszenia zasad i aktualny regulamin.",
+    "source": "Regulamin stopni MOW.",
+    "mustInclude": ["nie", "dopytac", "zachowania", "aktualny regulamin"]
+  },
+  {
+    "id": "opinion-template",
+    "question": "Jak korzystac ze wzoru opinii o wychowanku?",
+    "expected": "Jako pomocy redakcyjnej; tresc musi wynikac z dokumentacji, obserwacji i faktow.",
+    "source": "Wzory dokumentow MOW.",
+    "mustInclude": ["wzor", "pomoca redakcyjna", "dokumentacji", "faktow"]
+  },
+  {
+    "id": "director-email-current-info",
+    "question": "Jak AI ma traktowac wiadomosci od dyrektora?",
+    "expected": "Jako biezace informacje organizacyjne z data, zakresem i mozliwoscia pozniejszej aktualizacji.",
+    "source": "Biezace informacje MOW.",
+    "mustInclude": ["wiadomosci od dyrektora", "biezace informacje organizacyjne", "date", "pozniejsze komunikaty"]
+  },
+  {
+    "id": "director-email-not-law",
+    "question": "Czy wiadomosc e-mail od dyrektora zastepuje akt prawny?",
+    "expected": "Nie, moze byc poleceniem organizacyjnym, ale musi miescic sie w prawie i dokumentach MOW.",
+    "source": "Hierarchia zrodel w Asystencie MOW.",
+    "mustInclude": ["nie", "e-mail", "akt prawny", "dokumentow MOW"]
+  },
+  {
+    "id": "internal-docs-priority",
+    "question": "Co ma pierwszenstwo przy pytaniach o codzienne procedury?",
+    "expected": "Aktualne dokumenty MOW: statut, procedury, regulaminy, standardy, zarzadzenia i baza zmian.",
+    "source": "Centralna baza wiedzy MOW.",
+    "mustInclude": ["pierwszenstwo", "statut", "procedury", "zarzadzenia dyrektora"]
+  },
+  {
+    "id": "law-visible-modern",
+    "question": "Czy aplikacja ma uzywac starej ustawy o postepowaniu w sprawach nieletnich jako glownej podstawy?",
+    "expected": "Nie, glownym aktem jest ustawa o wspieraniu i resocjalizacji nieletnich Dz.U. 2026 poz. 163.",
+    "source": "Dz.U. 2026 poz. 163.",
+    "mustInclude": ["ustawa o wspieraniu i resocjalizacji nieletnich", "Dz.U. 2026 poz. 163"],
+    "mustNotInclude": ["UPN (Dz.U. 2022 poz. 1082)", "Rozp. MEN 2011", "Rozp. RM 2011"]
+  }
+]

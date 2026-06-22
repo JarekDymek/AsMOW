@@ -15,9 +15,9 @@ Pelny tekst zrodlowy: `backend/knowledge/_archiwum_pelne_teksty/02_rozporzadzeni
 - Par. 10: MOW sa prowadzone dla dzieci i mlodziezy niedostosowanych spolecznie, wymagajacych specjalnej organizacji nauki, metod pracy, wychowania, pomocy psychologiczno-pedagogicznej i resocjalizacji.
 - Par. 11: zadaniem MOW jest eliminowanie przejawow niedostosowania spolecznego i przygotowanie wychowankow do samodzielnego, odpowiedzialnego zycia zgodnego z normami spolecznymi i prawnymi.
 - Par. 12: nieletni staje sie wychowankiem MOW z dniem zawiadomienia dyrektora osrodka przez komisje o skierowaniu; za wychowanka moze byc uznany rowniez nieletni zwolniony z MOW, ktory uzyskal zgode na pozostanie w osrodku.
-- Par. 13: dyrektor MOW albo upowazniony pracownik pedagogiczny zapoznaje wychowanka z prawami, obowiazkami i zasadami pobytu oraz przeprowadza rozmowe wstepna; potwierdzenie lub odmowe podpisu dolacza sie do indywidualnej teczki wychowanka.
+- Par. 13: dyrektor MOW albo upowazniony pracownik pedagogiczny zapoznaje wychowanka z prawami, obowiazkami i zasadami pobytu oraz przeprowadza rozmowe wstepna; potwierdzenie podpisem albo adnotacje o odmowie podpisu dolacza sie do indywidualnej teczki wychowanka.
 - Par. 14: urlop wychowanka MOW jest zwiazany z dniami bez zajec dydaktyczno-wychowawczych i wymaga procedury opisanej w rozporzadzeniu oraz ustawie o nieletnich.
-- Par. 15: przepustka moze byc udzielona wychowankowi MOW na okres nie dluzszy niz 5 dni; pierwsza przepustka zasadniczo po 30 dniach pobytu, z wyjatkami losowymi; informacja o przepustce trafia do indywidualnej teczki.
+- Par. 15: przepustka moze byc udzielona wychowankowi MOW na okres nie dluzszy niz 5 dni; pierwsza przepustka zasadniczo po uplywie 30-dniowego okresu pobytu, z wyjatkami losowymi; informacja o przepustce trafia do indywidualnej teczki.
 - Par. 16-17: MOW ma szczegolne obowiazki wobec nieletniej wychowanki w ciazy lub po urodzeniu dziecka oraz przy organizacji domu dla matki i dziecka.
 
 ## Reguly odpowiedzi AI
