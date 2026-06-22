@@ -3,7 +3,27 @@
 ──────────────────────────────── */
 function renderChatPills() {
   document.getElementById('chat-pills').innerHTML =
-    CHAT_PILLS.map(p => `<button class="pill" onclick="setQuestion('${p.replace(/'/g,"\\'")}')">💬 ${p}</button>`).join('');
+    CHAT_PILLS.map((pill, index) => {
+      const item = normalizeChatPill(pill);
+      return `
+        <button class="pill ${item.cls}" onclick="setQuestion(getChatPillText(${index}))">
+          <span class="pill-icon">${item.icon}</span>
+          <span class="pill-label">${escapeHtml(item.text)}</span>
+        </button>`;
+    }).join('');
+}
+
+function normalizeChatPill(pill) {
+  if (typeof pill === 'string') return { icon: '💬', text: pill, cls: 'qblue' };
+  return {
+    icon: pill.icon || '💬',
+    text: pill.text || '',
+    cls: pill.cls || 'qblue'
+  };
+}
+
+function getChatPillText(index) {
+  return normalizeChatPill(CHAT_PILLS[index]).text;
 }
 
 function askAIFromTab(scope, inputId) {

@@ -37,11 +37,13 @@
 .tile-screen .pill {
   border-radius: var(--radius);
   padding: 14px 10px;
-  min-height: 104px;
+  min-height: 116px;
   text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   line-height: 1.35;
   background: #fff;
   border: 1.5px solid #bfd0e2;
@@ -49,6 +51,24 @@
   color: var(--navy);
   font-weight: 950;
   white-space: normal;
+  transition: transform .14s, box-shadow .14s;
+}
+.tile-screen .pill:active {
+  transform: scale(.97);
+}
+.tile-screen .pill.qred { background: #fdf2f2; border-color: #f5b7b1; }
+.tile-screen .pill.qorn { background: #fef6ee; border-color: #f5cba7; }
+.tile-screen .pill.qgold { background: #fef9ee; border-color: #f0d080; }
+.tile-screen .pill.qblue { background: #edf4fb; border-color: #aed6f1; }
+.tile-screen .pill-icon {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+.tile-screen .pill-label {
+  color: var(--navy);
+  font-size: .84rem;
+  font-weight: 950;
+  line-height: 1.35;
 }
 
 button, input, textarea {

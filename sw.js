@@ -1,4 +1,4 @@
-const CACHE = 'mow-pwa-v36';
+const CACHE = 'mow-pwa-v37';
 const APP_SHELL = [
   './',
   './index.html',

@@ -1,10 +1,10 @@
 const CHAT_PILLS = [
-  "Jak reagować na agresję wychowanka?",
-  "Co to jest stopień uspołecznienia +1?",
-  "Kiedy zawiadomić Policję?",
-  "Jak motywować wychowanków?",
-  "Prawa wychowanka w MOW",
-  "Jak dokumentować incydenty?",
-  "Co robić przy próbie ucieczki?",
-  "Kiedy wzywać pogotowie?",
+  { icon: '🥊', text: 'Jak reagować na agresję wychowanka?', cls: 'qred' },
+  { icon: '📊', text: 'Co to jest stopień uspołecznienia +1?', cls: 'qgold' },
+  { icon: '👮', text: 'Kiedy zawiadomić Policję?', cls: 'qblue' },
+  { icon: '💬', text: 'Jak motywować wychowanków?', cls: 'qgold' },
+  { icon: '⚖️', text: 'Prawa wychowanka w MOW', cls: 'qblue' },
+  { icon: '📝', text: 'Jak dokumentować incydenty?', cls: 'qorn' },
+  { icon: '🚪', text: 'Co robić przy próbie ucieczki?', cls: 'qred' },
+  { icon: '🚑', text: 'Kiedy wzywać pogotowie?', cls: 'qred' },
 ];
