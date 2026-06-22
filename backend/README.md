@@ -3,7 +3,11 @@
 Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 
 - `GET /health` - sprawdzenie, czy backend działa.
+- `GET /api/knowledge` - centralna baza wiedzy z katalogu `backend/knowledge`.
 - `POST /api/chat` - rozmowa z asystentem.
+- `POST /api/weekly-plan` - bezpieczne pobranie planu z Harmonogram-MOW.
+- `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
+- `POST /api/extract-file` - odczyt tekstu z plików przekazanych do analizy.
 - `GET /` - podgląd `index.html` z katalogu głównego projektu.
 
 ## Render
@@ -21,6 +25,7 @@ Zmienne środowiskowe dla Google Gemini:
 - `GEMINI_API_KEY=...`
 - `GEMINI_MODEL=gemini-2.5-flash-lite`
 - opcjonalnie `ALLOWED_ORIGINS=https://twoja-domena.pl`
+- poczta Gmail: `CURRENT_INFO_IMAP_HOST=imap.gmail.com`, `CURRENT_INFO_IMAP_USER`, `CURRENT_INFO_IMAP_PASSWORD`, `CURRENT_INFO_SYNC_TOKEN`
 
 Jeżeli aplikacja PWA jest serwowana z tego samego Rendera, w `index.html` może zostać domyślne `AI_BACKEND_URL='/api/chat'`.
 Jeżeli frontend jest na innej domenie, ustaw w przeglądarce albo zmień w kodzie:

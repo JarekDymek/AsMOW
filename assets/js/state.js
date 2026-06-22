@@ -1,4 +1,4 @@
-﻿/* Application logic; data constants are loaded from assets/js/data.js */
+/* Shared application state. Data constants are loaded before this file. */
 /* ────────────────────────────────
    STATE
 ──────────────────────────────── */

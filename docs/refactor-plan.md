@@ -9,7 +9,7 @@
 - `assets/css/home.css`, `procedures.css`, `social-levels.css`, `detail.css`, `notes.css` i `ai.css` zawierają style poszczególnych obszarów aplikacji.
 - `assets/css/harmonogram.css` zawiera style wgrywania harmonogramu, podglądu obrazu, planu tygodniowego i bazy wiedzy.
 - `assets/css/utilities.css` zawiera style pomocnicze, responsywność i style arkusza notatnika.
-- Dane aplikacji są rozdzielone na `data-schedule.js`, `data-procedures.js`, `data-social-levels.js`, `data-quick-actions.js`, `data-chat-pills.js` i `data-laws.js`; `data.js` pozostaje małym plikiem informacyjnym.
+- Dane aplikacji są rozdzielone na `data-schedule.js`, `data-procedures.js`, `data-social-levels.js`, `data-quick-actions.js`, `data-chat-pills.js` i `data-laws.js`.
 - `assets/js/state.js` zawiera wspólny stan i klucze `localStorage`.
 - `assets/js/navigation.js`, `clock.js`, `day-schedule.js`, `main-actions.js`, `procedures.js`, `social-levels.js`, `law.js` i `tab-ai.js` zawierają funkcje interfejsu podzielone według obszarów aplikacji.
 - `assets/js/notes.js` zawiera notatnik dyżuru.
@@ -18,11 +18,9 @@
 - `assets/js/ai-config.js` zawiera konfigurację backendu AI i budowanie kontekstu odpowiedzi.
 - `assets/js/ai-chat.js` zawiera czat AI, historię, retry i załączniki czatu.
 - `assets/js/ai-voice.js` zawiera dyktowanie głosowe.
-- `assets/js/ai.js` pozostaje małym plikiem informacyjnym po podziale AI.
-- `assets/js/ui.js` pozostaje małym plikiem informacyjnym po podziale interfejsu.
 - `assets/js/harmonogram.js` zawiera lokalne wgrywanie i analizę harmonogramu z pliku/screena.
 - `assets/js/weekly-plan.js` zawiera integrację z generatorem Harmonogram-MOW.
-- Baza wiedzy jest rozdzielona na `knowledge-storage.js`, `knowledge-form.js`, `knowledge-list.js`, `knowledge-context.js` oraz mały plik informacyjny `knowledge-base.js`.
+- Baza wiedzy jest rozdzielona na `knowledge-storage.js`, `knowledge-form.js`, `knowledge-list.js` i `knowledge-context.js`.
 - `assets/js/pwa.js` zawiera instalację PWA i rejestrację service workera.
 - `assets/js/app.js` zawiera inicjalizację aplikacji.
 - `backend/server.js` serwuje pliki z katalogu `assets`.
@@ -33,6 +31,7 @@
 - 2026-06-19: dodano zwijane sekcje w zakładkach Procedury, Stopnie, Prawo i Harmonogram oraz zwijane tygodnie planu.
 - 2026-06-19: poprawiono instalację PWA na GitHub Pages, dodano względne ścieżki service workera i ikonę MOW.
 - 2026-06-20: dodano centralną bazę wiedzy z backendu, kopię/przywracanie danych lokalnych oraz komunikat o dostępnej aktualizacji PWA.
+- 2026-06-21: usunięto puste pliki informacyjne po refaktoryzacji, nieużywaną ikonę SVG oraz dodano automatyczne testy odwołań HTML i składni JS.
 
 ## Następne bezpieczne etapy
 
@@ -50,3 +49,4 @@ Każdy etap powinien być osobnym commitem i po każdym etapie trzeba sprawdzić
 - pobieranie harmonogramu tygodniowego,
 - działanie bazy wiedzy,
 - aktualizację cache PWA.
+- pełne `npm run check`.

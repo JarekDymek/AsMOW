@@ -27,8 +27,7 @@ const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const rate = new Map();
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
-  ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }],
-  ['/icon.svg', { file: path.join(__dirname, '..', 'icon.svg'), type: 'image/svg+xml; charset=utf-8' }]
+  ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }]
 ]);
 
 function resolveProvider() {

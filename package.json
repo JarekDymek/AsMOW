@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "test:assets": "node tests/check-assets.mjs",
-    "check": "node tests/check-assets.mjs && node --check backend/server.js && node --check assets/js/data-schedule.js && node --check assets/js/data-procedures.js && node --check assets/js/data-social-levels.js && node --check assets/js/data-quick-actions.js && node --check assets/js/data-chat-pills.js && node --check assets/js/data-laws.js && node --check assets/js/data.js && node --check assets/js/state.js && node --check assets/js/utils.js && node --check assets/js/files.js && node --check assets/js/accordion.js && node --check assets/js/navigation.js && node --check assets/js/clock.js && node --check assets/js/day-schedule.js && node --check assets/js/main-actions.js && node --check assets/js/procedures.js && node --check assets/js/social-levels.js && node --check assets/js/law.js && node --check assets/js/notes.js && node --check assets/js/current-info.js && node --check assets/js/ai-config.js && node --check assets/js/ai-chat.js && node --check assets/js/ai-voice.js && node --check assets/js/ai.js && node --check assets/js/tab-ai.js && node --check assets/js/harmonogram.js && node --check assets/js/weekly-plan.js && node --check assets/js/knowledge-storage.js && node --check assets/js/knowledge-list.js && node --check assets/js/knowledge-form.js && node --check assets/js/knowledge-context.js && node --check assets/js/knowledge-base.js && node --check assets/js/backup.js && node --check assets/js/pwa.js && node --check assets/js/app.js"
+    "test:hooks": "node tests/check-html-hooks.mjs",
+    "test:js": "node tests/check-js-syntax.mjs",
+    "check": "node tests/check-assets.mjs && node tests/check-html-hooks.mjs && node tests/check-js-syntax.mjs"
   }
 }
