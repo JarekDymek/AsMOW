@@ -175,16 +175,16 @@ function createCurrentInfoAttachments(item) {
     name.textContent = `📎 ${attachment.name}`;
     const meta = document.createElement('div');
     meta.className = 'current-info-attachment-meta';
-    meta.textContent = [attachment.contentType, formatCurrentInfoAttachmentSize(attachment.size)]
+    meta.textContent = [formatCurrentInfoAttachmentType(attachment), formatCurrentInfoAttachmentSize(attachment.size)]
       .filter(Boolean)
-      .join(' · ');
+      .join(' | ');
     info.append(name, meta);
 
     const actions = document.createElement('div');
     actions.className = 'current-info-attachment-actions';
     const open = document.createElement('button');
     open.type = 'button';
-    open.textContent = 'Otwórz';
+    open.textContent = 'Podgląd';
     open.onclick = () => openCurrentInfoAttachment(item.id, attachment.id);
     const download = document.createElement('button');
     download.type = 'button';
@@ -205,21 +205,29 @@ function toggleCurrentInfoBody(id, toggle, body) {
 }
 
 async function openCurrentInfoAttachment(itemId, attachmentId) {
-  const file = await fetchCurrentInfoAttachment(itemId, attachmentId);
+  const file = await fetchCurrentInfoAttachment(itemId, attachmentId, { preview: true });
   if (!file) return;
+  if (file.previewText) {
+    showCurrentInfoAttachmentPreview(file);
+    return;
+  }
+  if (!canPreviewCurrentInfoBlob(file)) {
+    setCurrentInfoStatus('Podgląd tego typu pliku nie jest dostępny w przeglądarce. Użyj przycisku Pobierz.');
+    return;
+  }
   const url = URL.createObjectURL(file.blob);
   const opened = window.open(url, '_blank');
-  if (!opened) downloadBlob(file.blob, file.filename);
+  if (!opened) setCurrentInfoStatus('Przeglądarka zablokowała podgląd. Użyj przycisku Pobierz.');
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 async function downloadCurrentInfoAttachment(itemId, attachmentId) {
-  const file = await fetchCurrentInfoAttachment(itemId, attachmentId);
+  const file = await fetchCurrentInfoAttachment(itemId, attachmentId, { preview: false });
   if (!file) return;
   downloadBlob(file.blob, file.filename);
 }
 
-async function fetchCurrentInfoAttachment(itemId, attachmentId) {
+async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
   const item = currentInfoItems.find(entry => String(entry.id) === String(itemId));
   const attachment = item?.attachments?.find(entry => String(entry.id) === String(attachmentId));
   const settings = getCurrentInfoSyncSettings();
@@ -244,7 +252,8 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId) {
       body: JSON.stringify({
         token: settings.token,
         uid: item.mailUid,
-        attachmentId: attachment.id
+        attachmentId: attachment.id,
+        preview: options.preview !== false
       })
     });
     const data = await response.json().catch(() => ({}));
@@ -254,11 +263,43 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId) {
     const blob = base64ToBlob(data.dataBase64 || '', data.contentType || attachment.contentType);
     const filename = sanitizeCurrentInfoFileName(data.filename || attachment.name);
     setCurrentInfoStatus(`Pobrano załącznik: ${filename}.`);
-    return { blob, filename };
+    return {
+      blob,
+      filename,
+      contentType: data.contentType || attachment.contentType || '',
+      previewText: String(data.previewText || ''),
+      previewKind: String(data.previewKind || ''),
+      canBrowserPreview: Boolean(data.canBrowserPreview)
+    };
   } catch (err) {
     setCurrentInfoStatus(`Nie udało się pobrać załącznika: ${err.message}`);
     return null;
   }
+}
+
+function showCurrentInfoAttachmentPreview(file) {
+  const title = document.getElementById('det-title');
+  const source = document.getElementById('det-source');
+  const body = document.getElementById('det-body');
+  const view = document.getElementById('detail-view');
+  if (!title || !source || !body || !view) {
+    setCurrentInfoStatus('Podgląd jest gotowy, ale nie udało się otworzyć okna podglądu.');
+    return;
+  }
+  title.textContent = `📎 ${file.filename}`;
+  source.textContent = 'Podgląd treści załącznika. Oryginalny plik pobierzesz przyciskiem Pobierz.';
+  body.innerHTML = `
+    <div class="attachment-preview">
+      <div class="attachment-preview-note">To jest tekstowy podgląd dokumentu. Formatowanie Worda lub Excela może być uproszczone, ale treść powinna być czytelna na telefonie.</div>
+      <div class="attachment-preview-text">${escapeHtml(file.previewText || '(brak treści podglądu)')}</div>
+    </div>`;
+  view.classList.add('open');
+}
+
+function canPreviewCurrentInfoBlob(file) {
+  const type = String(file.contentType || '').toLowerCase();
+  if (file.canBrowserPreview) return true;
+  return type.startsWith('image/') || type.includes('pdf') || type.startsWith('text/');
 }
 
 function base64ToBlob(base64, contentType = 'application/octet-stream') {
@@ -296,6 +337,16 @@ function formatCurrentInfoAttachmentSize(size = 0) {
   if (value >= 1_048_576) return `${(value / 1_048_576).toFixed(1)} MB`;
   if (value >= 1024) return `${Math.round(value / 1024)} KB`;
   return `${value} B`;
+}
+
+function formatCurrentInfoAttachmentType(attachment = {}) {
+  const text = `${attachment.name || ''} ${attachment.contentType || ''}`.toLowerCase();
+  if (text.includes('.docx') || text.includes('wordprocessingml')) return 'Word';
+  if (text.includes('.xlsx') || text.includes('.xls') || text.includes('spreadsheet') || text.includes('excel')) return 'Excel';
+  if (text.includes('.pdf') || text.includes('pdf')) return 'PDF';
+  if (text.includes('image/')) return 'obraz';
+  if (text.includes('text/') || text.includes('.txt') || text.includes('.csv')) return 'tekst';
+  return 'plik';
 }
 
 function deleteCurrentInfo(id) {

@@ -64,7 +64,7 @@
 
 .current-info-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
   gap: 10px;
 }
 
@@ -190,13 +190,14 @@
 
 .current-info-attachment {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
   background: #f4f8fc;
   border: 1.5px solid #c4d4e4;
   border-radius: 10px;
   padding: 10px;
+  min-width: 0;
 }
 
 .current-info-attachment-name {
@@ -215,10 +216,10 @@
 }
 
 .current-info-attachment-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
 }
 
 .current-info-attachment-actions button {
@@ -226,10 +227,14 @@
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: .74rem;
+  padding: 10px 8px;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  font-size: .82rem;
   font-weight: 950;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16,47,78,.16);
 }
 
 .current-info-attachment-actions button:last-child {
@@ -237,9 +242,39 @@
   color: var(--navy);
 }
 
+.attachment-preview {
+  display: grid;
+  gap: 10px;
+}
+
+.attachment-preview-note {
+  background: #eef4fa;
+  border-left: 5px solid var(--gold);
+  border-radius: 10px;
+  color: var(--navy);
+  font-size: .86rem;
+  font-weight: 850;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.attachment-preview-text {
+  background: #fff;
+  border: 1.5px solid #c4d4e4;
+  border-radius: 10px;
+  color: var(--navy);
+  font-size: .9rem;
+  font-weight: 800;
+  line-height: 1.55;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 520px) {
   .current-info-list { grid-template-columns: 1fr; }
-  .current-info-attachment { grid-template-columns: 1fr; }
-  .current-info-attachment-actions { justify-content: stretch; }
-  .current-info-attachment-actions button { flex: 1 1 110px; }
+}
+
+@media (max-width: 360px) {
+  .current-info-attachment-actions { grid-template-columns: 1fr; }
 }

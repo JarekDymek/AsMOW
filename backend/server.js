@@ -512,13 +512,22 @@ async function fetchCurrentInfoAttachment(payload = {}) {
       );
     }
 
+    const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${attachmentId}`);
+    const contentType = String(attachment.contentType || 'application/octet-stream').slice(0, 120);
+    const preview = payload.preview === false
+      ? { previewText: '', previewKind: '' }
+      : await buildCurrentInfoAttachmentPreview(filename, contentType, buffer);
+
     return {
       ok: true,
       uid,
       attachmentId,
-      filename: sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${attachmentId}`),
-      contentType: String(attachment.contentType || 'application/octet-stream').slice(0, 120),
+      filename,
+      contentType,
       size: buffer.length,
+      previewText: preview.previewText,
+      previewKind: preview.previewKind,
+      canBrowserPreview: canBrowserPreviewAttachment(filename, contentType),
       dataBase64: buffer.toString('base64')
     };
   } catch (err) {
@@ -687,6 +696,68 @@ function sanitizeMailAttachmentFilename(name = '') {
   return String(name || 'zalacznik')
     .replace(/[\\/:*?"<>|]+/g, '_')
     .slice(0, 180) || 'zalacznik';
+}
+
+async function buildCurrentInfoAttachmentPreview(filename = '', contentType = '', buffer = Buffer.alloc(0)) {
+  const signature = `${filename} ${contentType}`.toLowerCase();
+  try {
+    if (signature.includes('.docx') || signature.includes('wordprocessingml')) {
+      const result = await mammoth.extractRawText({ buffer });
+      return {
+        previewKind: 'docx',
+        previewText: normalizePreviewText(result.value || '').slice(0, 80_000)
+      };
+    }
+
+    if (
+      signature.includes('.xlsx')
+      || signature.includes('.xls')
+      || signature.includes('spreadsheet')
+      || signature.includes('excel')
+    ) {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const parts = [];
+      workbook.SheetNames.slice(0, 8).forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const csv = XLSX.utils.sheet_to_csv(sheet).slice(0, 20_000);
+        parts.push(`Arkusz: ${sheetName}\n${csv}`);
+      });
+      return {
+        previewKind: 'xlsx',
+        previewText: normalizePreviewText(parts.join('\n\n')).slice(0, 80_000)
+      };
+    }
+
+    if (
+      contentType.toLowerCase().startsWith('text/')
+      || /\.(txt|csv|tsv|md|eml)$/i.test(filename)
+    ) {
+      return {
+        previewKind: 'text',
+        previewText: normalizePreviewText(buffer.toString('utf8')).slice(0, 80_000)
+      };
+    }
+  } catch (err) {
+    return {
+      previewKind: 'error',
+      previewText: `Nie udało się przygotować podglądu załącznika. Plik nadal można pobrać.\n\nSzczegóły: ${err.message}`
+    };
+  }
+
+  return { previewKind: '', previewText: '' };
+}
+
+function normalizePreviewText(text = '') {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .replace(/\t/g, '  ')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+}
+
+function canBrowserPreviewAttachment(filename = '', contentType = '') {
+  const type = String(contentType || '').toLowerCase();
+  return type.startsWith('image/') || type.includes('pdf') || type.startsWith('text/') || /\.(png|jpe?g|webp|gif|pdf|txt)$/i.test(filename);
 }
 
 function formatAddress(address = {}) {
