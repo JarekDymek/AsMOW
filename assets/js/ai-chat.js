@@ -61,6 +61,29 @@ async function sendChat() {
   appendMsg('user', userContent);
   chatHistory.push({ role: 'user', content: userContent });
   saveChatHistory();
+
+  if (!attachmentsToSend.length && typeof resolveAnswerBankIntent === 'function') {
+    const bankMatch = resolveAnswerBankIntent(userContent);
+    if (bankMatch?.type === 'answer' && typeof formatAnswerBankReply === 'function') {
+      const answer = formatAnswerBankReply(bankMatch);
+      chatHistory.push({ role: 'assistant', content: answer });
+      saveChatHistory();
+      lastFailedChat = null;
+      appendMsg('ai', answer, bankMatch.entry.sources || []);
+      if (sendBtn) sendBtn.disabled = false;
+      return;
+    }
+    if (bankMatch?.type === 'clarify' && typeof formatAnswerBankClarification === 'function') {
+      const answer = formatAnswerBankClarification(bankMatch);
+      chatHistory.push({ role: 'assistant', content: answer });
+      saveChatHistory();
+      lastFailedChat = null;
+      appendMsg('ai', answer, bankMatch.candidates?.map(candidate => candidate.entry.category).filter(Boolean) || []);
+      if (sendBtn) sendBtn.disabled = false;
+      return;
+    }
+  }
+
   lastFailedChat = {
     question: q,
     attachments: attachmentsToSend,

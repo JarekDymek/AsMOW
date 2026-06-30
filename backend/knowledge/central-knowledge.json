@@ -1,6 +1,6 @@
 {
-  "version": "2026-06-22.4",
-  "updatedAt": "2026-06-22",
+  "version": "2026-06-30.1",
+  "updatedAt": "2026-06-30",
   "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
   "rules": [
     "Przy pytaniach proceduralnych pierwszenstwo maja aktualne dokumenty MOW nr 1 w Malborku: statut, procedury, regulaminy, standardy ochrony maloletnich, zarzadzenia dyrektora i wpisy w bazie zmian czasowych.",
@@ -112,6 +112,19 @@
       "version": "1",
       "approvedBy": "Administrator aplikacji",
       "content": "Aktywny plik: backend/knowledge/06_odpowiedzi_wzorcowe_mow.md. Test statyczny: tests/check-knowledge-golden.mjs oraz tests/knowledge-golden-cases.json. Test live realnego AI: tests/check-ai-live.mjs uruchamiany komenda npm run test:ai-live po ustawieniu ASMOW_LIVE_AI_URL. Aktualnie sprawdzane sa pytania kontrolne m.in. o pensum wychowawcy MOW 24 godziny, roznice miedzy 40 godzinami czasu pracy a pensum, urlop i przepustke, prawa wychowanka, pierwszenstwo dokumentow MOW, dane osobowe, sytuacje kryzysowe i aktualnosc zmian czasowych."
+    },
+    {
+      "id": "bank-odpowiedzi-mow-250-intencje",
+      "key": "bank-odpowiedzi-mow-250",
+      "type": "bank-odpowiedzi-i-intencji",
+      "title": "Bank 250 odpowiedzi wzorcowych i szkieletow wyszukiwania intencji",
+      "source": "Dokumenty MOW, ustawa o wspieraniu i resocjalizacji nieletnich, rozporzadzenie MEiN o publicznych placowkach, Karta Nauczyciela, Prawo oswiatowe, Kodeks pracy, przepisy bezpieczenstwa i dokumentacji",
+      "documentDate": "2026-06-30",
+      "validFrom": "2026-06-30",
+      "validTo": "",
+      "version": "1",
+      "approvedBy": "Administrator aplikacji",
+      "content": "Aktywny plik backendowy: backend/knowledge/07_bank_odpowiedzi_mow_250.md. Aktywny plik frontendowy: assets/js/data-answer-bank.js. Router lokalny: assets/js/answer-bank.js. Bank sluzy do rozpoznawania podobnych pytan, ograniczania kosztow AI i dopytywania przy pytaniach zbyt ogolnych."
     }
   ]
 }
