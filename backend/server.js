@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
+const BACKEND_VERSION = '1.1.0';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -24,11 +25,15 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
+const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 60_000);
+const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 24_000);
 const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
 const TEST_WEEKLY_VIEW_TOKEN = process.env.TEST_WEEKLY_VIEW_TOKEN || '';
 const TEST_WEEKLY_EDUCATOR = process.env.TEST_WEEKLY_EDUCATOR || 'Dymek';
 
 const rate = new Map();
+const KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md']);
+let knowledgeFilesCache = { signature: '', files: [] };
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
   ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }]
@@ -53,6 +58,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, {
         ok: true,
+        version: BACKEND_VERSION,
         provider: PROVIDER,
         model: PROVIDER === 'gemini' ? GEMINI_MODEL : PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL
       });
@@ -149,7 +155,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`MOW AI backend działa na porcie ${PORT}`);
+  console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
 });
 
 function setCors(req, res) {
@@ -168,6 +174,7 @@ function allowRate(req) {
   const windowMs = 60_000;
   const limit = Number(process.env.RATE_LIMIT_PER_MINUTE || 30);
   const state = rate.get(ip) || { at: now, count: 0 };
+  if (rate.size > 5000) cleanupRateLimit(now, windowMs);
   if (now - state.at > windowMs) {
     state.at = now;
     state.count = 0;
@@ -175,6 +182,12 @@ function allowRate(req) {
   state.count += 1;
   rate.set(ip, state);
   return state.count <= limit;
+}
+
+function cleanupRateLimit(now = Date.now(), windowMs = 60_000) {
+  for (const [ip, state] of rate.entries()) {
+    if (!state || now - state.at > windowMs * 5) rate.delete(ip);
+  }
 }
 
 function readJson(req) {
@@ -885,7 +898,7 @@ function isPrivateHost(hostname = '') {
 function buildSystemPrompt(context = {}, clientTime = '', messages = []) {
   const structuredContext = JSON.stringify(compactContext(context), null, 2).slice(0, 45_000);
   const knowledgeQuery = buildKnowledgeQuery(messages, context);
-  const localKnowledge = loadKnowledgeFiles(knowledgeQuery).slice(0, 85_000);
+  const localKnowledge = loadKnowledgeFiles(knowledgeQuery).slice(0, KNOWLEDGE_PROMPT_LIMIT);
 
   return `Jesteś kuratorem oświaty, znawcą prawa oświatowego oraz mentorem wychowawcy w Młodzieżowym Ośrodku Wychowawczym nr 1 w Malborku.
 
@@ -918,7 +931,46 @@ function compactContext(context) {
     socializationLevels: context.socializationLevels,
     legalBases: context.legalBases,
     weeklyPlan: context.weeklyPlan,
-    knowledgeBase: context.knowledgeBase
+    currentInfo: compactCurrentInfo(context.currentInfo),
+    knowledgeBase: compactKnowledgeBase(context.knowledgeBase)
+  };
+}
+
+function compactCurrentInfo(items = []) {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 25).map(item => ({
+    date: String(item.date || '').slice(0, 20),
+    title: String(item.title || '').slice(0, 180),
+    topic: String(item.topic || '').slice(0, 100),
+    source: String(item.source || '').slice(0, 120),
+    attachments: Array.isArray(item.attachments) ? item.attachments.slice(0, 8).map(String) : [],
+    body: String(item.body || '').slice(0, 1600)
+  }));
+}
+
+function compactKnowledgeBase(knowledgeBase = {}) {
+  if (!knowledgeBase || typeof knowledgeBase !== 'object') return knowledgeBase;
+  return {
+    today: knowledgeBase.today,
+    centralVersion: knowledgeBase.centralVersion,
+    centralUpdatedAt: knowledgeBase.centralUpdatedAt,
+    rule: knowledgeBase.rule,
+    items: Array.isArray(knowledgeBase.items)
+      ? knowledgeBase.items.slice(0, 24).map(item => ({
+        status: item.status,
+        sourceKind: item.sourceKind,
+        type: item.type,
+        title: item.title,
+        source: item.source,
+        documentDate: item.documentDate,
+        validFrom: item.validFrom,
+        validTo: item.validTo,
+        version: item.version,
+        approvedBy: item.approvedBy,
+        updatedAt: item.updatedAt,
+        content: String(item.content || '').slice(0, 1800)
+      }))
+      : []
   };
 }
 
@@ -934,16 +986,39 @@ function loadKnowledgeFiles(query = '') {
   const dir = path.join(__dirname, 'knowledge');
   if (!fs.existsSync(dir)) return '';
   const terms = extractSearchTerms(query);
-  return fs.readdirSync(dir)
-    .filter(name => !name.startsWith('_') && /\.(txt|md|json)$/i.test(name))
-    .sort()
-    .map(name => {
-      const full = path.join(dir, name);
-      const text = fs.readFileSync(full, 'utf8');
-      const selectedText = selectKnowledgeSnippets(text, terms);
-      return `\n--- ${name} ---\n${selectedText}`;
+  return getKnowledgePromptFiles(dir)
+    .map(file => {
+      const selectedText = selectKnowledgeSnippets(file.text, terms);
+      return `\n--- ${file.name} ---\n${selectedText}`;
     })
     .join('\n');
+}
+
+function getKnowledgePromptFiles(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => entry.name)
+    .filter(name => !name.startsWith('_') && !KNOWLEDGE_PROMPT_EXCLUDED_FILES.has(name) && /\.(txt|md|json)$/i.test(name))
+    .sort();
+
+  const signature = entries.map(name => {
+    const full = path.join(dir, name);
+    const stat = fs.statSync(full);
+    return `${name}:${stat.mtimeMs}:${stat.size}`;
+  }).join('|');
+
+  if (knowledgeFilesCache.signature === signature && knowledgeFilesCache.files.length) {
+    return knowledgeFilesCache.files;
+  }
+
+  knowledgeFilesCache = {
+    signature,
+    files: entries.map(name => ({
+      name,
+      text: fs.readFileSync(path.join(dir, name), 'utf8')
+    }))
+  };
+  return knowledgeFilesCache.files;
 }
 
 function extractSearchTerms(query = '') {
@@ -964,7 +1039,7 @@ function selectKnowledgeSnippets(text = '', terms = []) {
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n');
   const intro = clean.slice(0, 3_500);
-  if (!terms.length || clean.length <= 35_000) return clean.slice(0, 35_000);
+  if (!terms.length || clean.length <= KNOWLEDGE_FILE_SNIPPET_LIMIT) return clean.slice(0, KNOWLEDGE_FILE_SNIPPET_LIMIT);
 
   const chunks = [];
   for (let index = 0; index < clean.length; index += 1_800) {
@@ -986,7 +1061,7 @@ function selectKnowledgeSnippets(text = '', terms = []) {
     .map(chunk => `\n[trafny fragment, pozycja ${chunk.index}, wynik ${chunk.score}]\n${chunk.text}`)
     .join('\n');
 
-  return `${intro}\n${matches}`.slice(0, 35_000);
+  return `${intro}\n${matches}`.slice(0, KNOWLEDGE_FILE_SNIPPET_LIMIT);
 }
 
 function countOccurrences(text, term) {

@@ -25,8 +25,20 @@
   padding: 3px 9px; border-radius: 20px;
   white-space: nowrap;
 }
+.hdr-help {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.35);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 950;
+  cursor: pointer;
+  flex-shrink: 0;
+}
 .hdr-install {
-  margin-left: auto;
+  margin-left: 0;
   background: var(--gold); color: var(--navy);
   border: none; border-radius: 9px;
   padding: 10px 12px;
@@ -133,6 +145,7 @@
   .hdr-text h1 { font-size: 1rem; }
   .hdr-text p { font-size: .72rem; }
   .hdr-badge { display: none; }
+  .hdr-help { width: 34px; height: 34px; border-radius: 9px; }
   .hdr-install { padding: 9px 10px; font-size: .78rem; }
   .main-wrap { padding-left: 10px; padding-right: 10px; }
   .nav-btn .ni { font-size: 1.28rem; }

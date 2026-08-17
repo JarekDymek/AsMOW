@@ -85,6 +85,43 @@ input, textarea {
   outline-offset: 2px;
 }
 
+.help-panel {
+  display: grid;
+  gap: 10px;
+}
+.help-card {
+  background: #fff;
+  border: 1.5px solid #bfd0e2;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 14px rgba(16,47,78,.1);
+  padding: 12px;
+}
+.help-card--strong {
+  border-color: var(--gold);
+  background: #fff9e8;
+}
+.help-card--warn {
+  border-color: #f5b7b1;
+  background: #fff2f2;
+}
+.help-card h3 {
+  color: var(--navy);
+  font-size: .92rem;
+  font-weight: 950;
+  margin: 0 0 6px;
+}
+.help-card p,
+.help-card li {
+  color: #102f4e;
+  font-size: .82rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+.help-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
 @media (max-width: 520px) {
   .mini-ai-row { flex-direction: column; }
   .mini-ai-btn { width: 100%; padding: 10px 14px; }
