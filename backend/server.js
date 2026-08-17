@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.0';
+const BACKEND_VERSION = '1.1.1';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -671,19 +671,27 @@ function getPublicTestProfile(token) {
   };
 }
 
+function getConfiguredCurrentInfoSyncTokens() {
+  return [process.env.CURRENT_INFO_SYNC_TOKEN, process.env.CURRENT_INFO_SYNC_TOKENS]
+    .flatMap(value => String(value || '').split(','))
+    .map(token => token.trim())
+    .filter(Boolean);
+}
+
 function assertCurrentInfoSyncToken(token, testAccessToken = '') {
   if (testAccessToken) {
     assertTestAccessToken(testAccessToken);
     return;
   }
-  const expected = process.env.CURRENT_INFO_SYNC_TOKEN;
-  if (!expected) {
-    const err = new Error('Synchronizacja poczty nie jest jeszcze skonfigurowana w Renderze. Dodaj CURRENT_INFO_SYNC_TOKEN oraz dane IMAP.');
+  const syncTokens = getConfiguredCurrentInfoSyncTokens();
+  if (!syncTokens.length) {
+    const err = new Error('Synchronizacja poczty nie jest jeszcze skonfigurowana w Renderze. Dodaj CURRENT_INFO_SYNC_TOKEN albo CURRENT_INFO_SYNC_TOKENS oraz dane IMAP.');
     err.status = 400;
     err.code = 'CURRENT_INFO_SYNC_NOT_CONFIGURED';
     throw err;
   }
-  if (!token || String(token) !== expected) {
+  const suppliedToken = String(token || '').trim();
+  if (!syncTokens.some(expected => tokensMatch(suppliedToken, expected))) {
     const err = new Error('Brak dostępu do synchronizacji poczty. Wpisz poprawny token synchronizacji.');
     err.status = 403;
     err.code = 'CURRENT_INFO_SYNC_FORBIDDEN';

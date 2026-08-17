@@ -535,9 +535,25 @@ function saveCurrentInfoSyncSettings(extra = {}) {
 function setCurrentInfoSyncMeta(lastSyncAt = '') {
   const el = document.getElementById('current-info-sync-meta');
   if (!el) return;
-  el.textContent = lastSyncAt
-    ? `Ostatnia synchronizacja: ${new Date(lastSyncAt).toLocaleString('pl-PL')}`
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  const tokenSaved = Boolean(getCurrentInfoSyncSettings().token);
+  const access = testAccessToken
+    ? 'Dostęp testowy jest aktywny.'
+    : tokenSaved
+      ? 'Token zapisany na tym urządzeniu.'
+      : 'Brak zapisanego tokenu synchronizacji.';
+  const sync = lastSyncAt
+    ? `Ostatnia synchronizacja: ${new Date(lastSyncAt).toLocaleString('pl-PL')}.`
     : 'Synchronizacja nie była jeszcze uruchomiona.';
+  el.textContent = `${sync} ${access}`;
+}
+
+function describeCurrentInfoSyncError(error) {
+  const message = String(error?.message || error || 'Nieznany błąd synchronizacji.');
+  if (/Brak dostępu do synchronizacji poczty/i.test(message)) {
+    return 'Token został odrzucony. Wklej go ponownie bez dodatkowych spacji i wybierz Zapisz synchronizację. Przy linku testowym otwórz ponownie właściwy link testera.';
+  }
+  return message;
 }
 
 async function autoSyncCurrentInfoMail() {
@@ -581,7 +597,7 @@ async function syncCurrentInfoMail(manual = true) {
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
     setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}`);
   } catch (err) {
-    setCurrentInfoStatus(`Nie udało się pobrać poczty: ${err.message}`);
+    setCurrentInfoStatus(`Nie udało się pobrać poczty: ${describeCurrentInfoSyncError(err)}`);
   }
 }
 

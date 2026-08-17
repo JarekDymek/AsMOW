@@ -2,40 +2,49 @@
    PWA INSTALL
 ──────────────────────────────── */
 let deferredPrompt = null;
+let installButton = null;
+
+// Rejestracja jest celowo wykonywana od razu. Edge potrafi zgłosić
+// beforeinstallprompt zanim zakończy się cięższa inicjalizacja aplikacji.
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredPrompt = event;
+  updateInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  updateInstallButton();
+});
+
 function setupInstall() {
-  const installBtn = document.getElementById('install-btn');
-  if (!installBtn) return;
-
-  if (isStandaloneApp()) {
-    installBtn.style.display = 'none';
-    return;
-  }
-
-  installBtn.style.display = 'inline-flex';
-  installBtn.textContent = isIOSDevice() ? 'Dodaj' : 'Instaluj';
-  installBtn.setAttribute('aria-label', 'Zainstaluj aplikację na urządzeniu');
-
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'inline-flex';
-    installBtn.textContent = 'Instaluj';
-  });
-
-  installBtn.addEventListener('click', async () => {
+  installButton = document.getElementById('install-btn');
+  if (!installButton) return;
+  installButton.addEventListener('click', async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
+      const choice = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      installBtn.style.display = 'none';
+      if (choice?.outcome === 'accepted') installButton.style.display = 'none';
+      else updateInstallButton();
       return;
     }
     openInstallHelp();
   });
+  updateInstallButton();
+}
 
-  window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-  });
+function updateInstallButton() {
+  if (!installButton) return;
+  if (isStandaloneApp()) {
+    installButton.style.display = 'none';
+    return;
+  }
+  installButton.style.display = 'inline-flex';
+  installButton.textContent = isIOSDevice() ? 'Dodaj' : deferredPrompt ? 'Instaluj' : 'Jak zainstalować';
+  installButton.setAttribute('aria-label', deferredPrompt
+    ? 'Zainstaluj aplikację na urządzeniu'
+    : 'Pokaż instrukcję instalacji aplikacji na urządzeniu');
 }
 
 function isStandaloneApp() {
@@ -83,9 +92,9 @@ function getInstallSteps() {
   }
   if (isWindows) {
     return [
-      'Na komputerze otwórz stronę w Chrome albo Edge.',
-      'Kliknij Instaluj w nagłówku albo ikonę instalacji w pasku adresu.',
-      'Wybierz Zainstaluj aplikację.',
+      'W Edge odśwież stronę po jej otwarciu.',
+      'Jeżeli w nagłówku widoczny jest przycisk Instaluj, kliknij go i potwierdź instalację.',
+      'Jeżeli widzisz Jak zainstalować, wybierz w Edge: ⋯ > Aplikacje > Zainstaluj tę witrynę jako aplikację.',
       'Po instalacji aplikacja będzie dostępna w menu Start.'
     ];
   }
