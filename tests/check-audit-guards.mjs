@@ -8,6 +8,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const html = read('index.html');
 const sw = read('sw.js');
 const server = read('backend/server.js');
+const pwa = read('assets/js/pwa.js');
 const answerBankSize = fs.statSync(path.join(root, 'assets/js/data-answer-bank.js')).size;
 
 const directAnswerBankScripts = [
@@ -42,8 +43,10 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.1.0'",
+  "const BACKEND_VERSION = '1.1.1'",
   'version: BACKEND_VERSION',
+  'function getConfiguredCurrentInfoSyncTokens()',
+  "tokensMatch(suppliedToken, expected)",
   'currentInfo: compactCurrentInfo(context.currentInfo)',
   'knowledgeBase: compactKnowledgeBase(context.knowledgeBase)',
   'function cleanupRateLimit'
@@ -53,6 +56,12 @@ for (const required of [
 
 if (/localKnowledge\s*=\s*loadKnowledgeFiles\(knowledgeQuery\)\.slice\(0,\s*85_000\)/.test(server)) {
   throw new Error('Backend nadal używa starego limitu 85_000 dla wiedzy promptu.');
+}
+
+const installListener = pwa.indexOf("window.addEventListener('beforeinstallprompt'");
+const installSetup = pwa.indexOf('function setupInstall()');
+if (installListener < 0 || installListener > installSetup) {
+  throw new Error('Nasłuch beforeinstallprompt musi być zarejestrowany przed inicjalizacją aplikacji.');
 }
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);

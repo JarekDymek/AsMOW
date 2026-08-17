@@ -27,6 +27,8 @@ Zmienne środowiskowe dla Google Gemini:
 - `GEMINI_MODEL=gemini-2.5-flash-lite`
 - opcjonalnie `ALLOWED_ORIGINS=https://twoja-domena.pl`
 - poczta Gmail: `CURRENT_INFO_IMAP_HOST=imap.gmail.com`, `CURRENT_INFO_IMAP_USER`, `CURRENT_INFO_IMAP_PASSWORD`, `CURRENT_INFO_SYNC_TOKEN`
+  - opcjonalnie `CURRENT_INFO_SYNC_TOKENS` - lista aktywnych tokenów oddzielonych przecinkiem, przydatna podczas bezpiecznej wymiany starego tokenu na nowy.
+  - token synchronizacji jest niezależny od tokenów testerów; nie wpisuj go do linku ani nie udostępniaj innym osobom.
 
 ### Link testowy dla wychowawcĂłw
 
