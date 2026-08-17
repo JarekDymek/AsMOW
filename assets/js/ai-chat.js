@@ -62,7 +62,12 @@ async function sendChat() {
   chatHistory.push({ role: 'user', content: userContent });
   saveChatHistory();
 
-  if (!attachmentsToSend.length && typeof resolveAnswerBankIntent === 'function') {
+  let answerBankReady = typeof resolveAnswerBankIntent === 'function';
+  if (!attachmentsToSend.length && !answerBankReady && typeof ensureAnswerBankLoaded === 'function') {
+    answerBankReady = await ensureAnswerBankLoaded();
+  }
+
+  if (!attachmentsToSend.length && answerBankReady && typeof resolveAnswerBankIntent === 'function') {
     const bankMatch = resolveAnswerBankIntent(userContent);
     if (bankMatch?.type === 'answer' && typeof formatAnswerBankReply === 'function') {
       const answer = formatAnswerBankReply(bankMatch);
