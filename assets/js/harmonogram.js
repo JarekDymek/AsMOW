@@ -1,6 +1,264 @@
 ﻿/* ────────────────────────────────
    HARMONOGRAM
 ──────────────────────────────── */
+function mergeInternatScheduleDocuments(documents = []) {
+  const index = loadInternatScheduleIndex();
+  let changed = 0;
+
+  documents.map(normalizeInternatScheduleDocument).filter(Boolean).forEach(documentItem => {
+    const existingIndex = index.findIndex(item => item.id === documentItem.id);
+    if (existingIndex >= 0) index[existingIndex] = documentItem;
+    else index.push(documentItem);
+    changed += 1;
+  });
+
+  try {
+    localStorage.setItem(INTERNAT_SCHEDULE_INDEX_KEY, JSON.stringify(index));
+  } catch {
+    setCurrentInfoStatus('Poczta została pobrana, ale na urządzeniu zabrakło miejsca na lokalny indeks grafików.');
+  }
+  return changed;
+}
+
+function loadInternatScheduleIndex() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INTERNAT_SCHEDULE_INDEX_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.map(normalizeInternatScheduleDocument).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeInternatScheduleDocument(item) {
+  if (!item || typeof item !== 'object') return null;
+  const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(String(item.weekStart || '')) ? String(item.weekStart) : '';
+  const sourceMailUid = String(item.sourceMailUid || '');
+  const sourceAttachment = String(item.sourceAttachment || '').slice(0, 180);
+  const id = String(item.id || `${sourceMailUid}:${item.sourceAttachmentId || sourceAttachment}`);
+  if (!id) return null;
+
+  const records = (Array.isArray(item.records) ? item.records : []).map(record => {
+    const date = String(record?.date || '');
+    const employee = String(record?.employee || '').trim();
+    const from = String(record?.from || '');
+    const to = String(record?.to || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !employee || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) return null;
+    return {
+      date,
+      employee: employee.slice(0, 120),
+      group: String(record.group || '').trim().slice(0, 80),
+      from,
+      to,
+      weekStart: String(record.weekStart || weekStart),
+      sourceMailUid,
+      sourceTitle: String(item.sourceTitle || record.sourceTitle || '').slice(0, 180),
+      sourceAttachment,
+      sourceDate: String(item.sourceDate || record.sourceDate || '')
+    };
+  }).filter(Boolean);
+
+  return {
+    id,
+    weekStart,
+    sourceMailUid,
+    sourceTitle: String(item.sourceTitle || '').slice(0, 180),
+    sourceAttachment,
+    sourceAttachmentId: String(item.sourceAttachmentId || ''),
+    sourceAttachmentOrder: Number(item.sourceAttachmentOrder || 0),
+    sourceDate: String(item.sourceDate || ''),
+    indexedAt: String(item.indexedAt || new Date().toISOString()),
+    isCorrection: Boolean(item.isCorrection),
+    ambiguous: Boolean(item.ambiguous),
+    warning: String(item.warning || '').slice(0, 300),
+    records
+  };
+}
+
+function queryInternatSchedule() {
+  const input = document.getElementById('internat-schedule-question');
+  const result = document.getElementById('internat-schedule-result');
+  if (!input || !result) return;
+
+  const answer = getInternatScheduleAnswer(input.value, loadInternatScheduleIndex(), new Date());
+  result.style.display = 'block';
+  result.replaceChildren();
+
+  if (answer.status !== 'ok') {
+    result.textContent = answer.status === 'ambiguous'
+      ? 'Niewystarczające dane do jednoznacznej odpowiedzi — sprawdź grafik źródłowy.'
+      : 'Brak danych dla tej osoby w aktualnie zaindeksowanym grafiku.';
+    if (answer.source) appendInternatScheduleSource(result, answer.source);
+    return;
+  }
+
+  const heading = document.createElement('div');
+  heading.style.fontWeight = '900';
+  heading.style.marginBottom = '6px';
+  heading.textContent = `${answer.employee} — bieżący tydzień`;
+  result.appendChild(heading);
+
+  answer.records.forEach(record => {
+    const line = document.createElement('div');
+    line.textContent = `${formatInternatScheduleDate(record.date)} — ${record.from}–${record.to}${record.group ? ` — ${formatInternatScheduleGroup(record.group)}` : ''}`;
+    result.appendChild(line);
+  });
+  appendInternatScheduleSource(result, answer.source);
+}
+
+function getInternatScheduleAnswer(query, index, now = new Date()) {
+  const queryTokens = getInternatScheduleQueryTokens(query);
+  const weekStart = getInternatWeekStart(now);
+  const weekDocuments = (Array.isArray(index) ? index : [])
+    .map(normalizeInternatScheduleDocument)
+    .filter(item => item && item.weekStart === weekStart)
+    .sort(compareInternatScheduleDocuments);
+
+  if (!queryTokens.length || !weekDocuments.length) return { status: 'missing' };
+
+  const newest = weekDocuments[0];
+  const currentDocuments = weekDocuments.filter(item => isSameInternatScheduleMail(item, newest));
+  const employeeNames = [...new Set(currentDocuments.flatMap(item => item.records.map(record => record.employee)))];
+  const matches = employeeNames.filter(name => internatScheduleNameMatches(name, queryTokens));
+  const source = newest;
+
+  if (matches.length !== 1) {
+    const uncertain = matches.length > 1 || currentDocuments.some(item => item.ambiguous || item.isCorrection);
+    return { status: uncertain ? 'ambiguous' : 'missing', source };
+  }
+
+  const employee = matches[0];
+  const employeeDocuments = currentDocuments
+    .filter(item => item.records.some(record => record.employee === employee))
+    .sort(compareInternatScheduleDocuments);
+  const selected = employeeDocuments[0];
+  if (!selected || selected.ambiguous) return { status: 'ambiguous', source: selected || source };
+
+  const seen = new Set();
+  const records = selected.records
+    .filter(record => record.employee === employee)
+    .filter(record => {
+      const key = `${record.date}|${record.from}|${record.to}|${record.group}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => `${a.date} ${a.from}`.localeCompare(`${b.date} ${b.from}`));
+
+  return records.length
+    ? { status: 'ok', employee, records, source: selected }
+    : { status: selected.isCorrection ? 'ambiguous' : 'missing', source: selected };
+}
+
+function getInternatScheduleQueryTokens(value) {
+  const stopWords = new Set([
+    'czy', 'grafik', 'harmonogram', 'jak', 'jaki', 'jakie', 'kiedy', 'ma', 'pokaz', 'pracuje',
+    'pracy', 'sprawdz', 'ten', 'tym', 'tydzien', 'tygodniu', 'w', 'wychowawca', 'wychowawcy'
+  ]);
+  return normalizeInternatScheduleText(value)
+    .split(/[^a-z0-9-]+/)
+    .filter(token => token.length > 2 && !stopWords.has(token))
+    .map(normalizeInternatScheduleNameToken);
+}
+
+function internatScheduleNameMatches(employee, queryTokens) {
+  const nameTokens = normalizeInternatScheduleText(employee)
+    .split(/[^a-z0-9-]+/)
+    .filter(Boolean)
+    .map(normalizeInternatScheduleNameToken);
+  return queryTokens.every(queryToken => nameTokens.includes(queryToken));
+}
+
+function normalizeInternatScheduleNameToken(token) {
+  if (token.length > 6 && token.endsWith('ego')) return token.slice(0, -3);
+  return token;
+}
+
+function normalizeInternatScheduleText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l');
+}
+
+function getInternatWeekStart(value) {
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setHours(12, 0, 0, 0);
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() - day + 1);
+  return formatInternatIsoDate(date);
+}
+
+function formatInternatIsoDate(date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+function compareInternatScheduleDocuments(a, b) {
+  const byDate = String(b.sourceDate || '').localeCompare(String(a.sourceDate || ''));
+  if (byDate) return byDate;
+  const byUid = Number(b.sourceMailUid || 0) - Number(a.sourceMailUid || 0);
+  if (byUid) return byUid;
+  const byAttachment = Number(b.sourceAttachmentOrder || 0) - Number(a.sourceAttachmentOrder || 0);
+  if (byAttachment) return byAttachment;
+  return String(b.indexedAt || '').localeCompare(String(a.indexedAt || ''));
+}
+
+function isSameInternatScheduleMail(a, b) {
+  if (a.sourceMailUid || b.sourceMailUid) return a.sourceMailUid === b.sourceMailUid;
+  return a.sourceDate === b.sourceDate && a.sourceTitle === b.sourceTitle;
+}
+
+function formatInternatScheduleDate(isoDate) {
+  const date = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  const text = date.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function formatInternatScheduleGroup(group) {
+  const value = String(group || '').trim();
+  return /^gr(?:upa)?\.?\s/i.test(value) ? value.replace(/^gr\.?\s/i, 'grupa ') : `grupa ${value}`;
+}
+
+function appendInternatScheduleSource(container, source) {
+  if (!source) return;
+  const label = document.createElement('div');
+  label.style.marginTop = '8px';
+  label.textContent = `Źródło: ${source.sourceTitle || source.sourceAttachment || 'grafik z poczty'}`;
+  container.appendChild(label);
+
+  if (!source.sourceMailUid) return;
+  const button = document.createElement('button');
+  button.className = 'btn sec';
+  button.type = 'button';
+  button.style.marginTop = '6px';
+  button.textContent = 'Pokaż źródło';
+  button.onclick = () => showInternatScheduleSource(source.sourceMailUid, source.sourceAttachment);
+  container.appendChild(button);
+}
+
+function showInternatScheduleSource(mailUid, attachmentName = '') {
+  const item = currentInfoItems.find(entry => String(entry.mailUid || '') === String(mailUid));
+  if (!item) {
+    const result = document.getElementById('internat-schedule-result');
+    if (result) result.append(' Nie znaleziono tego maila w lokalnym archiwum INF. Pobierz pocztę ponownie.');
+    return;
+  }
+
+  const search = document.getElementById('current-info-search');
+  if (search) search.value = '';
+  nav('s-info', document.querySelector('.nav-btn[onclick*="s-info"]'));
+  renderCurrentInfoList();
+  const row = [...document.querySelectorAll('.current-info-item')]
+    .find(element => element.dataset.mailUid === String(mailUid));
+  const toggle = row?.querySelector('.current-info-toggle');
+  const body = row?.querySelector('.current-info-body');
+  if (toggle && body && !body.classList.contains('open')) toggleCurrentInfoBody(item.id, toggle, body);
+  row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setCurrentInfoStatus(`Źródło grafiku: ${item.title}${attachmentName ? ` — ${attachmentName}` : ''}.`);
+}
+
 async function handleHarmFile(input) {
   const file = input.files[0];
   if (!file) return;

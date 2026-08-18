@@ -110,6 +110,8 @@ function renderCurrentInfoList() {
 function createCurrentInfoRow(item) {
   const wrap = document.createElement('div');
   wrap.className = 'current-info-item';
+  wrap.dataset.currentInfoId = item.id;
+  wrap.dataset.mailUid = item.mailUid || '';
 
   const row = document.createElement('div');
   row.className = 'current-info-row';
@@ -376,11 +378,6 @@ function saveCurrentInfoFromForm() {
     setCurrentInfoStatus('Wklej treść albo tytuł wiadomości.');
     return;
   }
-  if (isScheduleCurrentInfo(item)) {
-    setCurrentInfoStatus('Ta wiadomość wygląda jak harmonogram dyżurów. Nie została zapisana w bieżących informacjach.');
-    return;
-  }
-
   currentInfoItems.push(item);
   saveCurrentInfo();
   clearCurrentInfoForm();
@@ -591,6 +588,9 @@ async function syncCurrentInfoMail(manual = true) {
     }
     const before = currentInfoItems.length;
     mergeCurrentInfoItems(data.items || []);
+    if (typeof mergeInternatScheduleDocuments === 'function') {
+      mergeInternatScheduleDocuments(data.scheduleDocuments || []);
+    }
     const added = currentInfoItems.length - before;
     const lastSyncAt = new Date().toISOString();
     saveCurrentInfoSyncSettings({ lastSyncAt });
@@ -603,7 +603,6 @@ async function syncCurrentInfoMail(manual = true) {
 
 function mergeCurrentInfoItems(items = []) {
   items.map(normalizeCurrentInfoItem).filter(Boolean).forEach(item => {
-    if (isScheduleCurrentInfo(item)) return;
     const fingerprint = getCurrentInfoFingerprint(item);
     const existingIndex = currentInfoItems.findIndex(entry => getCurrentInfoFingerprint(entry) === fingerprint);
     if (existingIndex >= 0) {
@@ -620,7 +619,8 @@ function mergeCurrentInfoItems(items = []) {
 }
 
 function getCurrentInfoFingerprint(item) {
-  return normalizeForCurrentInfoSearch(`${item.date}|${item.title}|${String(item.body || '').slice(0, 220)}`);
+  const mailUid = String(item.mailUid || '').trim();
+  return normalizeForCurrentInfoSearch(`${mailUid}|${item.date}|${item.title}|${String(item.body || '').slice(0, 220)}`);
 }
 
 function getCurrentInfoContext() {
