@@ -13,7 +13,10 @@ function loadCurrentInfo() {
   saveCurrentInfo(false);
   loadCurrentInfoSyncSettings();
   renderCurrentInfoList();
-  autoSyncCurrentInfoMail();
+  Promise.resolve(autoSyncCurrentInfoMail()).finally(() => {
+    if (typeof refreshInternatScheduleStatus === 'function') refreshInternatScheduleStatus();
+    if (typeof ensureInternatScheduleIndex === 'function') ensureInternatScheduleIndex();
+  });
 }
 
 function saveCurrentInfo(updateView = true) {
@@ -462,7 +465,8 @@ function detectCurrentInfoTopic(title = '', body = '') {
 }
 
 function isScheduleCurrentInfo(item) {
-  const text = normalizeForCurrentInfoSearch(`${item.title} ${item.topic} ${item.body}`);
+  const attachmentNames = (item.attachments || []).map(attachment => attachment.name).join(' ');
+  const text = normalizeForCurrentInfoSearch(`${item.title} ${item.topic} ${item.body} ${attachmentNames}`);
   const scheduleWords = ['harmonogram', 'dyzur', 'grafik', 'plan pracy', 'zastepuje', 'nadgodzin'];
   return scheduleWords.some(word => text.includes(word)) && !text.includes('zarzadzen');
 }
@@ -560,7 +564,7 @@ async function autoSyncCurrentInfoMail() {
   const last = settings.lastSyncAt ? new Date(settings.lastSyncAt).getTime() : 0;
   const sixHours = 6 * 60 * 60 * 1000;
   if (last && Date.now() - last < sixHours) return;
-  await syncCurrentInfoMail(false);
+  return syncCurrentInfoMail(false);
 }
 
 async function syncCurrentInfoMail(manual = true) {
@@ -568,7 +572,7 @@ async function syncCurrentInfoMail(manual = true) {
   const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
   if (!settings.token && !testAccessToken) {
     setCurrentInfoStatus('Wpisz token synchronizacji poczty.');
-    return;
+    return { ok: false, reason: 'auth' };
   }
   try {
     setCurrentInfoStatus(manual ? 'Pobieram wiadomości z poczty...' : 'Automatycznie sprawdzam pocztę...');
@@ -588,16 +592,22 @@ async function syncCurrentInfoMail(manual = true) {
     }
     const before = currentInfoItems.length;
     mergeCurrentInfoItems(data.items || []);
-    if (typeof mergeInternatScheduleDocuments === 'function') {
-      mergeInternatScheduleDocuments(data.scheduleDocuments || []);
+    const scheduleIndexSupported = Object.prototype.hasOwnProperty.call(data, 'scheduleDocuments');
+    if (typeof setInternatScheduleBackendStatus === 'function') {
+      setInternatScheduleBackendStatus(scheduleIndexSupported ? 'compatible' : 'incompatible');
+    }
+    if (scheduleIndexSupported && typeof mergeInternatScheduleDocuments === 'function') {
+      mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
     }
     const added = currentInfoItems.length - before;
     const lastSyncAt = new Date().toISOString();
     saveCurrentInfoSyncSettings({ lastSyncAt });
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
     setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}`);
+    return { ok: true, data, scheduleIndexSupported };
   } catch (err) {
     setCurrentInfoStatus(`Nie udało się pobrać poczty: ${describeCurrentInfoSyncError(err)}`);
+    return { ok: false, error: err };
   }
 }
 

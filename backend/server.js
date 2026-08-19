@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.1';
+const BACKEND_VERSION = '1.1.2';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -904,7 +904,8 @@ async function extractInternatScheduleDocuments(parsed, item) {
       sourceAttachment: filename,
       sourceAttachmentId: attachmentId,
       sourceAttachmentOrder: index,
-      sourceDate: item.date
+      sourceDate: item.date,
+      scheduleKind: classifyInternatScheduleKind(scheduleHint)
     };
 
     try {
@@ -940,6 +941,13 @@ async function extractInternatScheduleDocuments(parsed, item) {
   }
 
   return documents;
+}
+
+function classifyInternatScheduleKind(value = '') {
+  const normalized = normalizeMailSearch(value);
+  if (/\bzespol/.test(normalized)) return 'team';
+  if (/\binternat/.test(normalized)) return 'internat';
+  return 'unknown';
 }
 
 function parseInternatScheduleHtml(html, source = {}) {

@@ -1,6 +1,8 @@
 ﻿/* ────────────────────────────────
    HARMONOGRAM
 ──────────────────────────────── */
+let internatScheduleReindexPromise = null;
+
 function mergeInternatScheduleDocuments(documents = []) {
   const index = loadInternatScheduleIndex();
   let changed = 0;
@@ -17,6 +19,7 @@ function mergeInternatScheduleDocuments(documents = []) {
   } catch {
     setCurrentInfoStatus('Poczta została pobrana, ale na urządzeniu zabrakło miejsca na lokalny indeks grafików.');
   }
+  refreshInternatScheduleStatus();
   return changed;
 }
 
@@ -67,6 +70,7 @@ function normalizeInternatScheduleDocument(item) {
     sourceAttachmentOrder: Number(item.sourceAttachmentOrder || 0),
     sourceDate: String(item.sourceDate || ''),
     indexedAt: String(item.indexedAt || new Date().toISOString()),
+    scheduleKind: classifyInternatScheduleKind(item.scheduleKind, `${item.sourceTitle || ''} ${sourceAttachment}`),
     isCorrection: Boolean(item.isCorrection),
     ambiguous: Boolean(item.ambiguous),
     warning: String(item.warning || '').slice(0, 300),
@@ -74,20 +78,40 @@ function normalizeInternatScheduleDocument(item) {
   };
 }
 
-function queryInternatSchedule() {
+function classifyInternatScheduleKind(value, sourceHint = '') {
+  if (value === 'internat' || value === 'team') return value;
+  const normalized = normalizeInternatScheduleText(sourceHint);
+  if (/\bzespol/.test(normalized)) return 'team';
+  if (/\binternat/.test(normalized)) return 'internat';
+  return 'unknown';
+}
+
+async function queryInternatSchedule() {
   const input = document.getElementById('internat-schedule-question');
   const result = document.getElementById('internat-schedule-result');
   if (!input || !result) return;
 
-  const answer = getInternatScheduleAnswer(input.value, loadInternatScheduleIndex(), new Date());
   result.style.display = 'block';
   result.replaceChildren();
+  let index = loadInternatScheduleIndex();
+  if (!hasInternatScheduleCurrentWeek(index, new Date())) {
+    result.textContent = 'Indeks grafiku jest pusty — trwa synchronizacja...';
+    await ensureInternatScheduleIndex();
+    index = loadInternatScheduleIndex();
+  }
+
+  const answer = getInternatScheduleAnswer(input.value, index, new Date());
+  const backendStatus = getInternatScheduleBackendStatus();
 
   if (answer.status !== 'ok') {
-    result.textContent = answer.status === 'ambiguous'
-      ? 'Niewystarczające dane do jednoznacznej odpowiedzi — sprawdź grafik źródłowy.'
-      : 'Brak danych dla tej osoby w aktualnie zaindeksowanym grafiku.';
-    if (answer.source) appendInternatScheduleSource(result, answer.source);
+    if (answer.status === 'ambiguous') {
+      result.textContent = 'Znaleziono kilka pasujących osób albo dane korekty są niejednoznaczne — doprecyzuj nazwisko i sprawdź grafik źródłowy.';
+    } else if (backendStatus === 'incompatible') {
+      result.textContent = 'Indeks grafików nie jest dostępny — backend wymaga aktualizacji lub ponownego wdrożenia.';
+    } else {
+      result.textContent = 'Brak danych dla tej osoby w aktualnym grafiku.';
+    }
+    appendInternatScheduleSources(result, answer.sources || answer.source);
     return;
   }
 
@@ -102,40 +126,41 @@ function queryInternatSchedule() {
     line.textContent = `${formatInternatScheduleDate(record.date)} — ${record.from}–${record.to}${record.group ? ` — ${formatInternatScheduleGroup(record.group)}` : ''}`;
     result.appendChild(line);
   });
-  appendInternatScheduleSource(result, answer.source);
+  if (answer.requiresVerification) {
+    const warning = document.createElement('div');
+    warning.style.marginTop = '8px';
+    warning.textContent = 'Część danych pochodzi z niepełnej korekty — sprawdź wskazane źródło.';
+    result.appendChild(warning);
+  }
+  appendInternatScheduleSources(result, answer.sources || answer.source);
 }
 
 function getInternatScheduleAnswer(query, index, now = new Date()) {
   const queryTokens = getInternatScheduleQueryTokens(query);
-  const weekStart = getInternatWeekStart(now);
-  const weekDocuments = (Array.isArray(index) ? index : [])
-    .map(normalizeInternatScheduleDocument)
-    .filter(item => item && item.weekStart === weekStart)
-    .sort(compareInternatScheduleDocuments);
+  const active = buildActiveInternatSchedule(index, now);
+  if (!queryTokens.length || !active.documents.length) return { status: 'missing', sources: active.sources };
 
-  if (!queryTokens.length || !weekDocuments.length) return { status: 'missing' };
-
-  const newest = weekDocuments[0];
-  const currentDocuments = weekDocuments.filter(item => isSameInternatScheduleMail(item, newest));
-  const employeeNames = [...new Set(currentDocuments.flatMap(item => item.records.map(record => record.employee)))];
+  const employeeByKey = new Map();
+  active.records.forEach(record => {
+    const key = normalizeInternatScheduleText(record.employee);
+    if (!employeeByKey.has(key)) employeeByKey.set(key, record.employee);
+  });
+  const employeeNames = [...employeeByKey.values()];
   const matches = employeeNames.filter(name => internatScheduleNameMatches(name, queryTokens));
-  const source = newest;
 
   if (matches.length !== 1) {
-    const uncertain = matches.length > 1 || currentDocuments.some(item => item.ambiguous || item.isCorrection);
-    return { status: uncertain ? 'ambiguous' : 'missing', source };
+    return {
+      status: matches.length > 1 ? 'ambiguous' : 'missing',
+      sources: active.sources,
+      requiresVerification: active.requiresVerification
+    };
   }
 
   const employee = matches[0];
-  const employeeDocuments = currentDocuments
-    .filter(item => item.records.some(record => record.employee === employee))
-    .sort(compareInternatScheduleDocuments);
-  const selected = employeeDocuments[0];
-  if (!selected || selected.ambiguous) return { status: 'ambiguous', source: selected || source };
-
+  const employeeKey = normalizeInternatScheduleText(employee);
   const seen = new Set();
-  const records = selected.records
-    .filter(record => record.employee === employee)
+  const records = active.records
+    .filter(record => normalizeInternatScheduleText(record.employee) === employeeKey)
     .filter(record => {
       const key = `${record.date}|${record.from}|${record.to}|${record.group}`;
       if (seen.has(key)) return false;
@@ -144,9 +169,210 @@ function getInternatScheduleAnswer(query, index, now = new Date()) {
     })
     .sort((a, b) => `${a.date} ${a.from}`.localeCompare(`${b.date} ${b.from}`));
 
+  const sourceIds = new Set(records.map(record => record.sourceDocumentId).filter(Boolean));
+  active.contributors.forEach(documentItem => {
+    const concernsEmployee = documentItem.records.some(record => normalizeInternatScheduleText(record.employee) === employeeKey);
+    if (concernsEmployee || (documentItem.isCorrection && documentItem.ambiguous && !documentItem.records.length)) {
+      sourceIds.add(documentItem.id);
+    }
+  });
+  const sources = active.documents.filter(documentItem => sourceIds.has(documentItem.id));
+
   return records.length
-    ? { status: 'ok', employee, records, source: selected }
-    : { status: selected.isCorrection ? 'ambiguous' : 'missing', source: selected };
+    ? { status: 'ok', employee, records, sources, requiresVerification: active.requiresVerification }
+    : { status: 'missing', sources: active.sources, requiresVerification: active.requiresVerification };
+}
+
+function buildActiveInternatSchedule(index, now = new Date()) {
+  const weekStart = getInternatWeekStart(now);
+  const documents = (Array.isArray(index) ? index : [])
+    .map(normalizeInternatScheduleDocument)
+    .filter(item => item && item.weekStart === weekStart)
+    .sort(compareInternatScheduleDocuments);
+  const records = [];
+  const contributors = [];
+  let requiresVerification = false;
+
+  ['internat', 'team', 'unknown'].forEach(scheduleKind => {
+    const kindDocuments = documents.filter(item => item.scheduleKind === scheduleKind);
+    if (!kindDocuments.length) return;
+    const base = kindDocuments.find(item => !item.isCorrection) || null;
+    let kindRecords = base
+      ? base.records.map(record => ({ ...record, sourceDocumentId: base.id }))
+      : [];
+    if (base) contributors.push(base);
+    if (base?.ambiguous) requiresVerification = true;
+
+    const corrections = kindDocuments
+      .filter(item => item.isCorrection && (!base || compareInternatScheduleDocuments(item, base) <= 0))
+      .sort((a, b) => compareInternatScheduleDocuments(b, a));
+    corrections.forEach(correction => {
+      const applied = applyInternatScheduleCorrection(kindRecords, correction);
+      kindRecords = applied.records;
+      if (applied.used || correction.ambiguous) contributors.push(correction);
+      if (correction.ambiguous || applied.uncertain) requiresVerification = true;
+    });
+
+    if (!base && corrections.length) requiresVerification = true;
+    records.push(...kindRecords);
+  });
+
+  return {
+    weekStart,
+    documents,
+    records,
+    contributors: uniqueInternatScheduleDocuments(contributors),
+    sources: uniqueInternatScheduleDocuments(contributors.length ? contributors : documents),
+    requiresVerification
+  };
+}
+
+function applyInternatScheduleCorrection(existingRecords, correction) {
+  const records = [...existingRecords];
+  const groups = new Map();
+  correction.records.forEach(record => {
+    const key = `${record.date}|${normalizeInternatScheduleText(record.employee)}|${normalizeInternatScheduleText(record.group)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ ...record, sourceDocumentId: correction.id });
+  });
+  let uncertain = false;
+
+  groups.forEach(correctionRecords => {
+    const sample = correctionRecords[0];
+    const samePersonAndDate = records
+      .map((record, index) => ({ record, index }))
+      .filter(item => item.record.date === sample.date
+        && normalizeInternatScheduleText(item.record.employee) === normalizeInternatScheduleText(sample.employee));
+    const sameGroup = sample.group
+      ? samePersonAndDate.filter(item => normalizeInternatScheduleText(item.record.group) === normalizeInternatScheduleText(sample.group))
+      : [];
+    const replace = sameGroup.length ? sameGroup : samePersonAndDate.length === 1 ? samePersonAndDate : [];
+    if (samePersonAndDate.length > 1 && !sameGroup.length) uncertain = true;
+    [...replace].sort((a, b) => b.index - a.index).forEach(item => records.splice(item.index, 1));
+    records.push(...correctionRecords);
+  });
+
+  return { records, used: correction.records.length > 0, uncertain };
+}
+
+function uniqueInternatScheduleDocuments(documents) {
+  const seen = new Set();
+  return documents.filter(item => {
+    if (!item || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function hasInternatScheduleCurrentWeek(index, now = new Date()) {
+  const weekStart = getInternatWeekStart(now);
+  return (Array.isArray(index) ? index : [])
+    .map(normalizeInternatScheduleDocument)
+    .some(item => item?.weekStart === weekStart);
+}
+
+function getInternatScheduleBackendStatus() {
+  try {
+    return localStorage.getItem(INTERNAT_SCHEDULE_BACKEND_STATUS_KEY) || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function setInternatScheduleBackendStatus(status) {
+  const value = status === 'incompatible' ? 'incompatible' : 'compatible';
+  try {
+    localStorage.setItem(INTERNAT_SCHEDULE_BACKEND_STATUS_KEY, value);
+  } catch {
+    // Status jest pomocniczy; brak miejsca nie może blokować synchronizacji poczty.
+  }
+  refreshInternatScheduleStatus();
+}
+
+async function ensureInternatScheduleIndex() {
+  const now = new Date();
+  const weekStart = getInternatWeekStart(now);
+  const index = loadInternatScheduleIndex();
+  if (hasInternatScheduleCurrentWeek(index, now)) {
+    refreshInternatScheduleStatus(now);
+    return false;
+  }
+
+  const scheduleMail = [...currentInfoItems]
+    .filter(item => isScheduleCurrentInfo(item))
+    .sort((a, b) => `${b.date} ${b.mailUid}`.localeCompare(`${a.date} ${a.mailUid}`))[0];
+  if (!scheduleMail) {
+    refreshInternatScheduleStatus(now);
+    return false;
+  }
+
+  if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
+  const marker = `${weekStart}:${scheduleMail.mailUid || scheduleMail.id}`;
+  try {
+    if (sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
+      refreshInternatScheduleStatus(now);
+      return false;
+    }
+  } catch {
+    // Ochrona sesyjna jest opcjonalna; blokada w pamięci nadal zapobiega pętli.
+  }
+
+  const settings = getCurrentInfoSyncSettings();
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!settings.token && !testAccessToken) {
+    setInternatScheduleStatus('Indeks grafiku jest pusty — zapisz token poczty w zakładce INF, aby pobrać załączniki.');
+    return false;
+  }
+
+  try {
+    sessionStorage.setItem(INTERNAT_SCHEDULE_REINDEX_KEY, marker);
+  } catch {
+    // Brak sessionStorage nie blokuje jednorazowej próby w bieżącym widoku.
+  }
+  setInternatScheduleStatus('Indeks grafiku jest pusty — trwa synchronizacja...');
+  internatScheduleReindexPromise = (async () => {
+    const syncResult = await syncCurrentInfoMail(false);
+    refreshInternatScheduleStatus(now);
+    return Boolean(syncResult?.ok && syncResult.scheduleIndexSupported);
+  })();
+  try {
+    return await internatScheduleReindexPromise;
+  } finally {
+    internatScheduleReindexPromise = null;
+  }
+}
+
+function refreshInternatScheduleStatus(now = new Date()) {
+  const backendStatus = getInternatScheduleBackendStatus();
+  const active = buildActiveInternatSchedule(loadInternatScheduleIndex(), now);
+  if (active.documents.length) {
+    setInternatScheduleStatus(`Grafiki: ${active.documents.length} ${active.documents.length === 1 ? 'dokument' : 'dokumenty'} · ${active.records.length} wpisów · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
+    return;
+  }
+  if (backendStatus === 'incompatible') {
+    setInternatScheduleStatus('Backend nie zwraca danych indeksu grafików — wymaga aktualizacji lub ponownego wdrożenia.');
+    return;
+  }
+  setInternatScheduleStatus(internatScheduleReindexPromise
+    ? 'Indeks grafiku jest pusty — trwa synchronizacja...'
+    : 'Brak zaindeksowanego grafiku dla bieżącego tygodnia.');
+}
+
+function setInternatScheduleStatus(text) {
+  const status = document.getElementById('internat-schedule-index-status');
+  if (status) status.textContent = text;
+}
+
+function formatInternatScheduleWeek(weekStart) {
+  const start = new Date(`${weekStart}T12:00:00`);
+  if (Number.isNaN(start.getTime())) return weekStart;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const startText = start.getMonth() === end.getMonth()
+    ? String(start.getDate()).padStart(2, '0')
+    : start.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+  const endText = end.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+  return `${startText}–${endText}`;
 }
 
 function getInternatScheduleQueryTokens(value) {
@@ -204,11 +430,6 @@ function compareInternatScheduleDocuments(a, b) {
   return String(b.indexedAt || '').localeCompare(String(a.indexedAt || ''));
 }
 
-function isSameInternatScheduleMail(a, b) {
-  if (a.sourceMailUid || b.sourceMailUid) return a.sourceMailUid === b.sourceMailUid;
-  return a.sourceDate === b.sourceDate && a.sourceTitle === b.sourceTitle;
-}
-
 function formatInternatScheduleDate(isoDate) {
   const date = new Date(`${isoDate}T12:00:00`);
   if (Number.isNaN(date.getTime())) return isoDate;
@@ -221,21 +442,24 @@ function formatInternatScheduleGroup(group) {
   return /^gr(?:upa)?\.?\s/i.test(value) ? value.replace(/^gr\.?\s/i, 'grupa ') : `grupa ${value}`;
 }
 
-function appendInternatScheduleSource(container, source) {
-  if (!source) return;
-  const label = document.createElement('div');
-  label.style.marginTop = '8px';
-  label.textContent = `Źródło: ${source.sourceTitle || source.sourceAttachment || 'grafik z poczty'}`;
-  container.appendChild(label);
+function appendInternatScheduleSources(container, value) {
+  const sources = uniqueInternatScheduleDocuments(Array.isArray(value) ? value : value ? [value] : []);
+  sources.forEach((source, index) => {
+    const label = document.createElement('div');
+    label.style.marginTop = index ? '4px' : '8px';
+    const title = source.sourceTitle || 'grafik z poczty';
+    label.textContent = `Źródło: ${title}${source.sourceAttachment ? ` — ${source.sourceAttachment}` : ''}`;
+    container.appendChild(label);
 
-  if (!source.sourceMailUid) return;
-  const button = document.createElement('button');
-  button.className = 'btn sec';
-  button.type = 'button';
-  button.style.marginTop = '6px';
-  button.textContent = 'Pokaż źródło';
-  button.onclick = () => showInternatScheduleSource(source.sourceMailUid, source.sourceAttachment);
-  container.appendChild(button);
+    if (!source.sourceMailUid) return;
+    const button = document.createElement('button');
+    button.className = 'btn sec';
+    button.type = 'button';
+    button.style.marginTop = '6px';
+    button.textContent = 'Pokaż źródło';
+    button.onclick = () => showInternatScheduleSource(source.sourceMailUid, source.sourceAttachment);
+    container.appendChild(button);
+  });
 }
 
 function showInternatScheduleSource(mailUid, attachmentName = '') {
