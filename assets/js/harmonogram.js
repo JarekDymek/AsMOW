@@ -19,6 +19,7 @@ function mergeInternatScheduleDocuments(documents = []) {
   } catch {
     setCurrentInfoStatus('Poczta została pobrana, ale na urządzeniu zabrakło miejsca na lokalny indeks grafików.');
   }
+  refreshInternatScheduleWeekOptions(index);
   refreshInternatScheduleStatus();
   return changed;
 }
@@ -100,7 +101,12 @@ async function queryInternatSchedule() {
     index = loadInternatScheduleIndex();
   }
 
-  const answer = getInternatScheduleAnswer(input.value, index, new Date());
+  const now = new Date();
+  refreshInternatScheduleWeekOptions(index, now);
+  const selectedWeek = getSelectedInternatScheduleWeekStart(now);
+  const requestedWeek = resolveInternatScheduleQueryWeek(input.value, selectedWeek, now);
+  selectInternatScheduleWeek(requestedWeek, index, now);
+  const answer = getInternatScheduleAnswer(input.value, index, now, requestedWeek);
   const backendStatus = getInternatScheduleBackendStatus();
 
   if (answer.status !== 'ok') {
@@ -109,7 +115,7 @@ async function queryInternatSchedule() {
     } else if (backendStatus === 'incompatible') {
       result.textContent = 'Indeks grafików nie jest dostępny — backend wymaga aktualizacji lub ponownego wdrożenia.';
     } else {
-      result.textContent = 'Brak danych dla tej osoby w aktualnym grafiku.';
+      result.textContent = `Brak danych dla tej osoby w grafiku na tydzień ${formatInternatScheduleWeek(requestedWeek)}.`;
     }
     appendInternatScheduleSources(result, answer.sources || answer.source);
     return;
@@ -118,7 +124,7 @@ async function queryInternatSchedule() {
   const heading = document.createElement('div');
   heading.style.fontWeight = '900';
   heading.style.marginBottom = '6px';
-  heading.textContent = `${answer.employee} — bieżący tydzień`;
+  heading.textContent = `${answer.employee} — ${formatInternatScheduleWeekLabel(answer.weekStart, now)}`;
   result.appendChild(heading);
 
   answer.records.forEach(record => {
@@ -135,10 +141,12 @@ async function queryInternatSchedule() {
   appendInternatScheduleSources(result, answer.sources || answer.source);
 }
 
-function getInternatScheduleAnswer(query, index, now = new Date()) {
+function getInternatScheduleAnswer(query, index, now = new Date(), requestedWeek = '') {
   const queryTokens = getInternatScheduleQueryTokens(query);
-  const active = buildActiveInternatSchedule(index, now);
-  if (!queryTokens.length || !active.documents.length) return { status: 'missing', sources: active.sources };
+  const active = buildActiveInternatSchedule(index, requestedWeek || now);
+  if (!queryTokens.length || !active.documents.length) {
+    return { status: 'missing', weekStart: active.weekStart, sources: active.sources };
+  }
 
   const employeeByKey = new Map();
   active.records.forEach(record => {
@@ -151,6 +159,7 @@ function getInternatScheduleAnswer(query, index, now = new Date()) {
   if (matches.length !== 1) {
     return {
       status: matches.length > 1 ? 'ambiguous' : 'missing',
+      weekStart: active.weekStart,
       sources: active.sources,
       requiresVerification: active.requiresVerification
     };
@@ -179,12 +188,14 @@ function getInternatScheduleAnswer(query, index, now = new Date()) {
   const sources = active.documents.filter(documentItem => sourceIds.has(documentItem.id));
 
   return records.length
-    ? { status: 'ok', employee, records, sources, requiresVerification: active.requiresVerification }
-    : { status: 'missing', sources: active.sources, requiresVerification: active.requiresVerification };
+    ? { status: 'ok', employee, weekStart: active.weekStart, records, sources, requiresVerification: active.requiresVerification }
+    : { status: 'missing', weekStart: active.weekStart, sources: active.sources, requiresVerification: active.requiresVerification };
 }
 
-function buildActiveInternatSchedule(index, now = new Date()) {
-  const weekStart = getInternatWeekStart(now);
+function buildActiveInternatSchedule(index, week = new Date()) {
+  const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(String(week || ''))
+    ? String(week)
+    : getInternatWeekStart(week);
   const documents = (Array.isArray(index) ? index : [])
     .map(normalizeInternatScheduleDocument)
     .filter(item => item && item.weekStart === weekStart)
@@ -271,6 +282,81 @@ function hasInternatScheduleCurrentWeek(index, now = new Date()) {
     .some(item => item?.weekStart === weekStart);
 }
 
+function refreshInternatScheduleWeekOptions(index = loadInternatScheduleIndex(), now = new Date()) {
+  const select = document.getElementById('internat-schedule-week');
+  if (!select) return;
+  const currentWeek = getInternatWeekStart(now);
+  const previousWeek = addInternatScheduleDays(currentWeek, -7);
+  const indexedWeeks = [...new Set((Array.isArray(index) ? index : [])
+    .map(item => normalizeInternatScheduleDocument(item)?.weekStart)
+    .filter(weekStart => weekStart && weekStart >= previousWeek))]
+    .sort();
+  const weeks = [...new Set([previousWeek, currentWeek, ...indexedWeeks])].sort();
+  const previousSelection = /^\d{4}-\d{2}-\d{2}$/.test(select.value) ? select.value : currentWeek;
+
+  select.replaceChildren();
+  weeks.forEach(weekStart => {
+    const option = document.createElement('option');
+    option.value = weekStart;
+    option.textContent = formatInternatScheduleWeekLabel(weekStart, now);
+    select.appendChild(option);
+  });
+  select.value = weeks.includes(previousSelection) ? previousSelection : currentWeek;
+}
+
+function getSelectedInternatScheduleWeekStart(now = new Date()) {
+  const selected = document.getElementById('internat-schedule-week')?.value || '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(selected) ? selected : getInternatWeekStart(now);
+}
+
+function selectInternatScheduleWeek(weekStart, index = loadInternatScheduleIndex(), now = new Date()) {
+  const select = document.getElementById('internat-schedule-week');
+  if (!select || !weekStart) return;
+  if (![...select.options].some(option => option.value === weekStart)) {
+    const option = document.createElement('option');
+    option.value = weekStart;
+    option.textContent = formatInternatScheduleWeekLabel(weekStart, now);
+    select.appendChild(option);
+    [...select.options]
+      .sort((a, b) => a.value.localeCompare(b.value))
+      .forEach(optionItem => select.appendChild(optionItem));
+  }
+  select.value = weekStart;
+  refreshInternatScheduleStatus(now, weekStart, index);
+}
+
+function changeInternatScheduleWeek() {
+  const result = document.getElementById('internat-schedule-result');
+  if (result) {
+    result.style.display = 'none';
+    result.replaceChildren();
+  }
+  refreshInternatScheduleStatus();
+}
+
+function resolveInternatScheduleQueryWeek(query = '', selectedWeek = '', now = new Date()) {
+  const text = normalizeInternatScheduleText(query);
+  const currentWeek = getInternatWeekStart(now);
+  const explicitDate = text.match(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](20\d{2}))?\b/);
+  if (explicitDate) {
+    const year = Number(explicitDate[3] || now.getFullYear());
+    const date = new Date(year, Number(explicitDate[2]) - 1, Number(explicitDate[1]), 12);
+    if (!Number.isNaN(date.getTime())) return getInternatWeekStart(date);
+  }
+  if (/\b(?:za\s+dwa\s+tygodnie|kolejn(?:y|ym|ego)\s+tydzien)\b/.test(text)) return addInternatScheduleDays(currentWeek, 14);
+  if (/\b(?:nastepn\w*|przyszl\w*|za\s+tydzien)\b/.test(text)) return addInternatScheduleDays(currentWeek, 7);
+  if (/\b(?:poprzedn\w*|zeszl\w*|tydzien\s+temu)\b/.test(text)) return addInternatScheduleDays(currentWeek, -7);
+  if (/\b(?:biezac\w*|aktualn\w*|obecn\w*|ten\s+tydzien|tym\s+tygodniu)\b/.test(text)) return currentWeek;
+  return /^\d{4}-\d{2}-\d{2}$/.test(selectedWeek) ? selectedWeek : currentWeek;
+}
+
+function addInternatScheduleDays(isoDate, days) {
+  const date = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + days);
+  return formatInternatIsoDate(date);
+}
+
 function getInternatScheduleBackendStatus() {
   try {
     return localStorage.getItem(INTERNAT_SCHEDULE_BACKEND_STATUS_KEY) || 'unknown';
@@ -299,7 +385,7 @@ async function ensureInternatScheduleIndex() {
   }
 
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:index-v4`;
+  const marker = `${weekStart}:index-v5`;
   try {
     if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
       || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
@@ -350,12 +436,16 @@ function getInternatScheduleReindexSince(now = new Date()) {
   return formatInternatIsoDate(date);
 }
 
-function refreshInternatScheduleStatus(now = new Date()) {
+function refreshInternatScheduleStatus(now = new Date(), requestedWeek = '', existingIndex = null) {
   const backendStatus = getInternatScheduleBackendStatus();
-  const index = loadInternatScheduleIndex();
-  const active = buildActiveInternatSchedule(index, now);
+  const index = existingIndex || loadInternatScheduleIndex();
+  refreshInternatScheduleWeekOptions(index, now);
+  const weekStart = requestedWeek || getSelectedInternatScheduleWeekStart(now);
+  const active = buildActiveInternatSchedule(index, weekStart);
   if (active.documents.length) {
-    setInternatScheduleStatus(`Grafiki: ${active.documents.length} ${active.documents.length === 1 ? 'dokument' : 'dokumenty'} · ${active.records.length} wpisów · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
+    const documentLabel = active.documents.length === 1 ? 'dokument' : active.documents.length < 5 ? 'dokumenty' : 'dokumentów';
+    const recordLabel = active.records.length === 1 ? 'wpis' : active.records.length < 5 ? 'wpisy' : 'wpisów';
+    setInternatScheduleStatus(`Grafiki: ${active.documents.length} ${documentLabel} · ${active.records.length} ${recordLabel} · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
     return;
   }
   if (backendStatus === 'incompatible') {
@@ -369,7 +459,7 @@ function refreshInternatScheduleStatus(now = new Date()) {
   }
   setInternatScheduleStatus(internatScheduleReindexPromise
     ? 'Indeks grafiku jest pusty — trwa synchronizacja...'
-    : 'Brak zaindeksowanego grafiku dla bieżącego tygodnia.');
+    : `Brak zaindeksowanego grafiku dla tygodnia ${formatInternatScheduleWeek(active.weekStart)}.`);
 }
 
 function setInternatScheduleStatus(text) {
@@ -389,14 +479,31 @@ function formatInternatScheduleWeek(weekStart) {
   return `${startText}–${endText}`;
 }
 
+function formatInternatScheduleWeekLabel(weekStart, now = new Date()) {
+  const currentWeek = getInternatWeekStart(now);
+  const difference = Math.round((new Date(`${weekStart}T12:00:00`) - new Date(`${currentWeek}T12:00:00`)) / (7 * 86_400_000));
+  const context = difference === -1
+    ? 'Poprzedni tydzień'
+    : difference === 0
+      ? 'Bieżący tydzień'
+      : difference === 1
+        ? 'Następny tydzień'
+        : difference > 1
+          ? `Za ${difference} ${difference < 5 ? 'tygodnie' : 'tygodni'}`
+          : 'Tydzień';
+  return `${context} · ${formatInternatScheduleWeek(weekStart)}`;
+}
+
 function getInternatScheduleQueryTokens(value) {
   const stopWords = new Set([
     'czy', 'grafik', 'harmonogram', 'jak', 'jaki', 'jakie', 'kiedy', 'ma', 'pokaz', 'pracuje',
-    'pracy', 'sprawdz', 'ten', 'tym', 'tydzien', 'tygodniu', 'w', 'wychowawca', 'wychowawcy'
+    'pracy', 'sprawdz', 'ten', 'tym', 'tydzien', 'tygodnie', 'tygodniu', 'temu', 'w', 'wychowawca',
+    'wychowawcy', 'za', 'dwa'
   ]);
   return normalizeInternatScheduleText(value)
     .split(/[^a-z0-9-]+/)
-    .filter(token => token.length > 2 && !stopWords.has(token))
+    .filter(token => token.length > 2 && !stopWords.has(token) && !/^[\d-]+$/.test(token))
+    .filter(token => !/^(?:biezac|aktualn|obecn|poprzedn|zeszl|nastepn|przyszl|kolejn)\w*$/.test(token))
     .map(normalizeInternatScheduleNameToken);
 }
 

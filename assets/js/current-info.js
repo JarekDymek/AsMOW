@@ -622,7 +622,10 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     const schedules = scheduleIndexSupported
       ? ` Grafiki w odpowiedzi: ${scheduleDocuments.length}${indexedWeeks.length ? `; tygodnie: ${indexedWeeks.join(', ')}` : ''}.`
       : '';
-    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}${schedules}`);
+    const ignoredSchedules = Array.isArray(data.ignoredScheduleDocuments) && data.ignoredScheduleDocuments.length
+      ? ` Pominięte grafiki innych zespołów: ${data.ignoredScheduleDocuments.length}.`
+      : '';
+    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}${schedules}${ignoredSchedules}`);
     return { ok: true, data, scheduleIndexSupported };
   } catch (err) {
     setCurrentInfoStatus(`Nie udało się pobrać poczty: ${describeCurrentInfoSyncError(err)}`);

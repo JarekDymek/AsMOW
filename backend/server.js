@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.4';
+const BACKEND_VERSION = '1.1.5';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -154,9 +154,11 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
-});
+if (process.env.ASMOW_TEST_MODE !== '1') {
+  server.listen(PORT, () => {
+    console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
+  });
+}
 
 function setCors(req, res) {
   const origin = req.headers.origin || '';
@@ -412,6 +414,7 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   const items = [];
   const scheduleDocuments = [];
+  const ignoredScheduleDocuments = [];
   const scheduleCandidates = [];
   let scannedCount = 0;
   try {
@@ -440,7 +443,8 @@ async function fetchCurrentInfoMail(payload = {}) {
         since,
         count: 0,
         items: [],
-        scheduleDocuments: []
+        scheduleDocuments: [],
+        ignoredScheduleDocuments: []
       };
     }
     for await (const message of client.fetch(selected, {
@@ -464,7 +468,9 @@ async function fetchCurrentInfoMail(payload = {}) {
   }
 
   for (const candidate of scheduleCandidates) {
-    scheduleDocuments.push(...await extractInternatScheduleDocuments(candidate.parsed, candidate.item));
+    const extracted = await extractInternatScheduleDocuments(candidate.parsed, candidate.item);
+    scheduleDocuments.push(...extracted.documents);
+    ignoredScheduleDocuments.push(...extracted.ignored);
   }
 
   items.sort((a, b) => `${b.date} ${b.id}`.localeCompare(`${a.date} ${a.id}`));
@@ -477,7 +483,8 @@ async function fetchCurrentInfoMail(payload = {}) {
     scanned: scannedCount,
     newestDate,
     items,
-    scheduleDocuments
+    scheduleDocuments,
+    ignoredScheduleDocuments
   };
 }
 
@@ -916,6 +923,7 @@ function isNumberedInternatWeekHint(value = '') {
 async function extractInternatScheduleDocuments(parsed, item) {
   const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
   const documents = [];
+  const ignored = [];
 
   for (let index = 0; index < attachments.length; index += 1) {
     const attachment = attachments[index];
@@ -939,6 +947,15 @@ async function extractInternatScheduleDocuments(parsed, item) {
       if (!buffer.length || buffer.length > CURRENT_INFO_ATTACHMENT_LIMIT) throw new Error('Załącznik jest pusty albo przekracza limit rozmiaru.');
       const converted = await mammoth.convertToHtml({ buffer });
       const parsedSchedule = parseInternatScheduleHtml(converted.value || '', source);
+      if (parsedSchedule.ignored) {
+        ignored.push({
+          id: `${item.mailUid}:${attachmentId}`,
+          ...source,
+          weekStart: parsedSchedule.weekStart,
+          reason: parsedSchedule.ignoreReason
+        });
+        continue;
+      }
       const isCorrection = normalizeMailSearch(scheduleHint).includes('korekt');
       const needsSourceVerification = isCorrection && !parsedSchedule.hasCompleteWeek;
       documents.push({
@@ -966,7 +983,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
     }
   }
 
-  return documents;
+  return { documents, ignored };
 }
 
 function classifyInternatScheduleKind(value = '') {
@@ -977,10 +994,24 @@ function classifyInternatScheduleKind(value = '') {
 }
 
 function parseInternatScheduleHtml(html, source = {}) {
+  const documentText = decodeInternatHtmlCell(html);
+  const sourceHint = `${source.sourceTitle || ''} ${source.sourceAttachment || ''}`;
+  const weekStart = extractInternatWeekStart(sourceHint) || extractInternatWeekStart(documentText);
+  const ignoreReason = getNonInternatScheduleReason(documentText);
+  if (ignoreReason) {
+    return {
+      weekStart,
+      records: [],
+      hasCompleteWeek: false,
+      ambiguous: false,
+      warning: '',
+      ignored: true,
+      ignoreReason
+    };
+  }
+
   const tables = extractInternatHtmlTables(html);
   const tableText = tables.flat(2).join(' ');
-  const sourceHint = `${source.sourceTitle || ''} ${source.sourceAttachment || ''}`;
-  const weekStart = extractInternatWeekStart(sourceHint) || extractInternatWeekStart(tableText);
   const declaredDates = getInternatDeclaredWeekDates(tables, weekStart);
   const records = [];
   let unresolvedTimedCells = 0;
@@ -1005,8 +1036,18 @@ function parseInternatScheduleHtml(html, source = {}) {
     records: uniqueRecords,
     hasCompleteWeek: declaredDates.size >= 7,
     ambiguous,
-    warning: ambiguous ? 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.' : ''
+    warning: ambiguous ? 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.' : '',
+    ignored: false,
+    ignoreReason: ''
   };
+}
+
+function getNonInternatScheduleReason(value = '') {
+  const text = normalizeMailSearch(value);
+  if (/zespol\w*\s+diagnostyczno[\s–—-]+terapeutyczn/.test(text)) {
+    return 'Grafik zespołu diagnostyczno-terapeutycznego nie jest grafikiem wychowawców internatu.';
+  }
+  return '';
 }
 
 function getInternatDeclaredWeekDates(tables, weekStart) {
@@ -1071,6 +1112,8 @@ function extractInternatHtmlTables(html = '') {
 
 function decodeInternatHtmlCell(value = '') {
   return String(value)
+    .replace(/<sup\b[^>]*>\s*(\d{2})\s*<\/sup>/gi, ':$1')
+    .replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, ' ')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li)>/gi, '\n')
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
@@ -1193,7 +1236,9 @@ function extractInternatEmployee(value = '') {
 function extractInternatEmployeeCandidates(value = '') {
   const raw = String(value || '').trim();
   if (!raw || /zast[eę]puje|zamiast|zmienia|zast[eę]pstwo/i.test(raw)) return [];
-  const parts = [...raw.split(/\n|[;|]/), raw];
+  const wholeCellCandidate = extractInternatTimeRanges(raw).length ? '' : parseInternatEmployeeCandidate(raw);
+  if (wholeCellCandidate && wholeCellCandidate.split(/\s+/).length >= 2) return [wholeCellCandidate];
+  const parts = raw.split(/\n|[;|]/);
   const generic = new Set([
     'brak', 'dzien', 'dyzur', 'godziny', 'grupa', 'harmonogram', 'koniec', 'nazwisko', 'noc',
     'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
@@ -1202,21 +1247,31 @@ function extractInternatEmployeeCandidates(value = '') {
   const candidates = [];
 
   parts.forEach(part => {
-    const cleaned = String(part)
-      .replace(internatTimeRangePattern(), ' ')
-      .replace(/\b(?:grupa|gr)\.?\s*[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+/gi, ' ')
-      .replace(/\b(?:noc|dyzur|godziny|praca|wolne|urlop|zastepstwo)\b/gi, ' ')
-      .replace(/[\d()[\]{}:,]+/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-    const tokens = cleaned.match(/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż][A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż'-]{2,}/g) || [];
-    if (!tokens.length || tokens.length > 3) return;
-    if (tokens.some(token => generic.has(normalizeMailSearch(token)))) return;
-    const candidate = tokens.join(' ');
+    const candidate = parseInternatEmployeeCandidate(part, generic);
+    if (!candidate) return;
     if (!candidates.some(item => normalizeMailSearch(item) === normalizeMailSearch(candidate))) candidates.push(candidate);
   });
 
   return candidates;
+}
+
+function parseInternatEmployeeCandidate(value = '', genericWords) {
+  const generic = genericWords || new Set([
+    'brak', 'dzien', 'dyzur', 'godziny', 'grupa', 'harmonogram', 'koniec', 'nazwisko', 'noc',
+    'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
+    'wychowawca', 'czw', 'nd'
+  ]);
+  const cleaned = String(value)
+    .replace(internatTimeRangePattern(), ' ')
+    .replace(/\b(?:grupa|gr)\.?\s*[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+/gi, ' ')
+    .replace(/\b(?:noc|dyzur|godziny|praca|wolne|urlop|zastepstwo)\b/gi, ' ')
+    .replace(/[\d()[\]{}:,]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  const tokens = cleaned.match(/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż][A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż'-]{2,}/g) || [];
+  if (!tokens.length || tokens.length > 3) return '';
+  if (tokens.some(token => generic.has(normalizeMailSearch(token)))) return '';
+  return tokens.join(' ');
 }
 
 function extractInternatGroup(value = '') {
@@ -1744,3 +1799,10 @@ function end(res, status) {
   res.writeHead(status);
   res.end();
 }
+
+export {
+  decodeInternatHtmlCell,
+  extractInternatEmployeeCandidates,
+  getNonInternatScheduleReason,
+  parseInternatScheduleHtml
+};

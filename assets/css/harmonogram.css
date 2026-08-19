@@ -126,6 +126,51 @@
   font-weight: 800;
   margin-top: 8px;
 }
+.internat-week-field {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 9px;
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 900;
+}
+.internat-week-field select,
+.internat-schedule-query input {
+  width: 100%;
+  min-width: 0;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  background: #fff;
+  color: var(--navy);
+  font-family: inherit;
+  font-size: .9rem;
+  font-weight: 850;
+  outline: none;
+}
+.internat-week-field select:focus,
+.internat-schedule-query input:focus {
+  border-color: var(--navy2);
+  box-shadow: 0 0 0 3px rgba(31, 90, 136, .14);
+}
+.internat-schedule-query {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+.internat-schedule-query .btn {
+  min-height: 46px;
+  margin-top: 0;
+}
+@media (max-width: 460px) {
+  .internat-schedule-query {
+    grid-template-columns: 1fr;
+  }
+  .internat-schedule-query .btn {
+    width: 100%;
+  }
+}
 .kb-form {
   display: grid;
   gap: 8px;
