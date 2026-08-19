@@ -6,7 +6,7 @@ function openHelp() {
   if (!title || !source || !body || !view) return;
 
   title.textContent = 'Pomoc';
-  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.3';
+  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.4';
   body.innerHTML = `
     <div class="help-panel">
       <div class="help-card help-card--strong">
@@ -42,6 +42,8 @@ function openHelp() {
           <li>„Nowe publikacje do oceny” to sygnały do sprawdzenia, a nie gotowa interpretacja prawna.</li>
           <li>Dokumenty MOW określają codzienne postępowanie, ale nie mogą być sprzeczne z ustawą lub rozporządzeniem.</li>
           <li>Zmiany czasowe zapisuj z datą obowiązywania. Nowszy aktywny wpis ma pierwszeństwo przed starszym.</li>
+          <li>„Zapisane wpisy bazy wiedzy” to indeks źródeł, a nie historia rozmów. Wpisy centralne są wspólne i tylko do odczytu; wpisy lokalne istnieją wyłącznie na używanym urządzeniu.</li>
+          <li>Bank 250 odpowiedzi i testy jakości są mechanizmami aplikacji. Przycisk „Wyjaśnij” opisuje je lokalnie, bez wysyłania treści do zewnętrznego AI i bez zużywania limitu.</li>
         </ul>
       </div>
 

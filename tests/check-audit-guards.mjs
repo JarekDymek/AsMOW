@@ -43,7 +43,7 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.3.0'",
+  "const BACKEND_VERSION = '1.3.1'",
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",

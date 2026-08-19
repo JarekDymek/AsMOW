@@ -1,130 +1,130 @@
 {
-  "version": "2026-06-30.1",
-  "updatedAt": "2026-06-30",
-  "source": "Centralna baza wiedzy MOW - wyciagi aktywne i pelne teksty w archiwum",
+  "version": "2026-08-19.2",
+  "updatedAt": "2026-08-19",
+  "source": "Centralna baza wiedzy MOW – aktywne wyciągi i pełne teksty w archiwum",
   "rules": [
-    "Przy pytaniach proceduralnych pierwszenstwo maja aktualne dokumenty MOW nr 1 w Malborku: statut, procedury, regulaminy, standardy ochrony maloletnich, zarzadzenia dyrektora i wpisy w bazie zmian czasowych.",
-    "Aktywne odpowiedzi AI maja korzystac przede wszystkim z krotkich wyciagow w backend/knowledge/*.md. Pelne teksty aktow prawnych sa przechowywane jako archiwum zrodlowe w backend/knowledge/_archiwum_pelne_teksty i nie powinny byc bezposrednio ladowane do kazdego pytania.",
-    "Jezeli pytanie jest zbyt ogolne, AI ma dopytac o kontekst zamiast odpowiadac na sile.",
-    "AI nie powinno prosic o pelne dane osobowe wychowanka. Zalecane sa inicjaly, grupa i opis zdarzenia bez danych identyfikujacych."
+    "Przy pytaniach proceduralnych pierwszeństwo mają aktualne dokumenty MOW nr 1 w Malborku: statut, procedury, regulaminy, standardy ochrony małoletnich, zarządzenia dyrektora i wpisy w bazie zmian czasowych.",
+    "Aktywne odpowiedzi AI mają korzystać przede wszystkim z krótkich wyciągów w backend/knowledge/*.md. Pełne teksty aktów prawnych są przechowywane jako archiwum źródłowe w backend/knowledge/_archiwum_pelne_teksty i nie powinny być bezpośrednio ładowane do każdego pytania.",
+    "Jeżeli pytanie jest zbyt ogólne, AI ma dopytać o kontekst zamiast odpowiadać na siłę.",
+    "AI nie powinno prosić o pełne dane osobowe wychowanka. Zalecane są inicjały, grupa i opis zdarzenia bez danych identyfikujących."
   ],
   "items": [
     {
       "id": "mow-procedury-pierwszenstwo",
       "key": "procedury-ogolne",
       "type": "zasada-stala",
-      "title": "Pierwszenstwo dokumentow MOW",
-      "source": "Dokumenty wewnetrzne MOW nr 1 w Malborku",
+      "title": "Pierwszeństwo dokumentów MOW",
+      "source": "Dokumenty wewnętrzne MOW nr 1 w Malborku",
       "documentDate": "2026-06-22",
       "validFrom": "2026-06-22",
       "validTo": "",
       "version": "1",
       "approvedBy": "Administrator aplikacji",
-      "content": "Przy pytaniach o sposob postepowania wychowawcy pierwszenstwo maja aktualne dokumenty MOW, statut, procedury, regulaminy, standardy ochrony maloletnich oraz zatwierdzone zarzadzenia dyrektora. Akty prawne sa rama nadrzedna, ale codzienny tryb dzialania placowki wynika z dokumentow wewnetrznych."
+      "content": "Przy pytaniach o sposób postępowania wychowawcy pierwszeństwo mają aktualne dokumenty MOW: statut, procedury, regulaminy, standardy ochrony małoletnich oraz zatwierdzone zarządzenia dyrektora. Akty prawne są nadrzędną ramą, ale codzienny tryb działania placówki wynika z dokumentów wewnętrznych."
     },
     {
       "id": "mow-ochrona-danych-ai",
       "key": "ochrona-danych-ai",
       "type": "zasada-stala",
       "title": "Ochrona danych w pytaniach do AI",
-      "source": "Polityka bezpieczenstwa aplikacji Asystent MOW",
+      "source": "Polityka bezpieczeństwa aplikacji Asystent MOW",
       "documentDate": "2026-06-22",
       "validFrom": "2026-06-22",
       "validTo": "",
       "version": "1",
       "approvedBy": "Administrator aplikacji",
-      "content": "Do AI nie nalezy wpisywac pelnych danych osobowych wychowankow, numerow PESEL, adresow, danych medycznych ani szczegolow pozwalajacych latwo zidentyfikowac osobe. Zalecany zapis: inicjaly, grupa, opis zdarzenia i kontekst bez danych identyfikujacych."
+      "content": "Do AI nie należy wpisywać pełnych danych osobowych wychowanków, numerów PESEL, adresów, danych medycznych ani szczegółów pozwalających łatwo zidentyfikować osobę. Zalecany zapis: inicjały, grupa, opis zdarzenia i kontekst bez danych identyfikujących."
     },
     {
       "id": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich-wyciag-2026",
       "key": "prawo-ustawa-wspieranie-resocjalizacja-nieletnich",
       "type": "ustawa-wyciag",
-      "title": "Ustawa o wspieraniu i resocjalizacji nieletnich - wyciag MOW",
-      "source": "Dz.U. 2026 poz. 163; obwieszczenie Marszalka Sejmu RP z 5 lutego 2026 r.",
+      "title": "Ustawa o wspieraniu i resocjalizacji nieletnich – wyciąg dla MOW",
+      "source": "Dz.U. 2026 poz. 163; obwieszczenie Marszałka Sejmu RP z 5 lutego 2026 r.",
       "documentDate": "2026-02-05",
       "validFrom": "2026-02-12",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22",
+      "version": "wyciąg aktywny 2026-08-19",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/01_wyciag_mow_ustawa_resocjalizacja_2026.md. Pelny tekst pozostaje w archiwum: backend/knowledge/_archiwum_pelne_teksty/01_ustawa_o_wspieraniu_i_resocjalizacji_nieletnich_tekst_jednolity_2026.txt."
+      "content": "Skrócony wyciąg obejmuje przepisy istotne dla codziennej pracy MOW, w szczególności prawa wychowanka, pobyt, bezpieczeństwo i czasowe opuszczanie ośrodka. Pełny tekst pozostaje w archiwum źródłowym."
     },
     {
       "id": "prawo-rozporzadzenie-placowki-systemu-oswiaty-wyciag-2023",
       "key": "prawo-rozporzadzenie-publiczne-placowki-oswiaty",
       "type": "rozporzadzenie-wyciag",
-      "title": "Rozporzadzenie MEiN o niektorych publicznych placowkach systemu oswiaty - wyciag MOW",
-      "source": "Dz.U. 2023 poz. 651; rozporzadzenie MEiN z 30 marca 2023 r.",
+      "title": "Rozporządzenie MEiN o niektórych publicznych placówkach systemu oświaty – wyciąg dla MOW",
+      "source": "Dz.U. 2023 poz. 651; rozporządzenie MEiN z 30 marca 2023 r.",
       "documentDate": "2023-03-30",
       "validFrom": "2023-04-05",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22",
+      "version": "wyciąg aktywny 2026-08-19",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/02_wyciag_mow_rozporzadzenie_placowki_2023.md. Pelny tekst pozostaje w archiwum: backend/knowledge/_archiwum_pelne_teksty/02_rozporzadzenie_mein_publiczne_placowki_systemu_oswiaty_2023.txt."
+      "content": "Skrócony wyciąg obejmuje organizację MOW, przyjęcie i pobyt wychowanka, urlopy, przepustki oraz dokumentację. Pełny tekst pozostaje w archiwum źródłowym."
     },
     {
       "id": "prawo-oswiatowe-organizacja-mow-wyciag",
       "key": "prawo-oswiatowe-organizacja-mow",
       "type": "ustawa-i-akty-wykonawcze",
-      "title": "Prawo oswiatowe i organizacja placowki - wyciag MOW",
-      "source": "Prawo oswiatowe Dz.U. 2026 poz. 820 oraz akty wykonawcze",
+      "title": "Prawo oświatowe i organizacja placówki – wyciąg dla MOW",
+      "source": "Prawo oświatowe, Dz.U. 2026 poz. 820, oraz akty wykonawcze",
       "documentDate": "2026-06-04",
       "validFrom": "2026-06-04",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22",
+      "version": "wyciąg aktywny 2026-08-19",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/03_wyciag_mow_prawo_oswiatowe_organizacja.md."
+      "content": "Wyciąg porządkuje przepisy dotyczące miejsca MOW w systemie oświaty, statutu, organizacji, nadzoru pedagogicznego i obowiązków placówki."
     },
     {
       "id": "praca-wychowawcy-awans-czas-pracy-wyciag",
       "key": "karta-nauczyciela-awans-kodeks-pracy",
       "type": "prawo-pracy-i-awans",
-      "title": "Praca wychowawcy, czas pracy i awans zawodowy - wyciag",
-      "source": "Karta Nauczyciela Dz.U. 2026 poz. 515; awans zawodowy Dz.U. 2022 poz. 1914; Kodeks pracy Dz.U. 2025 poz. 277 z pozniejszymi zmianami",
+      "title": "Praca wychowawcy, czas pracy i awans zawodowy – wyciąg",
+      "source": "Karta Nauczyciela, Dz.U. 2026 poz. 515; awans zawodowy, Dz.U. 2022 poz. 1914; Kodeks pracy, Dz.U. 2025 poz. 277 z późniejszymi zmianami",
       "documentDate": "2026-03-12",
       "validFrom": "2026-03-12",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22.2",
+      "version": "wyciąg aktywny 2026-08-19.2",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/04_wyciag_mow_praca_wychowawcy_awans_czas_pracy.md. Kluczowa korekta: dla wychowawcy w mlodziezowym osrodku wychowawczym pensum wynosi 24 godziny tygodniowo zgodnie z art. 42 ust. 3 Karty Nauczyciela, tabela, lp. 8 lit. c. Nie nalezy mylic tego z art. 42 ust. 1, ktory wskazuje, ze czas pracy nauczyciela zatrudnionego w pelnym wymiarze nie moze przekraczac 40 godzin tygodniowo."
+      "content": "Kluczowa zasada: pensum wychowawcy w młodzieżowym ośrodku wychowawczym wynosi 24 godziny tygodniowo zgodnie z art. 42 ust. 3 Karty Nauczyciela, tabela, lp. 8 lit. c. Nie należy mylić pensum z art. 42 ust. 1, według którego czas pracy nauczyciela zatrudnionego w pełnym wymiarze nie może przekraczać 40 godzin tygodniowo."
     },
     {
       "id": "bezpieczenstwo-dokumentacja-pomoc-wyciag",
       "key": "bezpieczenstwo-dokumentacja-ppp-bhp-spb",
       "type": "bezpieczenstwo-i-dokumentacja",
-      "title": "Bezpieczenstwo, dokumentacja i pomoc psychologiczno-pedagogiczna - wyciag",
-      "source": "Dz.U. 2026 poz. 244; Dz.U. 2020 poz. 1604 z pozniejszymi zmianami; Dz.U. 2023 poz. 1798; Dz.U. 2020 poz. 1309; Dz.U. 2024 poz. 50",
+      "title": "Bezpieczeństwo, dokumentacja i pomoc psychologiczno-pedagogiczna – wyciąg",
+      "source": "Dz.U. 2026 poz. 244; Dz.U. 2020 poz. 1604 z późniejszymi zmianami; Dz.U. 2023 poz. 1798; Dz.U. 2020 poz. 1309; Dz.U. 2024 poz. 50",
       "documentDate": "2026-06-22",
       "validFrom": "2026-06-22",
       "validTo": "",
-      "version": "wyciag aktywny 2026-06-22",
+      "version": "wyciąg aktywny 2026-08-19",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/05_wyciag_mow_bezpieczenstwo_dokumentacja_pomoc.md."
+      "content": "Wyciąg łączy zasady bezpieczeństwa, BHP, dokumentowania zdarzeń, pomocy psychologiczno-pedagogicznej i ochrony danych w zakresie potrzebnym wychowawcy MOW."
     },
     {
       "id": "odpowiedzi-wzorcowe-testy-regresji-ai",
       "key": "odpowiedzi-wzorcowe-testy-ai",
       "type": "testy-regresji-ai",
-      "title": "Odpowiedzi wzorcowe i pytania kontrolne dla AI",
-      "source": "Wewnetrzny test bazy wiedzy Asystenta MOW",
+      "title": "Testy jakości odpowiedzi Asystenta MOW",
+      "source": "Wewnętrzne testy bazy wiedzy Asystenta MOW",
       "documentDate": "2026-06-22",
       "validFrom": "2026-06-22",
       "validTo": "",
-      "version": "1",
+      "version": "2",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik: backend/knowledge/06_odpowiedzi_wzorcowe_mow.md. Test statyczny: tests/check-knowledge-golden.mjs oraz tests/knowledge-golden-cases.json. Test live realnego AI: tests/check-ai-live.mjs uruchamiany komenda npm run test:ai-live po ustawieniu ASMOW_LIVE_AI_URL. Aktualnie sprawdzane sa pytania kontrolne m.in. o pensum wychowawcy MOW 24 godziny, roznice miedzy 40 godzinami czasu pracy a pensum, urlop i przepustke, prawa wychowanka, pierwszenstwo dokumentow MOW, dane osobowe, sytuacje kryzysowe i aktualnosc zmian czasowych."
+      "content": "Pytania kontrolne sprawdzają, czy po aktualizacji nie wracają znane błędy. Obejmują m.in. pensum wychowawcy MOW wynoszące 24 godziny, różnicę między czasem pracy a pensum, urlop i przepustkę, prawa wychowanka, pierwszeństwo dokumentów MOW, dane osobowe, sytuacje kryzysowe, stopnie uspołecznienia i aktualność zmian czasowych."
     },
     {
       "id": "bank-odpowiedzi-mow-250-intencje",
       "key": "bank-odpowiedzi-mow-250",
       "type": "bank-odpowiedzi-i-intencji",
-      "title": "Bank 250 odpowiedzi wzorcowych i szkieletow wyszukiwania intencji",
-      "source": "Dokumenty MOW, ustawa o wspieraniu i resocjalizacji nieletnich, rozporzadzenie MEiN o publicznych placowkach, Karta Nauczyciela, Prawo oswiatowe, Kodeks pracy, przepisy bezpieczenstwa i dokumentacji",
+      "title": "Bank 250 odpowiedzi wzorcowych i rozpoznawania intencji",
+      "source": "Dokumenty MOW, ustawa o wspieraniu i resocjalizacji nieletnich, rozporządzenie MEiN o publicznych placówkach, Karta Nauczyciela, Prawo oświatowe, Kodeks pracy oraz przepisy bezpieczeństwa i dokumentacji",
       "documentDate": "2026-06-30",
       "validFrom": "2026-06-30",
       "validTo": "",
-      "version": "1",
+      "version": "2",
       "approvedBy": "Administrator aplikacji",
-      "content": "Aktywny plik backendowy: backend/knowledge/07_bank_odpowiedzi_mow_250.md. Aktywny plik frontendowy: assets/js/data-answer-bank.js. Router lokalny: assets/js/answer-bank.js. Bank sluzy do rozpoznawania podobnych pytan, ograniczania kosztow AI i dopytywania przy pytaniach zbyt ogolnych."
+      "content": "Bank zawiera 250 krótkich, kontrolowanych odpowiedzi w 25 grupach tematycznych. Lokalny router rozpoznaje podobne pytania, odpowiada bez użycia zewnętrznego AI przy pewnym dopasowaniu i dopytuje, gdy pytanie jest zbyt ogólne. Dzięki temu ogranicza koszty, opóźnienia i ryzyko błędnej odpowiedzi modelu."
     }
   ]
 }

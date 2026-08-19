@@ -172,11 +172,45 @@ body:has(#law-force-card:not(.collapsed)) .nota-fab { display: none !important; 
 }
 #knowledge-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
   gap: 10px;
 }
 #knowledge-list .kb-item {
   margin-bottom: 0;
+}
+.kb-guide {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 2px solid #9fb8cf;
+  border-left: 6px solid var(--gold);
+  border-radius: var(--radius);
+  background: #eef4fa;
+  color: var(--navy);
+  line-height: 1.45;
+}
+.kb-guide strong { font-size: .9rem; }
+.kb-guide span { font-size: .76rem; font-weight: 800; }
+.kb-group { display: grid; gap: 8px; }
+.kb-group-head {
+  padding: 7px 2px 0;
+  color: var(--navy);
+}
+.kb-group-head h3 {
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 950;
+}
+.kb-group-head p {
+  margin: 3px 0 0;
+  color: #40566d;
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 10px;
 }
 .tile-screen .chat-pills {
   display: grid;
