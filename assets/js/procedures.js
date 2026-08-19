@@ -1,6 +1,23 @@
 /* ────────────────────────────────
    RENDER PROCEDURES
 ──────────────────────────────── */
+const PROCEDURE_RELATIONS = {
+  'p-agresja': ['p-wypadek', 'p-niebezp', 'p-krzywdzenie'],
+  'p-ucieczka': ['p-przepust', 'p-wypadek'],
+  'p-narkotyki': ['p-wypadek', 'p-samo'],
+  'p-samo': ['p-wypadek', 'p-krzywdzenie'],
+  'p-niebezp': ['p-agresja', 'p-wypadek'],
+  'p-pozar': ['p-wypadek'],
+  'p-obca': ['p-odwiedz', 'p-niebezp'],
+  'p-krzywdzenie': ['p-nadzuz', 'p-cyber'],
+  'p-kores': ['p-niebezp'],
+  'p-odwiedz': ['p-obca', 'p-kores'],
+  'p-cyber': ['p-krzywdzenie', 'p-nadzuz', 'p-samo'],
+  'p-nadzuz': ['p-krzywdzenie', 'p-wypadek'],
+  'p-kradziez': ['p-agresja'],
+  'p-przepust': ['p-ucieczka']
+};
+
 function renderProcs() {
   PROCS.forEach(p => {
     const el = document.createElement('div');
@@ -28,9 +45,13 @@ function renderProcs() {
 
 function filterProcs(q) {
   q = normalizeProcedureSearch(q);
+  let matches = 0;
   document.querySelectorAll('.proc-item').forEach(el => {
-    el.style.display = (!q || el.dataset.search.includes(q)) ? '' : 'none';
+    const visible = !q || el.dataset.search.includes(q);
+    el.style.display = visible ? '' : 'none';
+    if (visible) matches += 1;
   });
+  updateProcedureSearchStatus(q, matches);
   if (!q) return;
   [
     ['pl-crisis', 'proc-crisis-card'],
@@ -41,6 +62,21 @@ function filterProcs(q) {
       .some(el => el.style.display !== 'none');
     setAccordionCollapsed(panelId, !hasMatch);
   });
+}
+
+function updateProcedureSearchStatus(query, matches) {
+  const status = document.getElementById('proc-search-status');
+  if (!status) return;
+  status.hidden = !query;
+  if (!query) {
+    status.innerHTML = '';
+  } else if (matches) {
+    status.className = 'proc-search-status has-results';
+    status.textContent = `Znaleziono procedury: ${matches}.`;
+  } else {
+    status.className = 'proc-search-status no-results';
+    status.innerHTML = '<strong>Brak gotowej procedury dla tego hasła.</strong> Jeżeli istnieje bezpośrednie zagrożenie życia lub zdrowia, dzwoń 112 i powiadom osobę kierującą dyżurem. W pozostałych przypadkach opisz sytuację w polu AI albo skonsultuj ją z Dyrektorem.';
+  }
 }
 
 function normalizeProcedureSearch(value = '') {
@@ -95,9 +131,12 @@ function openDetail(id) {
       ${proc.sourceLinks.map(link => `<a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.label} ↗</a>`).join('')}
     </div>`;
   }
+  html += renderRelatedProcedures(proc.id);
   if (proc.extra) html += proc.extra;
   document.getElementById('det-body').innerHTML = html;
-  document.getElementById('detail-view').classList.add('open');
+  const detailView = document.getElementById('detail-view');
+  detailView.classList.add('open');
+  detailView.scrollTop = 0;
 }
 
 function renderProcedureSteps(steps, startIndex) {
@@ -111,6 +150,19 @@ function renderProcedureList(title, items, type) {
     <summary>${title} <span>${items.length}</span></summary>
     <ul class="procedure-checklist">${items.map(item => `<li>${item}</li>`).join('')}</ul>
   </details>`;
+}
+
+function renderRelatedProcedures(id) {
+  const related = (PROCEDURE_RELATIONS[id] || [])
+    .map(relatedId => PROCS.find(proc => proc.id === relatedId))
+    .filter(Boolean)
+    .slice(0, 3);
+  if (!related.length) return '';
+  return `<section class="related-procedures" aria-label="Powiązane procedury">
+    <p class="sec-title">🧭 Powiązane procedury</p>
+    <div class="related-procedure-grid">${related.map(proc => `
+      <button type="button" onclick="openDetail('${proc.id}')"><span>${proc.icon}</span><strong>${proc.title}</strong></button>`).join('')}</div>
+  </section>`;
 }
 
 function closeDetail() {

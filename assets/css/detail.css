@@ -119,6 +119,29 @@
   font-weight: 900;
   text-decoration: none;
 }
+.related-procedures { margin-top: 16px; }
+.related-procedure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.related-procedure-grid button {
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px;
+  border: 1.5px solid #b8cbe0;
+  border-radius: 8px;
+  background: #f4f8fc;
+  color: var(--navy);
+  text-align: center;
+  cursor: pointer;
+}
+.related-procedure-grid button span { font-size: 1.25rem; }
+.related-procedure-grid button strong { font-size: .72rem; line-height: 1.3; }
 
 /* info rows */
 .info-row {

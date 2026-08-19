@@ -16,7 +16,36 @@ function renderStopnie() {
     el.addEventListener('click', () => openStopien(s));
     document.getElementById(s.lvl.startsWith('–') ? 'st-neg' : 'st-pos').appendChild(el);
   });
+  renderStopRules();
+  renderStopEvents();
   setupStopAssistant();
+}
+
+function renderStopRules() {
+  const container = document.getElementById('stop-rules-render');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="abox info"><span class="ai">ℹ️</span><div><strong>Kwalifikacja jest zespołowa.</strong> Pojedyncza obserwacja ani odpowiedź AI nie zastępuje karty obserwacji i wspólnej oceny.</div></div>
+    <ol class="stop-rules-list">${STOP_QUALIFICATION_RULES.map(rule => `<li>${rule}</li>`).join('')}</ol>
+    <div class="stop-appeal"><strong>Prawo odwołania</strong><span>${STOP_APPEAL.text}</span></div>
+    <p class="stop-source-note">Źródło: Regulamin stopni uspołecznienia, załącznik nr 7 do Statutu MOW.</p>`;
+}
+
+function renderStopEvents() {
+  const container = document.getElementById('stop-events-render');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="stop-event-list">${STOP_EVENT_CHANGES.map(item => `
+      <div class="stop-event-row${item.safetyFirst ? ' is-safety' : ''}">
+        <span class="stop-event-icon">${item.icon}</span>
+        <div><strong>${item.event}</strong><span>${item.effect}</span>${item.safetyFirst ? '<small>Najpierw właściwa procedura bezpieczeństwa i ustalenie faktów.</small>' : ''}${item.procedureId ? `<button class="stop-procedure-link" type="button" onclick="openDetail('${item.procedureId}')">Otwórz procedurę</button>` : ''}</div>
+      </div>`).join('')}</div>
+    <details class="stop-actions-more">
+      <summary>Inne działania przewidziane przy łamaniu regulaminu</summary>
+      <ul>${STOP_DISCIPLINARY_ACTIONS.map(action => `<li>${action}</li>`).join('')}</ul>
+    </details>
+    <div class="stop-appeal"><strong>Odwołanie</strong><span>${STOP_APPEAL.text}</span></div>
+    <p class="stop-source-note">Źródło: Regulamin stopni uspołecznienia, pkt 9 i część końcowa.</p>`;
 }
 
 function openStopien(s) {
@@ -61,7 +90,8 @@ function renderStopChecklist() {
     form.innerHTML = '<p class="stop-check-empty">Wybierz stopień, aby wyświetlić kryteria.</p>';
     return;
   }
-  form.innerHTML = level.crit.map((criterion, index) => `
+  const criteria = getStopChecklistCriteria(level);
+  form.innerHTML = criteria.map((criterion, index) => `
     <fieldset class="stop-check-row">
       <legend>${index + 1}. ${criterion}</legend>
       <div class="stop-segmented" role="radiogroup" aria-label="Ocena kryterium ${index + 1}">
@@ -71,6 +101,7 @@ function renderStopChecklist() {
       </div>
     </fieldset>`).join('');
   form.dataset.levelId = level.id;
+  form.dataset.criteriaCount = String(criteria.length);
 }
 
 function summarizeStopChecklist() {
@@ -81,7 +112,8 @@ function summarizeStopChecklist() {
     if (result) result.innerHTML = '<div class="abox warn"><span class="ai">⚠️</span><div>Najpierw wybierz stopień.</div></div>';
     return;
   }
-  const values = level.crit.map((_, index) => form.querySelector(`input[name="stop-check-${index}"]:checked`)?.value || 'unknown');
+  const criteriaCount = Number(form.dataset.criteriaCount || level.crit.length);
+  const values = Array.from({length: criteriaCount}, (_, index) => form.querySelector(`input[name="stop-check-${index}"]:checked`)?.value || 'unknown');
   const yes = values.filter(value => value === 'yes').length;
   const no = values.filter(value => value === 'no').length;
   const unknown = values.filter(value => value === 'unknown').length;
@@ -89,4 +121,17 @@ function summarizeStopChecklist() {
     ? `Zaznaczono ${yes} potwierdzonych zdarzeń, ${no} wykluczonych i ${unknown} bez danych. Arkusz nie ustala stopnia: zweryfikuj dokumentację i omów sprawę w zespole.`
     : `Spełnione: ${yes}. Niespełnione: ${no}. Brak danych: ${unknown}. Do pozytywnej kwalifikacji potrzebna jest łączna, zespołowa ocena wszystkich kryteriów.`;
   result.innerHTML = `<div class="abox ${no || unknown ? 'warn' : 'ok'}"><span class="ai">${no || unknown ? '🔎' : '✅'}</span><div><strong>Wynik pomocniczy</strong><br>${message}</div></div>`;
+}
+
+function getStopChecklistCriteria(level) {
+  if (level.mode !== 'all' || !level.lvl.startsWith('+')) return [...level.crit];
+  const positiveLevels = STOPNIE.filter(item => item.lvl.startsWith('+'));
+  const targetIndex = positiveLevels.findIndex(item => item.id === level.id);
+  if (targetIndex <= 0) return [...level.crit];
+  const criteria = [];
+  positiveLevels.slice(0, targetIndex + 1).forEach((item, index) => {
+    const ownCriteria = index === 0 ? item.crit : item.crit.slice(1);
+    criteria.push(...ownCriteria);
+  });
+  return [...new Set(criteria)];
 }

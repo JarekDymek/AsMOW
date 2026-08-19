@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.1</span>
+  <span class="hdr-badge">v2.2</span>
 </header>
 
 <!-- MAIN -->
@@ -118,6 +118,7 @@
     <span class="search-icon">🔍</span>
     <input type="text" id="proc-search" placeholder="Szukaj procedury..." oninput="filterProcs(this.value)">
   </div>
+  <div class="proc-search-status" id="proc-search-status" aria-live="polite" hidden></div>
   <button class="section-toggle" type="button" data-accordion-target="proc-crisis-card" onclick="toggleAccordion('proc-crisis-card')">
     <span class="st-main">🔴 Sytuacje kryzysowe</span><span class="st-state">Rozwiń</span>
   </button>
@@ -146,10 +147,7 @@
     <span class="st-main">ℹ️ Zasady kwalifikacji</span><span class="st-state">Rozwiń</span>
   </button>
   <div class="collapsible-card accordion-panel" id="stop-rules-card">
-    <div class="abox info">
-      <span class="ai">ℹ️</span>
-      <div>Kwalifikacja do <strong>25. dnia miesiąca</strong> przez wychowawców i wychowanków wspólnie. Zmiana max. o 1 stopień wyżej (wyjątkowo 2). Stopień zerowy: min. 4 tyg. adaptacji.</div>
-    </div>
+    <div id="stop-rules-render"></div>
   </div>
   <button class="section-toggle" type="button" data-accordion-target="stop-neg-card" onclick="toggleAccordion('stop-neg-card')">
     <span class="st-main">📉 Stopnie ujemne</span><span class="st-state">Rozwiń</span>
@@ -177,19 +175,7 @@
   </button>
   <div class="card collapsible-card accordion-panel" id="stop-drop-card"><div class="card-body">
     <div class="abox danger"><span class="ai">🛡️</span><div><strong>Najpierw bezpieczeństwo i pomoc.</strong> Poniższa lista nie zastępuje procedury kryzysowej ani ustalenia faktów. Zmianę stopnia rozpatruje się później zgodnie z regulaminem.</div></div>
-    <div style="font-size:.88rem;line-height:2">
-      <div>🥊 Czyn karalny → <strong>stopień –2</strong></div>
-      <div>👊 Pobicie z urazem → <strong>spadek o 2</strong> (min. zero)</div>
-      <div>💊 Narkotyki/alkohol → <strong>spadek o 1–2</strong> (min. zero)</div>
-      <div>🤜 Bójka/pobicie → <strong>spadek o 1–2</strong></div>
-      <div>💰 Wymuszenie → <strong>spadek o 1–2</strong></div>
-      <div>🖊️ Tatuaż bez zgody rodziców → <strong>spadek</strong></div>
-      <div>🩸 Samookaleczenie → <strong>stopień –1</strong></div>
-      <div>🚪 Ucieczka → <strong>stopień –1</strong></div>
-      <div>😤 Przemoc psychiczna → <strong>spadek o 1</strong></div>
-      <div>💥 Dewastacja mienia → <strong>spadek o 1</strong></div>
-    </div>
-    <p style="font-size:.65rem;color:var(--muted);margin-top:8px;font-style:italic">Źródło: Reg. Stopni Uspołecznienia pkt 9</p>
+    <div id="stop-events-render"></div>
   </div></div>
 </div>
 

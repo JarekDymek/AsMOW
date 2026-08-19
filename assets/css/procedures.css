@@ -46,6 +46,17 @@
   color: var(--navy); min-width: 0;
 }
 .search-icon { font-size: 1.1rem; color: var(--muted); flex-shrink: 0; }
+.proc-search-status {
+  margin: -3px 0 12px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  font-size: .73rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.proc-search-status.has-results { background: #eaf7ef; border-left: 4px solid #2f855a; color: #1c5138; }
+.proc-search-status.no-results { background: #fff4ef; border-left: 4px solid #d84a3a; color: #6f2119; }
+.proc-search-status[hidden] { display: none; }
 
 @media (min-width: 760px) {
   #pl-crisis,

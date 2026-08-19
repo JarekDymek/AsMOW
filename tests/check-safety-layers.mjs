@@ -27,16 +27,26 @@ assert(procedures.includes('Nie przeszukuj osoby podejrzewanej'), 'Procedura kra
 assert(procedures.includes('pomoc specjalistyczna mają pierwszeństwo'), 'Procedura samouszkodzenia musi stawiać pomoc przed oceną zachowania.');
 assert(procedures.includes('p-krzywdzenie'), 'Brakuje procedury krzywdzenia wychowanka.');
 assert(procedures.includes('p-wypadek'), 'Brakuje procedury wypadku.');
+assert(procedures.includes('p-obca'), 'Brakuje procedury osoby obcej lub agresywnego odwiedzającego.');
+assert(procedures.includes('Nie przesyłaj szkodliwych materiałów dalej'), 'Cyberprzemoc musi ograniczać dalsze rozpowszechnianie dowodów.');
 
 assert(procedureUi.includes('🚨 NA JUŻ'), 'Szczegóły procedury muszą mieć warstwę NA JUŻ.');
 assert(procedureUi.includes('Dalsze działania'), 'Szczegóły procedury muszą mieć rozwijaną warstwę dalszych działań.');
 assert(procedureUi.includes('Tego nie rób'), 'Szczegóły procedury muszą pokazywać zakazane działania.');
+assert(procedureUi.includes('PROCEDURE_RELATIONS'), 'Brakuje lokalnych przejść między powiązanymi procedurami.');
+assert(procedureUi.includes('updateProcedureSearchStatus'), 'Wyszukiwarka procedur musi informować o braku wyniku.');
 
 assert(levels.includes('mode:"event"'), 'Stopnie ujemne muszą używać trybu zdarzeniowego.');
 assert(levels.includes('mode:"all"'), 'Stopnie dodatnie muszą używać łącznej oceny kryteriów.');
 assert(!levels.includes('rażące naruszenie porządku'), 'Usunięto kryterium niepotwierdzone w regulaminie.');
 assert(!levels.includes('poważne naruszenie regulaminu'), 'Usunięto kryterium niepotwierdzone w regulaminie.');
+assert(levels.includes('rozwija swoje mocne strony i zainteresowania'), 'Stopień +1 nie zawiera pełnego kryterium mocnych stron.');
+assert(levels.includes('samodzielnie organizuje sobie czas wolny'), 'Stopień +2 nie zawiera kryterium organizacji czasu wolnego.');
+assert(levels.includes('systematycznie uczestniczy w zajęciach poza placówką'), 'Stopień +3 nie zawiera kryterium zajęć poza placówką.');
+assert(levels.includes('submitDays: 3') && levels.includes('reviewDays: 7'), 'Brakuje terminów odwołania 3/7 dni.');
 assert(levelUi.includes('summarizeStopChecklist'), 'Brakuje lokalnego arkusza oceny kryteriów.');
+assert(levelUi.includes('getStopChecklistCriteria'), 'Arkusz stopnia +2/+3 musi uwzględniać kryteria poziomów wcześniejszych.');
+assert(levelUi.includes('renderStopEvents'), 'Lista zmian stopnia po zdarzeniu musi być generowana z jednego źródła danych.');
 
 assert(laws.includes('LAW_SOURCE_META'), 'Rejestr prawa musi zawierać metadane źródeł.');
 assert(laws.includes('https://eli.gov.pl/eli/DU/2026/163/ogl'), 'Brakuje urzędowego źródła ustawy o nieletnich.');

@@ -37,6 +37,89 @@
   gap: 10px;
 }
 
+.stop-rules-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  padding-left: 27px;
+}
+.stop-rules-list li {
+  padding: 8px 9px;
+  border: 1px solid #c6d4e4;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.stop-appeal {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-left: 4px solid var(--gold);
+  border-radius: 7px;
+  background: #fff8e4;
+  color: var(--navy);
+}
+.stop-appeal strong { font-size: .82rem; font-weight: 950; }
+.stop-appeal span { font-size: .75rem; font-weight: 800; line-height: 1.45; }
+.stop-source-note {
+  margin: 9px 0 0;
+  color: #52677b;
+  font-size: .66rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.stop-event-list { display: grid; gap: 8px; }
+.stop-event-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border: 1.5px solid #c6d4e4;
+  border-radius: 8px;
+  background: #fff;
+}
+.stop-event-row.is-safety { border-color: #e6ad69; background: #fff9ef; }
+.stop-event-icon { font-size: 1.15rem; text-align: center; }
+.stop-event-row div { display: grid; gap: 3px; min-width: 0; }
+.stop-event-row strong { color: var(--navy); font-size: .8rem; line-height: 1.35; }
+.stop-event-row span:not(.stop-event-icon) { color: #243d56; font-size: .74rem; font-weight: 850; line-height: 1.4; }
+.stop-event-row small { color: #8a3d00; font-size: .66rem; font-weight: 850; line-height: 1.35; }
+.stop-procedure-link {
+  width: fit-content;
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--navy);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+.stop-actions-more {
+  margin-top: 10px;
+  border: 1.5px solid #b8cbe0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stop-actions-more summary {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 9px 11px;
+  color: var(--navy);
+  font-size: .76rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+.stop-actions-more ul { margin: 0; padding: 10px 10px 10px 30px; border-top: 1px solid #d6e0eb; }
+.stop-actions-more li { margin-bottom: 6px; color: #243d56; font-size: .73rem; font-weight: 800; line-height: 1.4; }
+
 .stop-check-label {
   display: block;
   color: var(--navy);

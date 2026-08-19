@@ -128,6 +128,22 @@ const PROCS = [
    dont:["Nie przemieszczaj osoby z podejrzeniem urazu kręgosłupa, chyba że pozostanie grozi większym niebezpieczeństwem.","Nie wpisuj diagnozy medycznej, jeśli nie została postawiona przez uprawnioną osobę."],
    alert:{t:"warn",txt:"Najpierw pomoc i wezwanie służb. Dokumentację wypadku uzupełnia się po zabezpieczeniu zdrowia poszkodowanego."}},
 
+  {id:"p-obca",cat:"safety",sev:"warn",icon:"🚷",
+   title:"Osoba obca / agresywny odwiedzający",sub:"Nieuprawniona osoba na terenie MOW albo zagrożenie podczas wizyty",
+   src:"Procedury MOW – pkt 4 | zasady ochrony obiektu i odwiedzin",
+   searchTerms:["intruz","agresywny rodzic","odwiedzający","wtargnięcie","nieznana osoba"],
+   urgentCount:3,
+   steps:[
+     "Nie wpuszczaj osoby bez potwierdzenia tożsamości i celu wizyty; powiadom pracownika odpowiedzialnego za wejście.",
+     "Przy agresji, groźbach lub próbie wtargnięcia odsuń wychowanków, zachowaj dystans i <strong>dzwoń 112</strong>.",
+     "Powiadom Dyrektora lub osobę kierującą dyżurem i stosuj aktualny plan ochrony obiektu.",
+     "Jeżeli sytuacja jest spokojna, poproś osobę o oczekiwanie w wyznaczonym miejscu do czasu decyzji uprawnionego pracownika.",
+     "Po zdarzeniu sprawdź stan osób oraz zabezpiecz monitoring i dane świadków."
+   ],
+   documentation:["opis osoby i zachowania","czas oraz miejsce","wypowiedziane groźby","podjęte działania i wezwania","świadkowie i monitoring"],
+   dont:["Nie ujawniaj osobie obcej informacji o wychowankach.","Nie podejmuj samotnej interwencji fizycznej wobec agresywnej osoby."],
+   alert:{t:"warn",txt:"Przy groźbach lub wtargnięciu priorytetem jest odseparowanie wychowanków i wezwanie Policji."}},
+
   {id:"p-krzywdzenie",cat:"crisis",sev:"danger",icon:"🛡️",
    title:"Podejrzenie krzywdzenia wychowanka",sub:"Przemoc, zaniedbanie lub zagrożenie ze strony dorosłego albo innego nieletniego",
    src:"Standardy ochrony małoletnich MOW – § 9–10",
@@ -164,28 +180,36 @@ const PROCS = [
    alert:{t:"info",txt:"Wychowanek ma prawo do korespondencji z rodziną. Nie możesz zatrzymać korespondencji z sądem rodzinnym."}},
 
   {id:"p-odwiedz",cat:"other",sev:"ok",icon:"👨‍👩‍👦",
-   title:"Odwiedziny",sub:"Zasady przyjmowania odwiedzających",
-   src:"Procedury – Odwiedziny | Statut MOW §36",
+   title:"Odwiedziny",sub:"Przyjęcie osoby odwiedzającej i ochrona wychowanka",
+   src:"Procedury MOW – odwiedziny | statut i aktualne decyzje sądu",
+   searchTerms:["wizyta","rodzic","kontakt z rodziną","zakaz kontaktu"],
+   urgentCount:3,
    steps:[
-     "Odwiedziny w <strong>ustalonych godzinach</strong> z pisemną zgodą Dyrektora (jeśli wymagana).",
-     "Sprawdź tożsamość – wpisz do rejestru.",
-     "Odwiedziny w <strong>wyznaczonych miejscach</strong> pod nadzorem.",
-     "Obserwuj – zapobiegaj przekazywaniu niedozwolonych przedmiotów.",
-     "Niepokojące zachowanie odwiedzającego → przerwij wizytę, powiadom Dyrektora."
+     "Sprawdź tożsamość, uprawnienie do kontaktu i ewentualne ograniczenia wynikające z decyzji sądu lub Dyrektora.",
+     "Odnotuj wizytę i skieruj osoby do wyznaczonego miejsca zgodnie z aktualnymi zasadami MOW.",
+     "Jeżeli zachowanie odwiedzającego zagraża bezpieczeństwu, zakończ kontakt, odsuń wychowanka i wezwij pomoc.",
+     "Przekazywanie rzeczy przeprowadź zgodnie z procedurą paczek i depozytów.",
+     "Każde ograniczenie kontaktu musi mieć podstawę; nie wprowadzaj go samodzielnie jako kary."
    ],
+   documentation:["dane osoby odwiedzającej","czas wizyty","sprawdzone ograniczenia","przekazane przedmioty","incydenty i podjęte działania"],
+   dont:["Nie omawiaj spraw innych wychowanków z odwiedzającym.","Nie pozostawiaj kontaktu bez wymaganego nadzoru."],
    alert:{t:"info",txt:"Wychowanek ma prawo do kontaktów z rodziną. Sąd może ograniczyć kontakty – sprawdź postanowienie sądowe."}},
 
   {id:"p-cyber",cat:"safety",sev:"warn",icon:"💻",
-   title:"Cyberprzemoc",sub:"Przemoc z użyciem telefonu lub internetu",
-   src:"Procedury Postępowania – pkt 11",
+   title:"Cyberprzemoc / szkodliwe treści",sub:"Groźby, upokorzenie, publikacja treści lub naruszenie prywatności",
+   src:"Procedury MOW – pkt 11 | Standardy ochrony małoletnich MOW",
+   searchTerms:["internet","telefon","zdjęcie","groźby online","sexting","nękanie"],
+   urgentCount:3,
    steps:[
-     "Ustal co się stało, kto jest sprawcą.",
-     "Zabezpiecz dowody – zrzut ekranu, zapisz treść.",
-     "<strong>Nie usuwaj</strong> dowodów.",
-     "Powiadom Dyrektora i rodziców.",
-     "Treści niezgodne z prawem (groźby, pornografia) → zawiadom Policję."
+     "Zapewnij bezpieczeństwo osobie pokrzywdzonej. Groźba samobójcza, wykorzystanie seksualne lub bezpośrednie zagrożenie → uruchom odpowiednią procedurę kryzysową i <strong>dzwoń 112</strong>.",
+     "Zabezpiecz dowody: adres, nazwę konta, datę, treść i zrzuty ekranu. Ogranicz dalsze rozpowszechnianie.",
+     "Powiadom Dyrektora i uruchom Standardy ochrony małoletnich, jeśli zdarzenie jest krzywdzeniem.",
+     "Rozmawiaj osobno z osobą pokrzywdzoną, świadkami i osobą wskazywaną jako sprawca.",
+     "Zawiadomienia rodziców, platformy i organów ścigania dobierz do rodzaju treści oraz ryzyka."
    ],
-   alert:{t:"warn",txt:"Sprawca-wychowanek → procedura dyscyplinarna. Sprawca z zewnątrz → Policja."}},
+   documentation:["adresy i identyfikatory kont","data i kontekst materiału","miejsce przechowania dowodów","wpływ zdarzenia na wychowanka","powiadomienia i plan wsparcia"],
+   dont:["Nie przesyłaj szkodliwych materiałów dalej; dokumentuj tylko niezbędny zakres.","Nie żądaj ujawnienia haseł bez podstawy i uprawnienia."],
+   alert:{t:"warn",txt:"Dowody zabezpiecz bez ich dalszego rozpowszechniania. Treści seksualne z udziałem małoletniego wymagają szczególnie ostrożnego trybu i kontaktu ze służbami."}},
 
   {id:"p-nadzuz",cat:"crisis",sev:"danger",icon:"🔞",
    title:"Podejrzenie wykorzystania seksualnego",sub:"Ujawnienie lub podejrzenie",
