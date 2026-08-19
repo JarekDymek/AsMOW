@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.2';
+const BACKEND_VERSION = '1.1.3';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -412,6 +412,7 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   const items = [];
   const scheduleDocuments = [];
+  const scheduleCandidates = [];
   let scannedCount = 0;
   try {
     await client.connect();
@@ -453,13 +454,17 @@ async function fetchCurrentInfoMail(payload = {}) {
       if (!item) continue;
       if (!isExpectedCurrentInfoSender(item.source, config.from)) continue;
       items.push(item);
-      scheduleDocuments.push(...await extractInternatScheduleDocuments(parsed, item));
+      if (hasInternatScheduleDocument(parsed, item)) scheduleCandidates.push({ parsed, item });
     }
   } catch (err) {
     throwCurrentInfoMailError(err, 'pobieranie wiadomości', config);
   } finally {
     if (lock) lock.release();
     await client.logout().catch(() => {});
+  }
+
+  for (const candidate of scheduleCandidates) {
+    scheduleDocuments.push(...await extractInternatScheduleDocuments(candidate.parsed, candidate.item));
   }
 
   items.sort((a, b) => `${b.date} ${b.id}`.localeCompare(`${a.date} ${a.id}`));
@@ -884,6 +889,16 @@ function isScheduleCurrentInfoText(text = '') {
   const normalized = normalizeMailSearch(text);
   const scheduleWords = ['harmonogram', 'dyzur', 'grafik', 'plan pracy', 'zastepuje', 'nadgodzin'];
   return scheduleWords.some(word => normalized.includes(word));
+}
+
+function hasInternatScheduleDocument(parsed, item) {
+  const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
+  return attachments.some((attachment, index) => {
+    const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`);
+    const signature = `${filename} ${attachment.contentType || ''}`.toLowerCase();
+    return isScheduleCurrentInfoText(`${item.title}\n${filename}`)
+      && (signature.includes('.docx') || signature.includes('wordprocessingml'));
+  });
 }
 
 async function extractInternatScheduleDocuments(parsed, item) {

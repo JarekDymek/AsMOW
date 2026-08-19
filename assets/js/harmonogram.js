@@ -299,7 +299,7 @@ async function ensureInternatScheduleIndex() {
   }
 
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:index-v2`;
+  const marker = `${weekStart}:index-v3`;
   try {
     if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
       || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
@@ -322,9 +322,9 @@ async function ensureInternatScheduleIndex() {
   } catch {
     // Brak sessionStorage nie blokuje jednorazowej próby w bieżącym widoku.
   }
-  setInternatScheduleStatus('Indeks grafiku jest pusty — trwa synchronizacja...');
+  setInternatScheduleStatus('Indeks grafiku jest pusty — sprawdzam grafiki z ostatnich 6 tygodni...');
   internatScheduleReindexPromise = (async () => {
-    const syncResult = await syncCurrentInfoMail(false, { fullRescan: true });
+    const syncResult = await syncCurrentInfoMail(false, { since: getInternatScheduleReindexSince(now) });
     if (syncResult?.ok && syncResult.scheduleIndexSupported) {
       try {
         localStorage.setItem(INTERNAT_SCHEDULE_REINDEX_KEY, marker);
@@ -340,6 +340,14 @@ async function ensureInternatScheduleIndex() {
   } finally {
     internatScheduleReindexPromise = null;
   }
+}
+
+function getInternatScheduleReindexSince(now = new Date()) {
+  const date = now instanceof Date ? new Date(now) : new Date(now);
+  if (Number.isNaN(date.getTime())) return CURRENT_INFO_START_DATE;
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() - 42);
+  return formatInternatIsoDate(date);
 }
 
 function refreshInternatScheduleStatus(now = new Date()) {

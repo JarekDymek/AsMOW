@@ -582,7 +582,11 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
   }
   try {
     const syncStartedAt = new Date().toISOString();
-    const since = options.fullRescan ? CURRENT_INFO_START_DATE : getCurrentInfoSyncSince(settings.lastSyncAt);
+    const since = options.since
+      ? getCurrentInfoSyncSince(options.since)
+      : options.fullRescan
+        ? CURRENT_INFO_START_DATE
+        : getCurrentInfoSyncSince(settings.lastSyncAt);
     const sinceLabel = new Date(`${since}T12:00:00`).toLocaleDateString('pl-PL');
     setCurrentInfoStatus(manual
       ? `Pobieram nowe wiadomości od ${sinceLabel}...`
