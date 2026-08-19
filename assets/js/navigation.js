@@ -6,4 +6,7 @@ function nav(screenId, btn) {
   document.getElementById(screenId).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  if (screenId === 's-prawo' && typeof maybeRefreshLegalUpdates === 'function') {
+    setTimeout(maybeRefreshLegalUpdates, 250);
+  }
 }

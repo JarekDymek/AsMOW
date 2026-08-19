@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.2</span>
+  <span class="hdr-badge">v2.3</span>
 </header>
 
 <!-- MAIN -->
@@ -237,6 +237,17 @@
   </button>
   <div class="card collapsible-card accordion-panel" id="law-sources-card" style="padding:0">
     <div class="law-source-guide"><strong>Jak czytać:</strong> akty prawne otwierają urzędowe źródło. Dokument wewnętrzny MOW określa codzienny sposób działania, ale nie może być sprzeczny z aktem wyższego rzędu. Przy zmianie prawa sprawdź datę i aktualny tekst.</div>
+    <section class="law-live-check" aria-labelledby="law-live-title">
+      <div class="law-live-head">
+        <div>
+          <strong id="law-live-title">Kontrola aktualności ELI</strong>
+          <span>Bezpłatne sprawdzenie urzędowych metadanych. Nie korzysta z AI.</span>
+        </div>
+        <button class="btn law-live-button" id="law-live-button" type="button" onclick="refreshLegalUpdates(true)">Sprawdź teraz</button>
+      </div>
+      <div class="law-live-status" id="law-live-status" role="status" aria-live="polite">Jeszcze nie sprawdzono źródeł online.</div>
+      <div id="law-live-results"></div>
+    </section>
     <div id="law-list-render"></div>
   </div>
 

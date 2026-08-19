@@ -43,13 +43,15 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.2.0'",
+  "const BACKEND_VERSION = '1.3.0'",
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",
   'currentInfo: compactCurrentInfo(context.currentInfo)',
   'knowledgeBase: compactKnowledgeBase(context.knowledgeBase)',
-  'function cleanupRateLimit'
+  'function cleanupRateLimit',
+  "url.pathname === '/api/legal-updates'",
+  'Oficjalne API ELI Sejmu RP'
 ]) {
   if (!server.includes(required)) throw new Error(`Brak strażnika backendu: ${required}`);
 }

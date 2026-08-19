@@ -4,8 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const files = ['backend/server.js', 'sw.js'];
+const files = ['sw.js'];
 
+collectJs(path.join(root, 'backend'), files);
 collectJs(path.join(root, 'assets/js'), files);
 
 let failed = false;

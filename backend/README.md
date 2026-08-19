@@ -4,6 +4,7 @@ Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 
 - `GET /health` - sprawdzenie, czy backend działa.
 - `GET /api/knowledge` - centralna baza wiedzy z katalogu `backend/knowledge`.
+- `GET /api/legal-updates` - status monitorowanych aktów i publikacje do weryfikacji z oficjalnego API ELI; bez użycia AI.
 - `POST /api/chat` - rozmowa z asystentem.
 - `POST /api/weekly-plan` - bezpieczne pobranie planu z Harmonogram-MOW.
 - `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
@@ -26,18 +27,19 @@ Zmienne środowiskowe dla Google Gemini:
 - `GEMINI_API_KEY=...`
 - `GEMINI_MODEL=gemini-2.5-flash-lite`
 - opcjonalnie `ALLOWED_ORIGINS=https://twoja-domena.pl`
+- opcjonalnie `LEGAL_UPDATES_CACHE_MS=21600000` - czas pamięci kontroli ELI, domyślnie 6 godzin.
 - poczta Gmail: `CURRENT_INFO_IMAP_HOST=imap.gmail.com`, `CURRENT_INFO_IMAP_USER`, `CURRENT_INFO_IMAP_PASSWORD`, `CURRENT_INFO_SYNC_TOKEN`
   - opcjonalnie `CURRENT_INFO_SYNC_TOKENS` - lista aktywnych tokenów oddzielonych przecinkiem, przydatna podczas bezpiecznej wymiany starego tokenu na nowy.
   - token synchronizacji jest niezależny od tokenów testerów; nie wpisuj go do linku ani nie udostępniaj innym osobom.
 
-### Link testowy dla wychowawcĂłw
+### Link testowy dla wychowawców
 
 W Renderze ustaw:
 
-- `TEST_ACCESS_TOKENS` - jeden albo kilka kodĂłw testowych po przecinku.
+- `TEST_ACCESS_TOKENS` - jeden albo kilka kodów testowych po przecinku.
 - `TEST_WEEKLY_BACKEND_URL` - adres `/exec` z Apps Script Harmonogram-MOW.
 - `TEST_WEEKLY_VIEW_TOKEN` - tylko `VIEW_TOKEN`, nigdy `ADMIN_TOKEN`.
-- `TEST_WEEKLY_EDUCATOR=Dymek` albo inne nazwisko do podglÄ…du.
+- `TEST_WEEKLY_EDUCATOR=Dymek` albo inne nazwisko do podglądu.
 
 Link dla testera ma format:
 
@@ -45,7 +47,7 @@ Link dla testera ma format:
 https://jarekdymek.github.io/AsMOW/?tester=TU_WKLEJ_KOD_TESTOWY
 ```
 
-Tester nie widzi tokenĂłw harmonogramu, poczty ani kluczy AI. Przycisk skanowania generatora jest ukryty, a backend wymusza tylko bezpieczny podglÄ…d.
+Tester nie widzi tokenów harmonogramu, poczty ani kluczy AI. Przycisk skanowania generatora jest ukryty, a backend wymusza tylko bezpieczny podgląd.
 
 Jeżeli aplikacja PWA jest serwowana z tego samego Rendera, w `index.html` może zostać domyślne `AI_BACKEND_URL='/api/chat'`.
 Jeżeli frontend jest na innej domenie, ustaw w przeglądarce albo zmień w kodzie:

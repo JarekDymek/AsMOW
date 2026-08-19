@@ -7,10 +7,11 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.2.0';
+const BACKEND_VERSION = '1.3.0';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -30,10 +31,35 @@ const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_L
 const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
 const TEST_WEEKLY_VIEW_TOKEN = process.env.TEST_WEEKLY_VIEW_TOKEN || '';
 const TEST_WEEKLY_EDUCATOR = process.env.TEST_WEEKLY_EDUCATOR || 'Dymek';
+const ELI_API_BASE = 'https://api.sejm.gov.pl/eli';
+const LEGAL_UPDATES_CACHE_MS = Number(process.env.LEGAL_UPDATES_CACHE_MS || 6 * 60 * 60 * 1000);
+
+const TRACKED_LEGAL_ACTS = [
+  { key: '1', eli: 'DU/2026/163' },
+  { key: '2', eli: 'DU/2023/651' },
+  { key: '3', eli: 'DU/2023/139' },
+  { key: '4', eli: 'DU/2026/820' },
+  { key: '5', eli: 'DU/2026/515' },
+  { key: '6', eli: 'DU/2022/1914' },
+  { key: '7', eli: 'DU/2025/277' },
+  { key: '8', eli: 'DU/2026/244' },
+  { key: '9', eli: 'DU/2020/1604' },
+  { key: '10', eli: 'DU/2023/1798' },
+  { key: '11', eli: 'DU/2020/1309' },
+  { key: '12', eli: 'DU/2024/50' }
+];
+
+const LEGAL_UPDATE_QUERIES = [
+  'wspieraniu i resocjalizacji nieletnich',
+  'młodzieżowych ośrodków wychowawczych',
+  'Karta Nauczyciela',
+  'Prawo oświatowe'
+];
 
 const rate = new Map();
 const KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md']);
 let knowledgeFilesCache = { signature: '', files: [] };
+let legalUpdatesCache = { at: 0, payload: null };
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
   ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }]
@@ -66,6 +92,11 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/api/knowledge') {
       return json(res, 200, loadCentralKnowledge());
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/legal-updates') {
+      if (!allowRate(req)) return json(res, 429, { error: 'Za dużo sprawdzeń. Spróbuj ponownie za chwilę.' });
+      return json(res, 200, await fetchLegalUpdates());
     }
 
     if (req.method === 'POST' && url.pathname === '/api/test-profile') {
@@ -189,6 +220,85 @@ function allowRate(req) {
 function cleanupRateLimit(now = Date.now(), windowMs = 60_000) {
   for (const [ip, state] of rate.entries()) {
     if (!state || now - state.at > windowMs * 5) rate.delete(ip);
+  }
+}
+
+async function fetchLegalUpdates(now = Date.now()) {
+  if (legalUpdatesCache.payload && now - legalUpdatesCache.at < LEGAL_UPDATES_CACHE_MS) {
+    return { ...legalUpdatesCache.payload, cached: true };
+  }
+
+  const trackedSettled = await Promise.allSettled(
+    TRACKED_LEGAL_ACTS.map(async item => normalizeLegalAct(
+      await fetchEliJson(`acts/${item.eli}`),
+      item.key
+    ))
+  );
+  const tracked = trackedSettled
+    .filter(result => result.status === 'fulfilled')
+    .map(result => result.value);
+
+  const newsSettled = await Promise.allSettled(
+    LEGAL_UPDATE_QUERIES.map(async title => {
+      const params = new URLSearchParams({
+        publisher: 'DU',
+        title,
+        limit: '8',
+        sortBy: 'promulgation',
+        sortDir: 'desc'
+      });
+      const data = await fetchEliJson(`acts/search?${params}`);
+      return Array.isArray(data.items) ? data.items.map(item => normalizeLegalAct(item)) : [];
+    })
+  );
+  const candidates = dedupeLegalCandidates(
+    newsSettled
+      .filter(result => result.status === 'fulfilled')
+      .flatMap(result => result.value)
+  ).slice(0, 12);
+
+  const failedTracked = trackedSettled.filter(result => result.status === 'rejected').length;
+  const failedQueries = newsSettled.filter(result => result.status === 'rejected').length;
+  if (!tracked.length && !candidates.length) {
+    const err = new Error('Oficjalne API ELI jest chwilowo niedostępne. Spróbuj ponownie później.');
+    err.status = 502;
+    err.code = 'ELI_UNAVAILABLE';
+    throw err;
+  }
+
+  const payload = {
+    ok: true,
+    cached: false,
+    checkedAt: new Date(now).toISOString(),
+    source: 'Oficjalne API ELI Sejmu RP',
+    sourceUrl: 'https://api.sejm.gov.pl/eli_pl.html',
+    partial: failedTracked > 0 || failedQueries > 0,
+    failedTracked,
+    failedQueries,
+    tracked,
+    candidates
+  };
+  legalUpdatesCache = { at: now, payload };
+  return payload;
+}
+
+async function fetchEliJson(relativePath, timeoutMs = 9_000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${ELI_API_BASE}/${relativePath}`, {
+      signal: ctrl.signal,
+      headers: { accept: 'application/json' }
+    });
+    if (!response.ok) {
+      const err = new Error(`ELI API zwróciło HTTP ${response.status}.`);
+      err.status = 502;
+      err.code = 'ELI_HTTP_ERROR';
+      throw err;
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -1877,10 +1987,13 @@ function end(res, status) {
 }
 
 export {
+  dedupeLegalCandidates,
   decodeInternatHtmlCell,
   extractInternatEmployeeCandidates,
   extractInternatHtmlTables,
+  fetchLegalUpdates,
   getNonInternatScheduleReason,
+  normalizeLegalAct,
   parseInternatScheduleCellEntries,
   parseInternatScheduleHtml
 };

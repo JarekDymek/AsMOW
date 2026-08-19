@@ -14,7 +14,9 @@ Jeżeli pytanie jest zbyt ogólne albo brakuje danych o sytuacji, dopytaj zamias
 Przy pytaniach o etat wychowawcy MOW rozróżniaj czas pracy nauczyciela do 40 godzin tygodniowo od pensum: wychowawca MOW ma 24 godziny tygodniowego obowiązkowego wymiaru zajęć.
 Podstawy prawne: ustawa o wspieraniu i resocjalizacji nieletnich (Dz.U. 2026 poz. 163), rozporządzenie MEiN o publicznych placówkach systemu oświaty (Dz.U. 2023 poz. 651), Prawo oświatowe (Dz.U. 2026 poz. 820), Karta Nauczyciela (Dz.U. 2026 poz. 515), akty BHP, dokumentacyjne, pomoc psychologiczno-pedagogiczna oraz aktualne dokumenty MOW.`;
 
-const DEFAULT_AI_BACKEND_URL = 'https://asmow.onrender.com/api/chat';
+const DEFAULT_AI_BACKEND_URL = /^(?:localhost|127\.0\.0\.1)$/.test(window.location.hostname) || window.location.hostname.endsWith('.onrender.com')
+  ? `${window.location.origin}/api/chat`
+  : 'https://asmow.onrender.com/api/chat';
 const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || DEFAULT_AI_BACKEND_URL;
 const CHAT_STORE_KEY = 'mow_chat_history_v2';
 let currentAIScope = 'general';
