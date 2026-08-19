@@ -567,7 +567,13 @@ async function autoSyncCurrentInfoMail() {
   return syncCurrentInfoMail(false);
 }
 
-async function syncCurrentInfoMail(manual = true) {
+function getCurrentInfoSyncSince(lastSyncAt = '') {
+  const match = String(lastSyncAt || '').match(/^\d{4}-\d{2}-\d{2}/);
+  if (!match) return CURRENT_INFO_START_DATE;
+  return match[0] < CURRENT_INFO_START_DATE ? CURRENT_INFO_START_DATE : match[0];
+}
+
+async function syncCurrentInfoMail(manual = true, options = {}) {
   const settings = saveCurrentInfoSyncSettings({ lastSyncAt: getCurrentInfoSyncSettings().lastSyncAt });
   const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
   if (!settings.token && !testAccessToken) {
@@ -575,14 +581,19 @@ async function syncCurrentInfoMail(manual = true) {
     return { ok: false, reason: 'auth' };
   }
   try {
-    setCurrentInfoStatus(manual ? 'Pobieram wiadomości z poczty...' : 'Automatycznie sprawdzam pocztę...');
+    const syncStartedAt = new Date().toISOString();
+    const since = options.fullRescan ? CURRENT_INFO_START_DATE : getCurrentInfoSyncSince(settings.lastSyncAt);
+    const sinceLabel = new Date(`${since}T12:00:00`).toLocaleDateString('pl-PL');
+    setCurrentInfoStatus(manual
+      ? `Pobieram nowe wiadomości od ${sinceLabel}...`
+      : `Automatycznie sprawdzam pocztę od ${sinceLabel}...`);
     const response = await fetch(`${getAIBackendBaseUrl()}/api/current-info-mail`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         token: testAccessToken ? '' : settings.token,
         testAccessToken,
-        since: CURRENT_INFO_START_DATE,
+        since,
         limit: 800
       })
     });
@@ -600,8 +611,7 @@ async function syncCurrentInfoMail(manual = true) {
       mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
     }
     const added = currentInfoItems.length - before;
-    const lastSyncAt = new Date().toISOString();
-    saveCurrentInfoSyncSettings({ lastSyncAt });
+    saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt });
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
     setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}`);
     return { ok: true, data, scheduleIndexSupported };

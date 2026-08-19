@@ -331,7 +331,7 @@ async function ensureInternatScheduleIndex() {
   }
   setInternatScheduleStatus('Indeks grafiku jest pusty — trwa synchronizacja...');
   internatScheduleReindexPromise = (async () => {
-    const syncResult = await syncCurrentInfoMail(false);
+    const syncResult = await syncCurrentInfoMail(false, { fullRescan: true });
     refreshInternatScheduleStatus(now);
     return Boolean(syncResult?.ok && syncResult.scheduleIndexSupported);
   })();
