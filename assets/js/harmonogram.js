@@ -298,18 +298,11 @@ async function ensureInternatScheduleIndex() {
     return false;
   }
 
-  const scheduleMail = [...currentInfoItems]
-    .filter(item => isScheduleCurrentInfo(item))
-    .sort((a, b) => `${b.date} ${b.mailUid}`.localeCompare(`${a.date} ${a.mailUid}`))[0];
-  if (!scheduleMail) {
-    refreshInternatScheduleStatus(now);
-    return false;
-  }
-
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:${scheduleMail.mailUid || scheduleMail.id}`;
+  const marker = `${weekStart}:index-v2`;
   try {
-    if (sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
+    if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
+      || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
       refreshInternatScheduleStatus(now);
       return false;
     }
@@ -332,6 +325,13 @@ async function ensureInternatScheduleIndex() {
   setInternatScheduleStatus('Indeks grafiku jest pusty — trwa synchronizacja...');
   internatScheduleReindexPromise = (async () => {
     const syncResult = await syncCurrentInfoMail(false, { fullRescan: true });
+    if (syncResult?.ok && syncResult.scheduleIndexSupported) {
+      try {
+        localStorage.setItem(INTERNAT_SCHEDULE_REINDEX_KEY, marker);
+      } catch {
+        // Przy braku miejsca znacznik pozostanie tylko w bieżącej sesji.
+      }
+    }
     refreshInternatScheduleStatus(now);
     return Boolean(syncResult?.ok && syncResult.scheduleIndexSupported);
   })();
