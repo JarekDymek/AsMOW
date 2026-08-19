@@ -1,4 +1,6 @@
-const CACHE = 'mow-pwa-v56';
+const CACHE_PREFIX = 'asmow-private-';
+const LEGACY_CACHE_PREFIXES = ['mow-pwa-'];
+const CACHE = `${CACHE_PREFIX}v57`;
 const APP_SHELL = [
   './',
   './index.html',
@@ -58,6 +60,10 @@ const APP_SHELL = [
   './assets/js/app.js',
 ];
 
+function isOwnCache(key) {
+  return key.startsWith(CACHE_PREFIX) || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix));
+}
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
@@ -72,7 +78,7 @@ self.addEventListener('message', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE && isOwnCache(key)).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -88,12 +94,13 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(response => {
-      if (response && response.ok && url.origin === self.location.origin) {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(req, copy));
-      }
-      return response;
-    }).catch(() => cached))
+    caches.open(CACHE).then(cache =>
+      cache.match(req).then(cached => cached || fetch(req).then(response => {
+        if (response && response.ok && url.origin === self.location.origin) {
+          cache.put(req, response.clone());
+        }
+        return response;
+      }).catch(() => cached))
+    )
   );
 });
