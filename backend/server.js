@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.5';
+const BACKEND_VERSION = '1.1.6';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1179,8 +1179,7 @@ function parseInternatStructuredRows(table, weekStart, source) {
 
 function parseInternatDateColumns(table, weekStart, source) {
   const maxColumns = Math.max(0, ...table.map(row => row.length));
-  const dateColumns = [];
-  let headerEnd = -1;
+  const dateColumnCandidates = [];
 
   for (let column = 0; column < maxColumns; column += 1) {
     let headerText = '';
@@ -1188,26 +1187,34 @@ function parseInternatDateColumns(table, weekStart, source) {
       headerText = `${headerText} ${table[rowIndex][column] || ''}`.trim();
       const date = parseInternatScheduleCellDate(headerText, weekStart);
       if (date) {
-        dateColumns.push({ column, date });
-        headerEnd = Math.max(headerEnd, rowIndex);
+        dateColumnCandidates.push({ column, date, headerText, rowIndex });
         break;
       }
     }
   }
 
+  const weekdayColumns = dateColumnCandidates.filter(item => getInternatWeekdayOffset(item.headerText) >= 0);
+  const dateColumns = weekdayColumns.length >= 5 ? weekdayColumns : dateColumnCandidates;
   if (!dateColumns.length) return { matched: false, records: [], unresolvedTimedCells: 0 };
+  const headerEnd = Math.max(...dateColumns.map(item => item.rowIndex));
 
   const records = [];
   let unresolvedTimedCells = 0;
+  const firstDateColumn = Math.min(...dateColumns.map(item => item.column));
   table.slice(headerEnd + 1).forEach(row => {
     const labelCells = row.filter((_, column) => !dateColumns.some(item => item.column === column));
-    const rowEmployee = labelCells.map(extractInternatEmployee).find(Boolean) || '';
-    const rowGroup = labelCells.map(extractInternatGroup).find(Boolean) || '';
+    const leadingLabelCells = row.filter((_, column) => column < firstDateColumn);
+    const rowEmployee = leadingLabelCells.map(extractInternatEmployee).find(Boolean) || '';
+    const rowGroup = leadingLabelCells.map(extractInternatGroup).find(Boolean)
+      || labelCells.map(extractInternatGroup).find(Boolean)
+      || '';
+    const rowKind = leadingLabelCells.some(cell => /(^|\s)noc($|\s)/.test(normalizeMailSearch(cell))) ? 'night-row' : '';
 
     dateColumns.forEach(({ column, date }) => {
       const cell = row[column] || '';
-      const entries = parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup);
-      if (extractInternatTimeRanges(cell).length && !entries.length) unresolvedTimedCells += 1;
+      const ranges = extractInternatTimeRanges(cell);
+      const entries = parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind);
+      if (ranges.length > entries.length) unresolvedTimedCells += ranges.length - entries.length;
       entries.forEach(entry => {
         records.push(...buildInternatScheduleRecords(date, entry.employee, entry.group, entry.range, weekStart, source));
       });
@@ -1217,15 +1224,60 @@ function parseInternatDateColumns(table, weekStart, source) {
   return { matched: true, records, unresolvedTimedCells };
 }
 
-function parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup) {
+function parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind = '') {
   const ranges = extractInternatTimeRanges(cell);
   if (!ranges.length) return [];
   const group = extractInternatGroup(cell) || rowGroup;
-  if (rowEmployee) return ranges.map(range => ({ employee: rowEmployee, group, range }));
+  const withRowContext = range => rowKind === 'night-row'
+    ? { ...range, label: `noc-row ${range.label}` }
+    : range;
+  if (rowEmployee) return ranges.map(range => ({ employee: rowEmployee, group, range: withRowContext(range) }));
 
   const candidates = extractInternatEmployeeCandidates(cell);
-  if (candidates.length !== 1) return [];
-  return ranges.map(range => ({ employee: candidates[0], group, range }));
+  if (candidates.length === 1) {
+    return ranges.map(range => ({ employee: candidates[0], group, range: withRowContext(range) }));
+  }
+  return parseInternatScheduleCellSequence(cell, group, withRowContext);
+}
+
+function parseInternatScheduleCellSequence(cell, group, withRowContext = range => range) {
+  const entries = [];
+  const pendingRanges = [];
+  const pendingEmployees = [];
+  const lines = String(cell || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
+
+  const addEntry = (employee, range) => {
+    if (!employee || !range) return;
+    entries.push({ employee, group, range: withRowContext(range) });
+  };
+
+  lines.forEach(line => {
+    const lineRanges = extractInternatTimeRanges(line);
+    const lineEmployees = extractInternatEmployeeCandidates(line);
+
+    if (lineRanges.length && lineEmployees.length) {
+      if (lineEmployees.length === 1) lineRanges.forEach(range => addEntry(lineEmployees[0], range));
+      else lineRanges.forEach((range, index) => addEntry(lineEmployees[index], range));
+      return;
+    }
+
+    if (lineRanges.length) {
+      lineRanges.forEach(range => {
+        const employee = pendingEmployees.shift();
+        if (employee) addEntry(employee, range);
+        else pendingRanges.push(range);
+      });
+      return;
+    }
+
+    lineEmployees.forEach(employee => {
+      const range = pendingRanges.pop();
+      if (range) addEntry(employee, range);
+      else pendingEmployees.push(employee);
+    });
+  });
+
+  return entries;
 }
 
 function extractInternatEmployee(value = '') {
@@ -1236,12 +1288,15 @@ function extractInternatEmployee(value = '') {
 function extractInternatEmployeeCandidates(value = '') {
   const raw = String(value || '').trim();
   if (!raw || /zast[eę]puje|zamiast|zmienia|zast[eę]pstwo/i.test(raw)) return [];
-  const wholeCellCandidate = extractInternatTimeRanges(raw).length ? '' : parseInternatEmployeeCandidate(raw);
+  const isNumberedList = /^\s*\d+\s*[.)]/m.test(raw);
+  const wholeCellCandidate = extractInternatTimeRanges(raw).length || isNumberedList
+    ? ''
+    : parseInternatEmployeeCandidate(raw);
   if (wholeCellCandidate && wholeCellCandidate.split(/\s+/).length >= 2) return [wholeCellCandidate];
   const parts = raw.split(/\n|[;|]/);
   const generic = new Set([
     'brak', 'dzien', 'dyzur', 'godziny', 'grupa', 'harmonogram', 'koniec', 'nazwisko', 'noc',
-    'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
+    'lacz', 'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
     'wychowawca', 'czw', 'nd'
   ]);
   const candidates = [];
@@ -1258,7 +1313,7 @@ function extractInternatEmployeeCandidates(value = '') {
 function parseInternatEmployeeCandidate(value = '', genericWords) {
   const generic = genericWords || new Set([
     'brak', 'dzien', 'dyzur', 'godziny', 'grupa', 'harmonogram', 'koniec', 'nazwisko', 'noc',
-    'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
+    'lacz', 'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
     'wychowawca', 'czw', 'nd'
   ]);
   const cleaned = String(value)
@@ -1319,7 +1374,12 @@ function buildInternatScheduleRecords(date, employee, group, range, weekStart, s
   const toMinutes = internatTimeToMinutes(range.to);
   if (fromMinutes < toMinutes) return [{ ...base, date, from: range.from, to: range.to }];
 
-  const nightAssignedToEndDate = normalizeMailSearch(range.label).includes('noc');
+  const rangeLabel = normalizeMailSearch(range.label);
+  const nightRow = rangeLabel.includes('noc-row');
+  if (nightRow && range.from === '24:00') {
+    return range.to === '00:00' ? [] : [{ ...base, date, from: '00:00', to: range.to }];
+  }
+  const nightAssignedToEndDate = !nightRow && rangeLabel.includes('noc');
   const startDate = nightAssignedToEndDate ? addInternatDays(date, -1) : date;
   const endDate = nightAssignedToEndDate ? date : addInternatDays(date, 1);
   const records = [{ ...base, date: startDate, from: range.from, to: '24:00' }];
@@ -1803,6 +1863,8 @@ function end(res, status) {
 export {
   decodeInternatHtmlCell,
   extractInternatEmployeeCandidates,
+  extractInternatHtmlTables,
   getNonInternatScheduleReason,
+  parseInternatScheduleCellEntries,
   parseInternatScheduleHtml
 };

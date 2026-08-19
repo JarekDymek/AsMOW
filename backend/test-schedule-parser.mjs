@@ -44,6 +44,37 @@ assert.deepEqual(internat.records.map(record => ({
   group: 'VI'
 }]);
 
+const multiShiftHtml = `
+  <p>INTERNAT</p><p>17.08 - 23.08.2026r.</p><p>51.</p>
+  <table>
+    <tr><td>Gr</td><td>PONIEDZIAŁEK 17.08.</td><td>WTOREK 18.08.</td><td>ŚRODA 19.08.</td>
+      <td>CZWARTEK 20.08.</td><td>PIĄTEK 21.08.</td><td>SOBOTA 22.08.</td><td>NIEDZIELA 23.08.</td><td>NAZWISKO WYCHOWAWCY</td></tr>
+    <tr><td>GRUPA A</td>
+      <td><p>6<sup>00</sup>-14<sup>00</sup></p><p>Kozdęba</p><p>14<sup>00</sup>-17<sup>00</sup></p><p>Pawłowski</p><p>17<sup>00</sup>-22<sup>00</sup></p><p>Szaruga</p></td>
+      <td><p>6<sup>00</sup>-8<sup>00</sup></p><p>Ochadek</p><p>8<sup>00</sup>-10<sup>00</sup></p><p>Górski</p><p>10<sup>00</sup>-13<sup>00</sup></p><p>Kozdęba</p></td>
+      <td></td><td></td><td><p>19<sup>00</sup>-22<sup>00</sup></p><p>Kozdęba</p></td><td></td><td></td>
+      <td><p>1. Ochadek - 26</p><p>2. Kozdęba - 26</p><p>3. Pawłowski - 26</p></td></tr>
+    <tr><td>NOC</td>
+      <td><p>24<sup>00</sup>-6<sup>00</sup></p><p>Dembiński</p><p>22<sup>00</sup>-6<sup>00</sup></p><p>Ochadek</p></td>
+      <td><p>22<sup>00</sup>-6<sup>00</sup></p><p>Ochadek</p></td><td></td><td></td><td></td><td></td><td><p>22<sup>00</sup>-24<sup>00</sup></p><p>Pawłowski</p></td>
+      <td>Zemlik - 06.08.-03.09.2026r. wolne</td></tr>
+  </table>`;
+const multiShift = parseInternatScheduleHtml(multiShiftHtml, {
+  sourceAttachment: '51. 17- 23.08.2026r.docx'
+});
+assert.deepEqual(
+  multiShift.records
+    .filter(record => record.employee === 'Kozdęba')
+    .map(record => ({ date: record.date, from: record.from, to: record.to, group: record.group })),
+  [
+    { date: '2026-08-17', from: '06:00', to: '14:00', group: 'A' },
+    { date: '2026-08-18', from: '10:00', to: '13:00', group: 'A' },
+    { date: '2026-08-21', from: '19:00', to: '22:00', group: 'A' }
+  ]
+);
+assert.ok(multiShift.records.some(record => record.employee === 'Górski' && record.date === '2026-08-18'));
+assert.ok(multiShift.records.some(record => record.employee === 'Dembiński' && record.date === '2026-08-17' && record.from === '00:00'));
+
 assert.equal(decodeInternatHtmlCell('7<sup>00</sup>-15<sup>30</sup>'), '7:00-15:30');
 assert.deepEqual(extractInternatEmployeeCandidates('Dariusz\nGórski\n24 h'), ['Dariusz Górski']);
 assert.deepEqual(

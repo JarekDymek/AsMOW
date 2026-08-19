@@ -385,7 +385,7 @@ async function ensureInternatScheduleIndex() {
   }
 
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:index-v5`;
+  const marker = `${weekStart}:index-v6`;
   try {
     if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
       || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
