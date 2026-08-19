@@ -617,7 +617,12 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     const added = currentInfoItems.length - before;
     saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt });
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
-    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}`);
+    const scheduleDocuments = Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : [];
+    const indexedWeeks = [...new Set(scheduleDocuments.map(item => item.weekStart).filter(Boolean))].sort();
+    const schedules = scheduleIndexSupported
+      ? ` Grafiki w odpowiedzi: ${scheduleDocuments.length}${indexedWeeks.length ? `; tygodnie: ${indexedWeeks.join(', ')}` : ''}.`
+      : '';
+    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}${schedules}`);
     return { ok: true, data, scheduleIndexSupported };
   } catch (err) {
     setCurrentInfoStatus(`Nie udało się pobrać poczty: ${describeCurrentInfoSyncError(err)}`);

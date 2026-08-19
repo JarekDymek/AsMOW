@@ -299,7 +299,7 @@ async function ensureInternatScheduleIndex() {
   }
 
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:index-v3`;
+  const marker = `${weekStart}:index-v4`;
   try {
     if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
       || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
@@ -352,13 +352,19 @@ function getInternatScheduleReindexSince(now = new Date()) {
 
 function refreshInternatScheduleStatus(now = new Date()) {
   const backendStatus = getInternatScheduleBackendStatus();
-  const active = buildActiveInternatSchedule(loadInternatScheduleIndex(), now);
+  const index = loadInternatScheduleIndex();
+  const active = buildActiveInternatSchedule(index, now);
   if (active.documents.length) {
     setInternatScheduleStatus(`Grafiki: ${active.documents.length} ${active.documents.length === 1 ? 'dokument' : 'dokumenty'} · ${active.records.length} wpisów · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
     return;
   }
   if (backendStatus === 'incompatible') {
     setInternatScheduleStatus('Backend nie zwraca danych indeksu grafików — wymaga aktualizacji lub ponownego wdrożenia.');
+    return;
+  }
+  const indexedWeeks = [...new Set(index.map(item => item.weekStart).filter(Boolean))].sort().slice(-6);
+  if (indexedWeeks.length) {
+    setInternatScheduleStatus(`Brak grafiku dla tygodnia ${formatInternatScheduleWeek(active.weekStart)}. Zaindeksowane początki tygodni: ${indexedWeeks.join(', ')}.`);
     return;
   }
   setInternatScheduleStatus(internatScheduleReindexPromise

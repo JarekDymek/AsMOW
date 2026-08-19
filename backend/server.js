@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.3';
+const BACKEND_VERSION = '1.1.4';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -895,10 +895,22 @@ function hasInternatScheduleDocument(parsed, item) {
   const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
   return attachments.some((attachment, index) => {
     const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`);
-    const signature = `${filename} ${attachment.contentType || ''}`.toLowerCase();
-    return isScheduleCurrentInfoText(`${item.title}\n${filename}`)
-      && (signature.includes('.docx') || signature.includes('wordprocessingml'));
+    return isInternatScheduleAttachment(item.title, filename, attachment.contentType);
   });
+}
+
+function isInternatScheduleAttachment(title = '', filename = '', contentType = '') {
+  const signature = `${filename} ${contentType}`.toLowerCase();
+  if (!signature.includes('.docx') && !signature.includes('wordprocessingml')) return false;
+  const hint = `${title}\n${filename}`;
+  return isScheduleCurrentInfoText(hint) || isNumberedInternatWeekHint(hint);
+}
+
+function isNumberedInternatWeekHint(value = '') {
+  const text = String(value || '');
+  const hasWeekNumber = /(?:^|[\s_-])(?:tydzie[nń]\s*)?(?:[1-9]|[1-4]\d|5[0-3])\s*[.):-]/im.test(text);
+  const hasDateRange = /\d{1,2}(?:[.\/-]\d{1,2})?[.]?\s*(?:-|–|—)\s*\d{1,2}[.\/-]\d{1,2}(?:[.\/-]20\d{2})?/i.test(text);
+  return hasWeekNumber && hasDateRange;
 }
 
 async function extractInternatScheduleDocuments(parsed, item) {
@@ -908,9 +920,8 @@ async function extractInternatScheduleDocuments(parsed, item) {
   for (let index = 0; index < attachments.length; index += 1) {
     const attachment = attachments[index];
     const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`);
-    const signature = `${filename} ${attachment.contentType || ''}`.toLowerCase();
     const scheduleHint = `${item.title}\n${filename}`;
-    if (!isScheduleCurrentInfoText(scheduleHint) || (!signature.includes('.docx') && !signature.includes('wordprocessingml'))) continue;
+    if (!isInternatScheduleAttachment(item.title, filename, attachment.contentType)) continue;
 
     const attachmentId = getCurrentInfoAttachmentId(attachment, index);
     const source = {
@@ -1300,11 +1311,27 @@ function getInternatWeekdayOffset(value = '') {
 
 function extractInternatWeekStart(value = '') {
   const text = String(value || '');
-  const range = text.match(/(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](20\d{2}))?\s*(?:r\.?)?\s*(?:-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/i);
+  const range = text.match(/(?:^|[^\d])(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](20\d{2}))?\s*[.]?\s*(?:r\.?)?\s*(?:-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/i);
   if (range) {
     let year = Number(range[3] || range[6]);
     if (!range[3] && Number(range[2]) > Number(range[5])) year -= 1;
     return getInternatMonday(createInternatIsoDate(year, Number(range[2]), Number(range[1])));
+  }
+
+  const shortRange = text.match(/(?:^|[^\d])(\d{1,2})\s*[.]?\s*(?:-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/i);
+  if (shortRange) {
+    const startDay = Number(shortRange[1]);
+    const endDay = Number(shortRange[2]);
+    let month = Number(shortRange[3]);
+    let year = Number(shortRange[4]);
+    if (startDay > endDay) {
+      month -= 1;
+      if (month < 1) {
+        month = 12;
+        year -= 1;
+      }
+    }
+    return getInternatMonday(createInternatIsoDate(year, month, startDay));
   }
 
   const iso = text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
