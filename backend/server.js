@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.1.6';
+const BACKEND_VERSION = '1.2.0';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -25,8 +25,8 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
-const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 60_000);
-const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 24_000);
+const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
+const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 12_000);
 const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
 const TEST_WEEKLY_VIEW_TOKEN = process.env.TEST_WEEKLY_VIEW_TOKEN || '';
 const TEST_WEEKLY_EDUCATOR = process.env.TEST_WEEKLY_EDUCATOR || 'Dymek';
@@ -1514,7 +1514,7 @@ Zasady odpowiedzi:
 1. Odpowiadaj po polsku, rzeczowo, konkretnie i praktycznie.
 2. Przy pytaniach o procedury postępowania najpierw stosuj dokumenty MOW, a dopiero potem przepisy ogólne.
 3. Jeżeli pytanie jest zbyt ogólne albo brakuje ważnych faktów, zadaj 1-3 pytania doprecyzowujące. Nie odpowiadaj na siłę.
-4. W sytuacjach kryzysowych podaj kolejność: bezpieczeństwo, powiadomienia, dokumentacja, dalsze kroki.
+4. W sytuacjach kryzysowych odpowiadaj warstwowo. Najpierw sekcja "NA JUŻ" z maksymalnie 4 krótkimi punktami, potem "DALEJ", "DOKUMENTACJA" i "ŹRÓDŁA". Nie mieszaj konsekwencji wychowawczych z ratowaniem życia i zdrowia.
 5. Wskazuj źródła na końcu odpowiedzi w sekcji "Źródła". Nie wymyślaj paragrafów ani artykułów.
 6. Gdy nie masz pewności co do aktualnego stanu prawa, powiedz to wprost i wskaż, że należy sprawdzić obowiązujący tekst aktu prawnego.
 7. Nie zastępujesz decyzji dyrektora, sądu rodzinnego, Policji, lekarza ani psychologa. Możesz pomóc przygotować działanie i dokumentację.
@@ -1532,6 +1532,7 @@ ${localKnowledge || 'Brak dodatkowych plików tekstowych. Korzystaj ze struktury
 
 function compactContext(context) {
   return {
+    scope: context.scope || 'general',
     role: context.role,
     rule: context.rule,
     documents: context.documents,
@@ -1594,12 +1595,27 @@ function loadKnowledgeFiles(query = '') {
   const dir = path.join(__dirname, 'knowledge');
   if (!fs.existsSync(dir)) return '';
   const terms = extractSearchTerms(query);
-  return getKnowledgePromptFiles(dir)
+  const scoredFiles = getKnowledgePromptFiles(dir)
+    .map(file => ({
+      ...file,
+      score: scoreKnowledgeText(file.text, terms)
+    }));
+  const matchingFiles = terms.length
+    ? scoredFiles.filter(file => file.score > 0).sort((a, b) => b.score - a.score).slice(0, 4)
+    : scoredFiles.slice(0, 3);
+  const selectedFiles = matchingFiles.length ? matchingFiles : scoredFiles.slice(0, 3);
+  return selectedFiles
     .map(file => {
       const selectedText = selectKnowledgeSnippets(file.text, terms);
-      return `\n--- ${file.name} ---\n${selectedText}`;
+      return `\n--- ${file.name} · trafność ${file.score} ---\n${selectedText}`;
     })
     .join('\n');
+}
+
+function scoreKnowledgeText(text = '', terms = []) {
+  if (!terms.length) return 0;
+  const normalized = normalizeForSearch(text);
+  return terms.reduce((sum, term) => sum + Math.min(countOccurrences(normalized, term), 12), 0);
 }
 
 function getKnowledgePromptFiles(dir) {
@@ -1646,12 +1662,12 @@ function selectKnowledgeSnippets(text = '', terms = []) {
     .replace(/\r/g, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n');
-  const intro = clean.slice(0, 3_500);
+  const intro = clean.slice(0, 1_800);
   if (!terms.length || clean.length <= KNOWLEDGE_FILE_SNIPPET_LIMIT) return clean.slice(0, KNOWLEDGE_FILE_SNIPPET_LIMIT);
 
   const chunks = [];
-  for (let index = 0; index < clean.length; index += 1_800) {
-    chunks.push({ index, text: clean.slice(index, index + 2_200) });
+  for (let index = 0; index < clean.length; index += 1_600) {
+    chunks.push({ index, text: clean.slice(index, index + 2_000) });
   }
 
   const scored = chunks
@@ -1662,7 +1678,7 @@ function selectKnowledgeSnippets(text = '', terms = []) {
     })
     .filter(chunk => chunk.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
+    .slice(0, 6)
     .sort((a, b) => a.index - b.index);
 
   const matches = scored

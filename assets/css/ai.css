@@ -102,6 +102,20 @@
   display: inline-block; width: 7px; height: 7px;
   border-radius: 50%; margin-right: 4px; vertical-align: middle;
 }
+.ai-scope {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 9px;
+  padding: 5px 9px;
+  border: 1px solid #b8cbe0;
+  border-radius: 6px;
+  background: #edf4fb;
+  color: #344b62;
+  font-size: .68rem;
+  font-weight: 800;
+  text-align: center;
+}
+.ai-scope strong { color: var(--navy); }
 .dot.online  { background: var(--green); }
 .dot.offline { background: #e74c3c; }
 .mini-ai {

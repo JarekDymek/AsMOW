@@ -710,6 +710,7 @@ async function sendHarmToAI() {
   if (!harmContent && !harmAttachment) return;
   const name = document.getElementById('wych-input').value.trim();
 
+  setAIContextScope('harmonogram');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
 
   const question = name

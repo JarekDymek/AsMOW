@@ -11,8 +11,65 @@
   font-size: .8rem;
   font-weight: 850;
   line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--navy);
+  text-decoration: none;
 }
 .law-num { font-weight: 900; color: var(--navy); }
+.law-text { display: block; }
+.law-meta {
+  color: #465c72;
+  font-size: .67rem;
+  font-weight: 800;
+}
+.law-meta strong {
+  color: #11633b;
+  text-transform: uppercase;
+}
+.law-open {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  border-radius: 6px;
+  background: #e8f1fa;
+  color: var(--navy);
+  font-size: .72rem;
+  font-weight: 950;
+}
+.law-item-link:active { background: #eef5fb; }
+.law-source-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.law-source-actions a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 12px;
+  border: 1.5px solid #9db8d3;
+  border-radius: 8px;
+  background: #edf4fb;
+  color: var(--navy);
+  font-size: .76rem;
+  font-weight: 950;
+  text-align: center;
+  text-decoration: none;
+}
+.law-review-note {
+  color: #465c72;
+  font-size: .68rem;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 10px 0 0;
+}
+body:has(#law-force-card:not(.collapsed)) .nota-fab { display: none !important; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 
 #law-list-render {
@@ -20,6 +77,17 @@
   grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
   gap: 10px;
   padding: 10px;
+}
+.law-source-guide {
+  margin: 10px 10px 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--gold);
+  border-radius: 6px;
+  background: #fff8e5;
+  color: var(--navy);
+  font-size: .74rem;
+  font-weight: 800;
+  line-height: 1.5;
 }
 #knowledge-list {
   display: grid;

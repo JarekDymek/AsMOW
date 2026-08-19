@@ -13,3 +13,19 @@ const LAWS = [
   {n:"12",t:"Rozporządzenie o dokumentacji przebiegu nauczania, działalności wychowawczej i opiekuńczej (Dz.U. 2024 poz. 50) - zasady prowadzenia dokumentacji."},
   {n:"13",t:"Statut MOW nr 1 w Malborku, procedury wewnętrzne, regulamin stopni, standardy ochrony małoletnich i zarządzenia dyrektora - pierwszeństwo przy pytaniach o codzienne procedury."},
 ];
+
+const LAW_SOURCE_META = {
+  "1": {url:"https://eli.gov.pl/eli/DU/2026/163/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "2": {url:"https://eli.gov.pl/eli/DU/2023/651/ogl", status:"źródło urzędowe", reviewedAt:"2026-08-19"},
+  "3": {url:"https://eli.gov.pl/eli/DU/2023/139/ogl", status:"źródło urzędowe", reviewedAt:"2026-08-19"},
+  "4": {url:"https://eli.gov.pl/eli/DU/2026/820/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "5": {url:"https://eli.gov.pl/eli/DU/2026/515/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "6": {url:"https://eli.gov.pl/eli/DU/2022/1914/ogl", status:"sprawdź zmiany", reviewedAt:"2026-08-19"},
+  "7": {url:"https://eli.gov.pl/eli/DU/2025/277/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "8": {url:"https://eli.gov.pl/eli/DU/2026/244/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "9": {url:"https://eli.gov.pl/eli/DU/2020/1604/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "10": {url:"https://eli.gov.pl/eli/DU/2023/1798/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "11": {url:"https://eli.gov.pl/eli/DU/2020/1309/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "12": {url:"https://eli.gov.pl/eli/DU/2024/50/ogl", status:"tekst jednolity", reviewedAt:"2026-08-19"},
+  "13": {url:"", status:"dokumenty wewnętrzne", reviewedAt:"2026-08-19"}
+};

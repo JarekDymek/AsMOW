@@ -17,6 +17,7 @@ Podstawy prawne: ustawa o wspieraniu i resocjalizacji nieletnich (Dz.U. 2026 poz
 const DEFAULT_AI_BACKEND_URL = 'https://asmow.onrender.com/api/chat';
 const AI_BACKEND_URL = localStorage.getItem('mow_ai_backend_url') || DEFAULT_AI_BACKEND_URL;
 const CHAT_STORE_KEY = 'mow_chat_history_v2';
+let currentAIScope = 'general';
 const MOW_DOCUMENTS = [
   'STATUT-M.O.W.pdf',
   'Reg.stopni uspołecznienia.pdf',
@@ -46,29 +47,53 @@ function getAIBackendBaseUrl() {
   return url.toString().replace(/\/$/, '');
 }
 
-function buildAssistantContext() {
-  return {
+function setAIContextScope(scope = 'general') {
+  const allowed = ['general', 'procedury', 'stopnie', 'prawo', 'harmonogram', 'info'];
+  currentAIScope = allowed.includes(scope) ? scope : 'general';
+  const label = document.getElementById('ai-scope-label');
+  if (label) {
+    const names = {
+      general: 'Wszystkie obszary',
+      procedury: 'Procedury MOW',
+      stopnie: 'Stopnie uspołecznienia',
+      prawo: 'Prawo i baza wiedzy',
+      harmonogram: 'Harmonogram',
+      info: 'Bieżące informacje'
+    };
+    label.textContent = names[currentAIScope];
+  }
+}
+
+function buildAssistantContext(scope = currentAIScope) {
+  const include = section => scope === 'general' || scope === section;
+  const context = {
+    scope,
     role: 'mentor i asystent wychowawcy MOW nr 1 w Malborku',
     rule: 'Dokumenty MOW są nadrzędne przy pytaniach o procedury postępowania. Gdy pytanie jest zbyt ogólne, asystent ma dopytać o kontekst.',
     documents: MOW_DOCUMENTS,
-    procedures: PROCS.map(p => ({
+    procedures: include('procedury') ? PROCS.map(p => ({
       title: stripHtml(p.title),
       description: stripHtml(p.sub),
       source: stripHtml(p.src),
       steps: p.steps.map(stripHtml),
-      alert: p.alert ? stripHtml(p.alert.txt) : ''
-    })),
-    socializationLevels: STOPNIE.map(s => ({
+      documentation: (p.documentation || []).map(stripHtml),
+      prohibited: (p.dont || []).map(stripHtml),
+      alert: p.alert ? stripHtml(p.alert.txt) : '',
+      levelNote: stripHtml(p.levelNote || '')
+    })) : [],
+    socializationLevels: include('stopnie') ? STOPNIE.map(s => ({
       level: stripHtml(s.lvl),
       pocketMoney: stripHtml(s.kies),
+      assessmentMode: s.mode || 'all',
       criteria: s.crit.map(stripHtml),
       privileges: s.przyw.map(stripHtml)
-    })),
-    legalBases: LAWS.map(l => stripHtml(l.t)),
-    weeklyPlan: weeklyPlan ? weeklyPlanToText().slice(0, 12000) : '',
-    currentInfo: typeof getCurrentInfoContext === 'function' ? getCurrentInfoContext() : [],
+    })) : [],
+    legalBases: include('prawo') ? LAWS.map(l => stripHtml(l.t)) : [],
+    weeklyPlan: include('harmonogram') && weeklyPlan ? weeklyPlanToText().slice(0, 12000) : '',
+    currentInfo: include('info') && typeof getCurrentInfoContext === 'function' ? getCurrentInfoContext() : [],
     knowledgeBase: getKnowledgeContext()
   };
+  return context;
 }
 
 

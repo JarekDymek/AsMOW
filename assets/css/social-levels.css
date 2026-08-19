@@ -37,6 +37,80 @@
   gap: 10px;
 }
 
+.stop-check-label {
+  display: block;
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 950;
+  margin: 12px 0 6px;
+}
+.stop-check-select {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid #9db8d3;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--navy);
+  font-size: .88rem;
+  font-weight: 900;
+}
+.stop-check-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.stop-check-empty {
+  color: #465c72;
+  font-size: .78rem;
+  font-weight: 800;
+  margin: 0;
+}
+.stop-check-row {
+  border: 1.5px solid #bfd0e2;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 0;
+  min-width: 0;
+}
+.stop-check-row legend {
+  color: var(--navy);
+  font-size: .8rem;
+  font-weight: 900;
+  line-height: 1.4;
+  padding: 0 5px;
+}
+.stop-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.stop-segmented label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1.5px solid #b5c7da;
+  border-radius: 7px;
+  background: #f5f8fb;
+  color: var(--navy);
+  font-size: .72rem;
+  font-weight: 900;
+  text-align: center;
+}
+.stop-segmented label:has(input:checked) {
+  border-color: var(--navy);
+  background: #e6eff8;
+}
+.stop-segmented input { accent-color: var(--navy); }
+.stop-check-submit { width: 100%; margin-top: 12px; }
+body:has(#stop-assistant-card:not(.collapsed)) .nota-fab { display: none !important; }
+
+@media (max-width: 380px) {
+  .stop-segmented { grid-template-columns: 1fr; }
+}
+
 @media (min-width: 620px) {
   #st-neg,
   #st-pos {

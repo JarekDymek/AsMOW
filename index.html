@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.0</span>
+  <span class="hdr-badge">v2.1</span>
 </header>
 
 <!-- MAIN -->
@@ -159,10 +159,24 @@
     <span class="st-main">📈 Stopnie pozytywne</span><span class="st-state">Rozwiń</span>
   </button>
   <div class="collapsible-card accordion-panel" id="stop-pos-card"><div id="st-pos"></div></div>
+  <button class="section-toggle" type="button" data-accordion-target="stop-assistant-card" onclick="toggleAccordion('stop-assistant-card')">
+    <span class="st-main">🔎 Pomoc w ocenie kryteriów</span><span class="st-state">Rozwiń</span>
+  </button>
+  <div class="card collapsible-card accordion-panel" id="stop-assistant-card"><div class="card-body">
+    <div class="abox info"><span class="ai">ℹ️</span><div>To arkusz pomocniczy działający bez AI. Porządkuje obserwacje, ale nie kwalifikuje wychowanka i nie zastępuje zespołu.</div></div>
+    <label class="stop-check-label" for="stop-check-level">Oceniany stopień</label>
+    <select id="stop-check-level" class="stop-check-select" onchange="renderStopChecklist()">
+      <option value="">Wybierz stopień...</option>
+    </select>
+    <div id="stop-check-form" class="stop-check-form"><p class="stop-check-empty">Wybierz stopień, aby wyświetlić kryteria.</p></div>
+    <button class="btn stop-check-submit" type="button" onclick="summarizeStopChecklist()">Podsumuj braki i kryteria</button>
+    <div id="stop-check-result" aria-live="polite"></div>
+  </div></div>
   <button class="section-toggle" type="button" data-accordion-target="stop-drop-card" onclick="toggleAccordion('stop-drop-card')">
-    <span class="st-main">⬇️ Automatyczny spadek stopnia</span><span class="st-state">Rozwiń</span>
+    <span class="st-main">⬇️ Zmiana stopnia po zdarzeniu</span><span class="st-state">Rozwiń</span>
   </button>
   <div class="card collapsible-card accordion-panel" id="stop-drop-card"><div class="card-body">
+    <div class="abox danger"><span class="ai">🛡️</span><div><strong>Najpierw bezpieczeństwo i pomoc.</strong> Poniższa lista nie zastępuje procedury kryzysowej ani ustalenia faktów. Zmianę stopnia rozpatruje się później zgodnie z regulaminem.</div></div>
     <div style="font-size:.88rem;line-height:2">
       <div>🥊 Czyn karalny → <strong>stopień –2</strong></div>
       <div>👊 Pobicie z urazem → <strong>spadek o 2</strong> (min. zero)</div>
@@ -186,6 +200,7 @@
       <span class="dot offline" id="ai-dot"></span>
       <span id="ai-status-txt">Sprawdzam połączenie...</span>
     </div>
+    <div class="ai-scope">Zakres odpowiedzi: <strong id="ai-scope-label">Wszystkie obszary</strong></div>
 
     <div class="abox info" style="margin-bottom:10px">
       <span class="ai">🤖</span>
@@ -234,7 +249,10 @@
   <button class="section-toggle" type="button" data-accordion-target="law-sources-card" onclick="toggleAccordion('law-sources-card')">
     <span class="st-main">📚 Podstawy prawne MOW</span><span class="st-state">Rozwiń</span>
   </button>
-  <div class="card collapsible-card accordion-panel" id="law-sources-card" style="padding:0"><div id="law-list-render"></div></div>
+  <div class="card collapsible-card accordion-panel" id="law-sources-card" style="padding:0">
+    <div class="law-source-guide"><strong>Jak czytać:</strong> akty prawne otwierają urzędowe źródło. Dokument wewnętrzny MOW określa codzienny sposób działania, ale nie może być sprzeczny z aktem wyższego rzędu. Przy zmianie prawa sprawdź datę i aktualny tekst.</div>
+    <div id="law-list-render"></div>
+  </div>
 
   <button class="section-toggle" type="button" data-accordion-target="law-rights-card" onclick="toggleAccordion('law-rights-card')">
     <span class="st-main">⚖️ Prawa wychowanka (aktualna ustawa)</span><span class="st-state">Rozwiń</span>
@@ -264,25 +282,31 @@
     <span class="st-main">⬇️ Środki przymusu bezpośredniego</span><span class="st-state">Rozwiń</span>
   </button>
   <div class="card collapsible-card accordion-panel" id="law-force-card"><div class="card-body">
-    <div class="abox warn" style="margin-bottom:10px">
-      <span class="ai">⚠️</span>
-      <div style="font-size:.8rem">Środki przymusu stosuje się <strong>tylko w ostateczności</strong>, gdy inne sposoby są nieskuteczne. Podstawa: aktualna ustawa o środkach przymusu bezpośredniego oraz procedury MOW.</div>
+    <div class="abox danger" style="margin-bottom:10px">
+      <span class="ai">🛑</span>
+      <div style="font-size:.8rem"><strong>W MOW katalog jest ograniczony.</strong> Art. 122 ustawy o wspieraniu i resocjalizacji nieletnich dopuszcza, po bezskuteczności oddziaływań psychologiczno-pedagogicznych i tylko w ustawowych sytuacjach, zastosowanie <strong>siły fizycznej</strong>. Nie jest to kara ani metoda dyscyplinowania.</div>
     </div>
     <div style="font-size:.85rem;line-height:1.9">
-      <strong>Dozwolone środki:</strong><br>
-      • przytrzymanie<br>
-      • unieruchomienie<br>
-      • izolowanie<br>
-      • założenie pasa obezwładniającego (tylko na polecenie dyrektora/lekarza)<br>
+      <strong>Przed interwencją:</strong><br>
+      • oceń bezpośrednie zagrożenie życia, zdrowia lub bezpieczeństwa<br>
+      • użyj dostępnych oddziaływań psychologiczno-pedagogicznych<br>
+      • wezwij wsparcie; przy poważnym zagrożeniu dzwoń 112<br>
+      • zastosuj wyłącznie działanie konieczne, proporcjonalne i możliwie krótkie<br>
     </div>
     <hr class="divider">
     <div style="font-size:.85rem;line-height:1.7">
       <strong>Obowiązki po zastosowaniu:</strong><br>
-      • natychmiast powiadom Dyrektora<br>
-      • sporządź protokół (data, godzina, okoliczności, zastosowany środek)<br>
-      • poinformuj rodziców / opiekunów<br>
-      • zapewnij opiekę medyczną jeśli potrzebna
+      • przerwij działanie natychmiast po ustaniu przyczyny<br>
+      • oceń stan zdrowia i zapewnij pomoc medyczną, jeśli jest potrzebna<br>
+      • natychmiast powiadom Dyrektora i sporządź wymaganą dokumentację<br>
+      • zabezpiecz nagranie monitoringu przez wymagany okres<br>
+      • wykonaj wymagane zawiadomienia i poinformuj o prawie złożenia skargi
     </div>
+    <div class="law-source-actions">
+      <a href="https://eli.gov.pl/eli/DU/2026/163/ogl" target="_blank" rel="noopener noreferrer">Ustawa, art. 122 ↗</a>
+      <a href="https://eli.gov.pl/eli/DU/2026/244/ogl" target="_blank" rel="noopener noreferrer">Ustawa o środkach przymusu ↗</a>
+    </div>
+    <p class="law-review-note">Stan źródeł zweryfikowany: 19.08.2026. Zawsze sprawdź również aktualną procedurę wewnętrzną MOW.</p>
   </div></div>
 
   <button class="section-toggle" type="button" data-accordion-target="law-kb-form-card" onclick="toggleAccordion('law-kb-form-card')">
@@ -566,7 +590,7 @@
   <button class="nav-btn" onclick="nav('s-harm',this)">
     <span class="ni">📁</span><span class="nl">Harmonogram</span>
   </button>
-  <button class="nav-btn" onclick="nav('s-ai',this)">
+  <button class="nav-btn" onclick="setAIContextScope('general');nav('s-ai',this)">
     <span class="ni">🤖</span><span class="nl">AI</span>
   </button>
 </nav>
@@ -591,7 +615,7 @@
 <!-- Notatnik dostępny jako overlay z bottom sheet -->
 
 <!-- floating notatnik button -->
-<button onclick="openNota()" style="
+<button class="nota-fab" onclick="openNota()" style="
   position:fixed; bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 10px); right:12px;
   width:52px; height:52px; border-radius:50%;
   background:var(--navy); color:#fff; border:none;

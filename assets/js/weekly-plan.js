@@ -447,6 +447,7 @@ function askAIAboutWeeklyPlan() {
     setWeeklyStatus('Najpierw pobierz plan tygodniowy albo użyj danych przykładowych.');
     return;
   }
+  setAIContextScope('harmonogram');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
   const ta = document.getElementById('chat-input');
   ta.value = `Przeanalizuj mój plan tygodniowy pracy z Harmonogram-MOW. Podsumuj dyżury, nadgodziny, weekendy, ryzyka organizacyjne i wskaż pytania doprecyzowujące, jeśli czegoś brakuje.\n\n--- PLAN TYGODNIOWY ---\n${weeklyPlanToText().slice(0, 12000)}`;

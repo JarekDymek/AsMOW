@@ -670,6 +670,7 @@ function getCurrentInfoContext() {
 
 function askAIAboutCurrentInfo(id = '') {
   const item = id ? currentInfoItems.find(x => String(x.id) === String(id)) : null;
+  setAIContextScope('info');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
   const ta = document.getElementById('chat-input');
   ta.value = item

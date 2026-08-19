@@ -39,6 +39,87 @@
 .step-text { font-size: .96rem; line-height: 1.62; padding-top: 4px; font-weight: 750; }
 .step-text strong { color: var(--navy); }
 
+.procedure-now {
+  background: #fff7f5;
+  border: 2px solid #d84a3a;
+  border-radius: 10px;
+  padding: 2px 12px 4px;
+  margin: 12px 0;
+}
+.procedure-now .sec-title {
+  color: #9f2016;
+  margin: 12px 0;
+}
+.procedure-layer {
+  border: 1.5px solid #b8cbe0;
+  border-radius: 8px;
+  background: #fff;
+  margin: 10px 0;
+  overflow: hidden;
+}
+.procedure-layer summary {
+  min-height: 48px;
+  padding: 11px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--navy);
+  font-size: .88rem;
+  font-weight: 950;
+  list-style: none;
+}
+.procedure-layer summary::-webkit-details-marker { display: none; }
+.procedure-layer summary::after {
+  content: 'Rozwiń';
+  color: var(--navy2);
+  font-size: .7rem;
+  flex-shrink: 0;
+}
+.procedure-layer[open] summary::after { content: 'Zwiń'; }
+.procedure-layer summary > span {
+  background: #e8f0f8;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: .7rem;
+  margin-left: auto;
+}
+.procedure-layer-body,
+.procedure-checklist {
+  border-top: 1px solid #d6e0eb;
+  padding: 12px;
+  margin: 0;
+}
+.procedure-checklist {
+  padding-left: 34px;
+  font-size: .86rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
+.procedure-checklist li { margin-bottom: 7px; }
+.procedure-layer-dont { border-color: #e3a09a; background: #fff8f7; }
+.procedure-layer-documentation { background: #f5f9fd; }
+.procedure-level-note { border-color: #e3b83c; background: #fffaf0; }
+.procedure-source-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.procedure-source-links a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1.5px solid #9db8d3;
+  border-radius: 8px;
+  color: var(--navy);
+  background: #f4f8fc;
+  font-size: .8rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 /* info rows */
 .info-row {
   display: flex; justify-content: space-between; align-items: center;

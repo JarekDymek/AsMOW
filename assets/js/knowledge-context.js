@@ -27,6 +27,7 @@ function getKnowledgeContext() {
 }
 
 function askAIAboutKnowledge() {
+  setAIContextScope('prawo');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
   const ta = document.getElementById('chat-input');
   ta.value = 'Uwzględnij aktualną bazę wiedzy MOW, w tym daty obowiązywania zmian czasowych i wzory dokumentów. Odpowiedz, które wpisy są aktywne teraz i jak wpływają na praktykę wychowawcy.';
@@ -38,6 +39,7 @@ function askAIAboutKnowledge() {
 function useKnowledgeInAI(id) {
   const item = getAllKnowledgeItems().find(x => String(x.id) === String(id));
   if (!item) return;
+  setAIContextScope('prawo');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
   const status = getKnowledgeStatus(item);
   const ta = document.getElementById('chat-input');
