@@ -560,6 +560,7 @@ function formatInternatScheduleDate(isoDate) {
 
 function formatInternatScheduleGroup(group) {
   const value = String(group || '').trim();
+  if (/^noc$/i.test(value)) return 'noc';
   return /^gr(?:upa)?\.?\s/i.test(value) ? value.replace(/^gr\.?\s/i, 'grupa ') : `grupa ${value}`;
 }
 

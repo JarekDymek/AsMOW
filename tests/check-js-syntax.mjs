@@ -28,6 +28,7 @@ console.log(`OK: sprawdzono skladnie ${files.length} plikow JavaScript.`);
 function collectJs(dir, target) {
   if (!fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name === 'node_modules') continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       collectJs(full, target);

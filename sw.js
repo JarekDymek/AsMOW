@@ -1,6 +1,5 @@
 const CACHE_PREFIX = 'asmow-private-';
-const LEGACY_CACHE_PREFIXES = ['mow-pwa-'];
-const CACHE = `${CACHE_PREFIX}v57`;
+const CACHE = `${CACHE_PREFIX}v58`;
 const APP_SHELL = [
   './',
   './index.html',
@@ -61,7 +60,7 @@ const APP_SHELL = [
 ];
 
 function isOwnCache(key) {
-  return key.startsWith(CACHE_PREFIX) || LEGACY_CACHE_PREFIXES.some(prefix => key.startsWith(prefix));
+  return key.startsWith(CACHE_PREFIX);
 }
 
 self.addEventListener('install', event => {

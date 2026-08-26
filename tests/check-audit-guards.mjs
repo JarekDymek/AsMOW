@@ -9,6 +9,7 @@ const html = read('index.html');
 const sw = read('sw.js');
 const server = read('backend/server.js');
 const pwa = read('assets/js/pwa.js');
+const weeklyPlan = read('assets/js/weekly-plan.js');
 const answerBankSize = fs.statSync(path.join(root, 'assets/js/data-answer-bank.js')).size;
 
 const directAnswerBankScripts = [
@@ -43,7 +44,7 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.3.1'",
+  "const BACKEND_VERSION = '1.4.0'",
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",
@@ -64,6 +65,19 @@ const installListener = pwa.indexOf("window.addEventListener('beforeinstallpromp
 const installSetup = pwa.indexOf('function setupInstall()');
 if (installListener < 0 || installListener > installSetup) {
   throw new Error('Nasłuch beforeinstallprompt musi być zarejestrowany przed inicjalizacją aplikacji.');
+}
+
+if (sw.includes("'mow-pwa-'")) {
+  throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
+}
+if (!sw.includes("const CACHE = `${CACHE_PREFIX}v58`")) {
+  throw new Error('Wydanie 2.5.0 wymaga cache PWA v58.');
+}
+if (!weeklyPlan.includes('function validateWeeklyWeek')) {
+  throw new Error('Brak niezależnej walidacji danych planu z generatora.');
+}
+if (!server.includes('function validateInternatScheduleRecords')) {
+  throw new Error('Brak walidacji rekordów grafiku odczytanych z DOCX.');
 }
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);
