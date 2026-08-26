@@ -192,6 +192,7 @@ function getWeeklyGeneratorDiagnostic(payload = {}) {
 }
 
 function normalizeWeeklyWeek(w = {}) {
+  const days = Array.isArray(w.days) ? w.days : [];
   return {
     label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
     range: w.range || [w.dateFrom, w.dateTo].filter(Boolean).join(' - '),
@@ -203,10 +204,32 @@ function normalizeWeeklyWeek(w = {}) {
       overtimeHours: w.overtimeHours ?? 0,
       weekendHours: w.weekendHours ?? 0
     },
-    days: Array.isArray(w.days) ? w.days : [],
+    days,
+    validationWarnings: validateWeeklyWeek(days),
     sourceFilename: w.sourceFilename || w.source || '',
     partialFromHistory: !!w.partialFromHistory
   };
+}
+
+function validateWeeklyWeek(days = []) {
+  const warnings = [];
+  days.forEach(day => {
+    const declaredHours = Number(day.hoursDay || 0);
+    const calculatedHours = (Array.isArray(day.shifts) ? day.shifts : []).reduce((sum, shift) => {
+      const direct = Number(shift.hoursValue ?? shift.duration);
+      if (Number.isFinite(direct)) return sum + direct;
+      const match = String(shift.hours || '').match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+      if (!match) return sum;
+      const start = Number(match[1]) * 60 + Number(match[2]);
+      let end = Number(match[3]) * 60 + Number(match[4]);
+      if (end <= start) end += 24 * 60;
+      return sum + ((end - start) / 60);
+    }, 0);
+    if (declaredHours > 24 || calculatedHours > 24) {
+      warnings.push(`${day.name || day.date || 'Dzień'}: odczyt przekracza 24 godziny i wymaga ponownej synchronizacji.`);
+    }
+  });
+  return warnings;
 }
 
 function normalizeWeeklyHistoryWeek(w = {}) {
@@ -387,6 +410,12 @@ function renderWeeklyPlan() {
           <span class="st-state">Rozwiń</span>
         </button>
         <div class="weekly-body collapsible-card accordion-panel" id="${panelId}">
+          ${week.validationWarnings?.length ? `
+            <div class="weekly-day weekly-day--error">
+              <strong>Dane grafiku wymagają sprawdzenia</strong>
+              <span class="weekly-empty">${escapeHtml(week.validationWarnings.join(' '))}</span>
+            </div>
+          ` : ''}
           ${week.partialFromHistory ? `
             <div class="weekly-day weekly-day--notice">
               <strong>Wykryto grafik w historii generatora</strong>
@@ -432,6 +461,7 @@ function weeklyPlanToText() {
     ...classifyWeeklyWeeks(weeklyPlan.weeks).map(week => [
       `\n${week.label || 'Tydzień'} (${week.relation || 'tydzień'}) ${week.range || ''}`,
       `Podsumowanie: godziny ${week.summary?.totalHours ?? 0}, nadgodziny ${week.summary?.overtimeHours ?? 0}, weekend ${week.summary?.weekendHours ?? 0}`,
+      ...(week.validationWarnings || []).map(warning => `UWAGA: ${warning}`),
       ...(week.days || []).map(day => {
         const shifts = day.shifts && day.shifts.length
           ? day.shifts.map(s => `${s.label || 'Dyżur'} ${s.hours || ''}${s.replacesPerson ? `, zastępuje ${s.replacesPerson}` : ''}${s.replacedByPerson ? `, zastępowany przez ${s.replacedByPerson}` : ''}`).join('; ')

@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.4</span>
+  <span class="hdr-badge">v2.5.0</span>
 </header>
 
 <!-- MAIN -->
@@ -584,8 +584,8 @@
   <button class="nav-btn" onclick="nav('s-info',this)">
     <span class="ni">📣</span><span class="nl">Inf.</span>
   </button>
-  <button class="nav-btn" onclick="nav('s-harm',this)">
-    <span class="ni">📁</span><span class="nl">Harmonogram</span>
+  <button class="nav-btn" aria-label="Harmonogram" onclick="nav('s-harm',this)">
+    <span class="ni">📁</span><span class="nl" aria-hidden="true">Grafik</span>
   </button>
   <button class="nav-btn" onclick="setAIContextScope('general');nav('s-ai',this)">
     <span class="ni">🤖</span><span class="nl">AI</span>

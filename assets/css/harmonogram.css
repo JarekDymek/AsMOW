@@ -110,6 +110,15 @@
   display: block;
   color: #3b2a00;
 }
+.weekly-day--error {
+  background: #fff0f0;
+  border: 2px solid #b42318;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+.weekly-day--error strong,
+.weekly-day--error .weekly-empty { display: block; color: #7a1010; }
 .weekly-shift {
   display: block;
   color: #09233d;
@@ -308,4 +317,20 @@
 }
 .weekly-body {
   padding: 2px 12px 10px;
+}
+
+@media (max-width: 430px) {
+  .weekly-toggle {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .weekly-toggle .st-main { flex-basis: calc(100% - 64px); }
+  .weekly-range {
+    order: 3;
+    width: 100%;
+    white-space: normal;
+    text-align: left;
+    overflow-wrap: break-word;
+  }
+  .weekly-relation { margin: 4px 0 0; }
 }

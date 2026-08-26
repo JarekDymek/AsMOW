@@ -11,7 +11,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.3.1';
+const BACKEND_VERSION = '1.4.0';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1140,16 +1140,44 @@ function parseInternatScheduleHtml(html, source = {}) {
     return true;
   });
 
-  const ambiguous = !weekStart || !tables.length || !uniqueRecords.length || unresolvedTimedCells > 0;
+  const validationWarnings = validateInternatScheduleRecords(uniqueRecords);
+  const ambiguous = !weekStart || !tables.length || !uniqueRecords.length || unresolvedTimedCells > 0 || validationWarnings.length > 0;
+  const warnings = [];
+  if (!weekStart || !tables.length || !uniqueRecords.length || unresolvedTimedCells > 0) {
+    warnings.push('Nie wszystkie dane tabeli udało się przypisać jednoznacznie.');
+  }
+  warnings.push(...validationWarnings);
   return {
     weekStart,
     records: uniqueRecords,
     hasCompleteWeek: declaredDates.size >= 7,
     ambiguous,
-    warning: ambiguous ? 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.' : '',
+    warning: warnings.join(' '),
     ignored: false,
     ignoreReason: ''
   };
+}
+
+function validateInternatScheduleRecords(records = []) {
+  const warnings = [];
+  const hoursByPersonAndDate = new Map();
+  records.forEach(record => {
+    const from = internatTimeToMinutes(record.from);
+    const to = internatTimeToMinutes(record.to);
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) {
+      warnings.push('Wykryto nieprawidłowy przedział godzin.');
+      return;
+    }
+    const key = `${record.date}|${normalizeMailSearch(record.employee)}`;
+    hoursByPersonAndDate.set(key, (hoursByPersonAndDate.get(key) || 0) + ((to - from) / 60));
+  });
+  if ([...hoursByPersonAndDate.values()].some(hours => hours > 24)) {
+    warnings.push('Co najmniej jednej osobie przypisano ponad 24 godziny w ciągu dnia; sprawdź dokument źródłowy.');
+  }
+  if (records.length > 500) {
+    warnings.push('Liczba odczytanych wpisów jest nietypowo duża; sprawdź dokument źródłowy.');
+  }
+  return [...new Set(warnings)];
 }
 
 function getNonInternatScheduleReason(value = '') {
@@ -1337,7 +1365,7 @@ function parseInternatDateColumns(table, weekStart, source) {
 function parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind = '') {
   const ranges = extractInternatTimeRanges(cell);
   if (!ranges.length) return [];
-  const group = extractInternatGroup(cell) || rowGroup;
+  const group = rowKind === 'night-row' ? 'NOC' : (extractInternatGroup(cell) || rowGroup);
   const withRowContext = range => rowKind === 'night-row'
     ? { ...range, label: `noc-row ${range.label}` }
     : range;
@@ -1440,8 +1468,11 @@ function parseInternatEmployeeCandidate(value = '', genericWords) {
 }
 
 function extractInternatGroup(value = '') {
-  const match = String(value).match(/\b(?:grupa|gr)\.?\s*([A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+)/i);
-  return match ? match[1] : '';
+  const raw = String(value || '').trim();
+  const match = raw.match(/\b(?:grupa|gr)\.?\s*([A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+)/i);
+  if (match) return match[1].toUpperCase();
+  const standalone = raw.match(/^(VIII|VII|VI|IV|V|III|II|I|[1-8])$/i);
+  return standalone ? standalone[1].toUpperCase() : '';
 }
 
 function internatTimeRangePattern() {
