@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.4.1';
+const BACKEND_VERSION = '1.4.2';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -550,7 +550,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     if (!selected.length) {
       return {
         ok: true,
-        mailSourceRevision: 'director-forwarding-v1',
+        mailSourceRevision: 'director-forwarding-v2',
         source: config.from,
         since,
         count: 0,
@@ -573,6 +573,7 @@ async function fetchCurrentInfoMail(payload = {}) {
       item.source = resolved.source;
       item.forwardedBy = resolved.forwardedBy;
       item.date = resolved.originalDate || item.date;
+      item.sourceSentAt = resolved.originalSentAt || '';
       item.mailFingerprint = directorMailFingerprint(parsed, resolved);
       if (items.some(existing => existing.mailFingerprint === item.mailFingerprint)) continue;
       items.push(item);
@@ -595,7 +596,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   const newestDate = items[0]?.date || '';
   return {
     ok: true,
-    mailSourceRevision: 'director-forwarding-v1',
+    mailSourceRevision: 'director-forwarding-v2',
     source: config.from,
     since,
     count: items.length,
@@ -1038,6 +1039,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
       sourceAttachmentId: attachmentId,
       sourceAttachmentOrder: index,
       sourceDate: item.date,
+      sourceSentAt: item.sourceSentAt || '',
       scheduleKind: classifyInternatScheduleKind(scheduleHint)
     };
 
@@ -1055,7 +1057,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
         });
         continue;
       }
-      const isCorrection = normalizeMailSearch(scheduleHint).includes('korekt');
+      const isCorrection = /korekt|poprawk|aktualiz|zmian/.test(normalizeMailSearch(scheduleHint));
       const needsSourceVerification = isCorrection && !parsedSchedule.hasCompleteWeek;
       documents.push({
         id: `${item.mailFingerprint || item.mailUid}:${attachmentId}`,
@@ -1074,7 +1076,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
         ...source,
         weekStart: extractInternatWeekStart(scheduleHint),
         records: [],
-        isCorrection: normalizeMailSearch(scheduleHint).includes('korekt'),
+        isCorrection: /korekt|poprawk|aktualiz|zmian/.test(normalizeMailSearch(scheduleHint)),
         ambiguous: true,
         warning: `Nie udało się jednoznacznie odczytać tabeli: ${err.message}`,
         indexedAt: new Date().toISOString()
@@ -1112,12 +1114,14 @@ function parseInternatScheduleHtml(html, source = {}) {
   const tables = extractInternatHtmlTables(html);
   const tableText = tables.flat(2).join(' ');
   const declaredDates = getInternatDeclaredWeekDates(tables, weekStart);
+  const coveredScopes = [];
   const records = [];
   let unresolvedTimedCells = 0;
 
   tables.forEach(table => {
     const parsed = parseInternatScheduleTable(table, weekStart, source);
     records.push(...parsed.records);
+    coveredScopes.push(...(parsed.coveredScopes || []));
     unresolvedTimedCells += parsed.unresolvedTimedCells;
   });
 
@@ -1139,6 +1143,7 @@ function parseInternatScheduleHtml(html, source = {}) {
   return {
     weekStart,
     records: uniqueRecords,
+    coveredScopes,
     hasCompleteWeek: declaredDates.size >= 7,
     ambiguous,
     warning: warnings.join(' '),
@@ -1285,15 +1290,17 @@ function parseInternatStructuredRows(table, weekStart, source) {
   const fromColumn = headers.findIndex(cell => /poczatek|(^|\s)od($|\s)/.test(cell));
   const toColumn = headers.findIndex(cell => /koniec|(^|\s)do($|\s)/.test(cell));
   const records = [];
+  const coveredScopes = [];
   let unresolvedTimedCells = 0;
 
   table.slice(headerIndex + 1).forEach(row => {
     const hours = hoursColumn >= 0 ? row[hoursColumn] : `${row[fromColumn] || ''}-${row[toColumn] || ''}`;
     const ranges = extractInternatTimeRanges(hours);
-    if (!ranges.length) return;
     const date = parseInternatScheduleCellDate(row[dateColumn], weekStart);
     const employee = extractInternatEmployee(row[employeeColumn]);
     const group = groupColumn >= 0 ? extractInternatGroup(row[groupColumn]) : '';
+    if (date && employee && (ranges.length || /wolne|urlop|bez dy[zż]uru/i.test(String(hours)))) coveredScopes.push({ date, employee, group: '' });
+    if (!ranges.length) return;
     if (!date || !employee) {
       unresolvedTimedCells += 1;
       return;
@@ -1301,7 +1308,7 @@ function parseInternatStructuredRows(table, weekStart, source) {
     ranges.forEach(range => records.push(...buildInternatScheduleRecords(date, employee, group, range, weekStart, source)));
   });
 
-  return { matched: true, records, unresolvedTimedCells };
+  return { matched: true, records, coveredScopes, unresolvedTimedCells };
 }
 
 function parseInternatDateColumns(table, weekStart, source) {
@@ -1326,29 +1333,33 @@ function parseInternatDateColumns(table, weekStart, source) {
   const headerEnd = Math.max(...dateColumns.map(item => item.rowIndex));
 
   const records = [];
+  const coveredScopes = [];
   let unresolvedTimedCells = 0;
   const firstDateColumn = Math.min(...dateColumns.map(item => item.column));
   table.slice(headerEnd + 1).forEach(row => {
     const labelCells = row.filter((_, column) => !dateColumns.some(item => item.column === column));
     const leadingLabelCells = row.filter((_, column) => column < firstDateColumn);
-    const rowEmployee = leadingLabelCells.map(extractInternatEmployee).find(Boolean) || '';
     const rowGroup = leadingLabelCells.map(extractInternatGroup).find(Boolean)
       || labelCells.map(extractInternatGroup).find(Boolean)
       || '';
+    const rowEmployee = rowGroup ? '' : leadingLabelCells.map(extractInternatEmployee).find(Boolean) || '';
     const rowKind = leadingLabelCells.some(cell => /(^|\s)noc($|\s)/.test(normalizeMailSearch(cell))) ? 'night-row' : '';
 
     dateColumns.forEach(({ column, date }) => {
       const cell = row[column] || '';
+      if ((rowEmployee || rowGroup || rowKind) && (cell.trim() || dateColumns.length >= 7)) {
+        coveredScopes.push({ date, employee: rowEmployee, group: rowKind === 'night-row' ? 'NOC' : rowGroup });
+      }
       const ranges = extractInternatTimeRanges(cell);
       const entries = parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind);
       if (ranges.length > entries.length) unresolvedTimedCells += ranges.length - entries.length;
       entries.forEach(entry => {
-        records.push(...buildInternatScheduleRecords(date, entry.employee, entry.group, entry.range, weekStart, source));
+        records.push(...buildInternatScheduleRecords(date, entry.employee, entry.group, entry.range, weekStart, source).map(record => ({ ...record, sourceDay: date })));
       });
     });
   });
 
-  return { matched: true, records, unresolvedTimedCells };
+  return { matched: true, records, coveredScopes, unresolvedTimedCells };
 }
 
 function parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind = '') {
@@ -1460,7 +1471,7 @@ function extractInternatGroup(value = '') {
   const raw = String(value || '').trim();
   const match = raw.match(/\b(?:grupa|gr)\.?\s*([A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+)/i);
   if (match) return match[1].toUpperCase();
-  const standalone = raw.match(/^(VIII|VII|VI|IV|V|III|II|I|[1-8])$/i);
+  const standalone = raw.split(/\r?\n/)[0].trim().match(/^(VIII|VII|VI|IV|V|III|II|I|[1-8])$/i);
   return standalone ? standalone[1].toUpperCase() : '';
 }
 

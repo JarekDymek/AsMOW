@@ -44,41 +44,62 @@ function setWeeklyStatus(text) {
 }
 
 async function fetchWeeklyPlan(options = {}) {
-  const testMode = typeof isTestMode === 'function' && isTestMode();
   const settings = saveWeeklySettings();
-  if (!testMode && !settings.backendUrl) {
-    setWeeklyStatus('Wklej adres wdrożenia Apps Script z aplikacji Harmonogram-MOW. Powinien kończyć się na /exec.');
+  const educator = settings.educator || 'Dymek';
+  setWeeklyStatus('Pobieram aktualne grafiki i korekty z poczty…');
+  const result = await syncCurrentInfoMail(true, { fullRescan: Boolean(options.rescan) });
+  if (!result?.ok) {
+    setWeeklyStatus(`Nie udało się pobrać poczty: ${result?.error?.message || 'sprawdź token synchronizacji w zakładce Info'}`);
     return;
   }
-  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
-    setWeeklyStatus('Ten adres nie wygląda jak wdrożenie Apps Script. Wklej link typu https://script.google.com/macros/s/.../exec, nie adres GitHub Pages ani edytora skryptu.');
+  rebuildWeeklyPlanFromMail(educator);
+}
+
+function rebuildWeeklyPlanFromMail(educator = '') {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
+  const who = educator || document.getElementById('weekly-educator')?.value.trim() || saved.educator || 'Dymek';
+  const index = loadInternatScheduleIndex();
+  const names = [...new Set(index.flatMap(doc => doc.records.map(record => record.employee)))];
+  const matches = names.filter(name => internatScheduleNameMatches(name, getInternatScheduleQueryTokens(who)));
+  if (matches.length !== 1) {
+    setWeeklyStatus(matches.length ? 'Doprecyzuj imię i nazwisko wychowawcy.' : `Brak odczytanego grafiku dla: ${who}. Sprawdź dokumenty w Info.`);
     return;
   }
-  const rescan = !!options.rescan && !testMode;
-  setWeeklyStatus(rescan ? 'Skanuję pocztę generatora i pobieram plan...' : 'Pobieram plan tygodniowy...');
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), rescan ? 120000 : 25000);
-    const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        targetUrl: testMode ? '' : settings.backendUrl,
-        token: testMode ? '' : settings.token,
-        testAccessToken: testMode ? getTestAccessToken() : '',
-        educator: settings.educator,
-        action: rescan ? 'scan' : 'dashboard'
-      })
+  const person = matches[0];
+  const weeks = [...new Set(index.map(doc => doc.weekStart).filter(Boolean))].sort().map(weekStart => {
+    const active = buildActiveInternatSchedule(index, weekStart);
+    const previousDate = new Date(`${weekStart}T12:00:00`);
+    previousDate.setDate(previousDate.getDate() - 7);
+    const previous = buildActiveInternatSchedule(index, formatInternatIsoDate(previousDate));
+    const seen = new Set();
+    const records = [...active.records, ...previous.records.filter(record => record.date === weekStart)].filter(record => {
+      const key = `${record.date}|${record.employee}|${record.group}|${record.from}|${record.to}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
-    clearTimeout(timer);
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-    setWeeklyPlanFromPayload(payload.data || payload, rescan ? 'Przeskanowano i pobrano przez Render z Harmonogram-MOW' : 'Pobrano przez Render z Harmonogram-MOW');
-  } catch (err) {
-    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
-    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. Sprawdź, czy wkleiłeś adres /exec z Apps Script. ${tokenHint}`);
-  }
+    const days = Array.from({ length: 7 }, (_, dayIndex) => {
+      const date = new Date(`${weekStart}T12:00:00`);
+      date.setDate(date.getDate() + dayIndex);
+      const iso = formatInternatIsoDate(date);
+      const shifts = records.filter(record => record.date === iso && normalizeInternatScheduleText(record.employee) === normalizeInternatScheduleText(person))
+        .map(record => ({ label: formatInternatScheduleGroup(record.group), hours: `${record.from}–${record.to}`, hoursValue: (Number(record.to.split(':')[0]) * 60 + Number(record.to.split(':')[1]) - Number(record.from.split(':')[0]) * 60 - Number(record.from.split(':')[1])) / 60 }));
+      return { date: iso, name: date.toLocaleDateString('pl-PL', { weekday: 'long' }), shifts, hoursDay: shifts.reduce((sum, shift) => sum + shift.hoursValue, 0) };
+    });
+    const total = days.reduce((sum, day) => sum + day.hoursDay, 0);
+    return { label: 'Tydzień', dateFrom: weekStart, dateTo: days[6].date, range: `${weekStart} – ${days[6].date}`, days,
+      summary: { totalHours: total, overtimeHours: '—', weekendHours: days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0) },
+      validationWarnings: active.requiresVerification ? ['Odczyt dokumentu wymaga sprawdzenia. Aktualna korekta ma pierwszeństwo; nie przywracamy zastąpionych dyżurów.'] : [],
+      sourceFilename: active.sources.map(doc => doc.sourceAttachment).join('; ') };
+  });
+  if (!weeks.length) return;
+  weeklyPlan = normalizeWeeklyPayload({ weeks, educator: person, updatedAt: new Date().toISOString() });
+  weeklyPlanMeta = { source: 'Aktualne grafiki z poczty dyrektora', sourceType: 'mail', loadedAt: new Date().toISOString() };
+  weeklyPlan.meta = weeklyPlanMeta;
+  localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
+  renderWeeklyPlan();
+  setWeeklyStatus(`Aktualne grafiki z poczty: ${weeks.length} tyg., wychowawca: ${person}. Korekty zastępują wcześniejsze dane w swoim zakresie.`);
 }
 
 async function loadSampleWeeklyPlan() {
@@ -205,7 +226,7 @@ function normalizeWeeklyWeek(w = {}) {
       weekendHours: w.weekendHours ?? 0
     },
     days,
-    validationWarnings: validateWeeklyWeek(days),
+    validationWarnings: [...(w.validationWarnings || []), ...validateWeeklyWeek(days)],
     sourceFilename: w.sourceFilename || w.source || '',
     partialFromHistory: !!w.partialFromHistory
   };

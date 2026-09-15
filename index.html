@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.5.1</span>
+  <span class="hdr-badge">v2.5.2</span>
 </header>
 
 <!-- MAIN -->
@@ -476,7 +476,7 @@
     style="display:none" onchange="handleHarmFile(this)">
 
   <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')">
-    <span class="st-main">Plan tygodniowy z generatora Harmonogram-MOW</span><span class="st-state">Rozwiń</span>
+    <span class="st-main">Aktualny plan tygodniowy z poczty dyrektora</span><span class="st-state">Rozwiń</span>
   </button>
 
   <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
@@ -485,17 +485,17 @@
 
   <div class="card collapsible-card accordion-panel" id="weekly-settings-card"><div class="card-body">
     <div class="weekly-settings">
-      <input id="weekly-backend-url" type="url" placeholder="Adres Apps Script /exec z Harmonogram-MOW">
-      <input id="weekly-token" type="password" placeholder="VIEW_TOKEN lub ADMIN_TOKEN (jeśli wymagany)">
+      <input id="weekly-backend-url" type="hidden">
+      <input id="weekly-token" type="hidden">
       <input id="weekly-educator" type="text" placeholder="Wychowawca, np. Dymek">
     </div>
     <div class="btn-row">
       <button class="btn" type="button" onclick="fetchWeeklyPlan()">Pobierz plan tygodniowy</button>
-      <button class="btn warn" type="button" data-test-admin-only="true" onclick="fetchWeeklyPlan({ rescan: true })">Przeskanuj i pobierz</button>
+      <button class="btn warn" type="button" onclick="fetchWeeklyPlan({ rescan: true })">Przeskanuj i pobierz</button>
       <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
       <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
     </div>
-    <div class="weekly-status" id="weekly-status">Wklej adres wdrożenia Apps Script kończący się na /exec albo użyj danych przykładowych.</div>
+    <div class="weekly-status" id="weekly-status">Grafiki są pobierane z tej samej poczty co zakładka Info. Obowiązuje najnowsza korekta w swoim zakresie.</div>
   </div></div>
 
   <div class="collapsible-card accordion-panel" id="harm-upload-card">

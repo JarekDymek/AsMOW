@@ -20,6 +20,10 @@ function plainBody(parsed) {
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&'));
 }
 
+function localMailTimestamp(date) {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date).replace(' ', 'T');
+}
+
 function forwardedDate(value) {
   const months = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
   const polish = value.match(/(\d{1,2})\s+(sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|lis|gru)\S*\s+(20\d{2})/i);
@@ -35,7 +39,7 @@ export function resolveDirectorMail(parsed, config = {}) {
   if (senders.length !== 1) return null;
   const sender = String(senders[0].address || '').toLowerCase();
   const body = plainBody(parsed).replace(/\r\n/g, '\n');
-  if (sender === director) return { source: director, body, forwardedBy: '', originalDate: '' };
+  if (sender === director) return { source: director, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
   if (sender !== forwarder) return null;
 
   const lines = body.split('\n').map(line => line.replace(/^\s*(?:>\s*)+/, '').trim());
@@ -47,11 +51,13 @@ export function resolveDirectorMail(parsed, config = {}) {
     if (address !== director) return null;
     const dateIndex = lines.findIndex((line, j) => j > i && j <= i + 3 && /^(?:Date|Data|Sent|Wysłano):/i.test(line));
     if (dateIndex < 0) return null;
+    const originalDate = forwardedDate(lines[dateIndex].replace(/^[^:]+:\s*/, ''));
     let start = dateIndex + 1;
     while (start < lines.length && /^(?:(?:Subject|Temat|To|Do|Cc|DW):|\s*$)/i.test(lines[start])) start++;
     return {
       source: director, forwardedBy: sender,
-      originalDate: forwardedDate(lines[dateIndex].replace(/^[^:]+:\s*/, '')),
+      originalDate,
+      originalSentAt: originalDate ? originalDate + 'T' + (lines[dateIndex].match(/(?:o\s+|\s)(\d{1,2}:\d{2})/)?.[1] || '00:00').padStart(5, '0') : '',
       body: lines.slice(start).join('\n').trim()
     };
   }

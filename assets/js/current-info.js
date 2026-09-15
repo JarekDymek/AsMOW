@@ -1,5 +1,5 @@
 const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
-const CURRENT_INFO_SOURCE_REVISION = 'director-forwarding-v1';
+const CURRENT_INFO_SOURCE_REVISION = 'director-forwarding-v2';
 const CURRENT_INFO_START_DATE = '2026-01-01';
 
 function loadCurrentInfo() {
@@ -623,6 +623,7 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     }
     if (scheduleIndexSupported && typeof mergeInternatScheduleDocuments === 'function') {
       mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
+      if (typeof rebuildWeeklyPlanFromMail === 'function') rebuildWeeklyPlanFromMail();
     }
     const added = currentInfoItems.length - before;
     saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt, sourceRevision: CURRENT_INFO_SOURCE_REVISION });

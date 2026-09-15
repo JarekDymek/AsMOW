@@ -8,7 +8,7 @@ function mergeInternatScheduleDocuments(documents = []) {
   let changed = 0;
 
   documents.map(normalizeInternatScheduleDocument).filter(Boolean).forEach(documentItem => {
-    const existingIndex = index.findIndex(item => item.id === documentItem.id);
+    const existingIndex = index.findIndex(item => item.id === documentItem.id || (item.sourceMailUid === documentItem.sourceMailUid && item.sourceAttachmentId === documentItem.sourceAttachmentId));
     if (existingIndex >= 0) index[existingIndex] = documentItem;
     else index.push(documentItem);
     changed += 1;
@@ -49,6 +49,7 @@ function normalizeInternatScheduleDocument(item) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !employee || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) return null;
     return {
       date,
+      sourceDay: String(record.sourceDay || record.date),
       employee: employee.slice(0, 120),
       group: String(record.group || '').trim().slice(0, 80),
       from,
@@ -70,6 +71,9 @@ function normalizeInternatScheduleDocument(item) {
     sourceAttachmentId: String(item.sourceAttachmentId || ''),
     sourceAttachmentOrder: Number(item.sourceAttachmentOrder || 0),
     sourceDate: String(item.sourceDate || ''),
+    sourceSentAt: String(item.sourceSentAt || ''),
+    hasCompleteWeek: Boolean(item.hasCompleteWeek),
+    coveredScopes: Array.isArray(item.coveredScopes) ? item.coveredScopes : [],
     indexedAt: String(item.indexedAt || new Date().toISOString()),
     scheduleKind: classifyInternatScheduleKind(item.scheduleKind, `${item.sourceTitle || ''} ${sourceAttachment}`),
     isCorrection: Boolean(item.isCorrection),
@@ -204,8 +208,8 @@ function buildActiveInternatSchedule(index, week = new Date()) {
   const contributors = [];
   let requiresVerification = false;
 
-  ['internat', 'team', 'unknown'].forEach(scheduleKind => {
-    const kindDocuments = documents.filter(item => item.scheduleKind === scheduleKind);
+  ['internat', 'team'].forEach(scheduleKind => {
+    const kindDocuments = documents.filter(item => (item.scheduleKind === 'team' ? 'team' : 'internat') === scheduleKind);
     if (!kindDocuments.length) return;
     const base = kindDocuments.find(item => !item.isCorrection) || null;
     let kindRecords = base
@@ -239,7 +243,16 @@ function buildActiveInternatSchedule(index, week = new Date()) {
 }
 
 function applyInternatScheduleCorrection(existingRecords, correction) {
-  const records = [...existingRecords];
+  let records = [...existingRecords];
+  const scopes = correction.coveredScopes || [];
+  if (scopes.length) {
+    records = records.filter(record => !scopes.some(scope =>
+      (record.sourceDay || record.date) === scope.date
+      && (!scope.employee || normalizeInternatScheduleText(record.employee) === normalizeInternatScheduleText(scope.employee))
+      && (!scope.group || normalizeInternatScheduleText(record.group) === normalizeInternatScheduleText(scope.group))
+      && (scope.employee || scope.group)));
+    return { records: [...records, ...correction.records.map(record => ({ ...record, sourceDocumentId: correction.id }))], used: true, uncertain: Boolean(correction.ambiguous) };
+  }
   const groups = new Map();
   correction.records.forEach(record => {
     const key = `${record.date}|${normalizeInternatScheduleText(record.employee)}|${normalizeInternatScheduleText(record.group)}`;
@@ -542,7 +555,7 @@ function formatInternatIsoDate(date) {
 }
 
 function compareInternatScheduleDocuments(a, b) {
-  const byDate = String(b.sourceDate || '').localeCompare(String(a.sourceDate || ''));
+  const byDate = String(b.sourceSentAt || b.sourceDate || '').localeCompare(String(a.sourceSentAt || a.sourceDate || ''));
   if (byDate) return byDate;
   const byUid = Number(b.sourceMailUid || 0) - Number(a.sourceMailUid || 0);
   if (byUid) return byUid;
