@@ -70,8 +70,8 @@ if (installListener < 0 || installListener > installSetup) {
 if (sw.includes("'mow-pwa-'")) {
   throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
 }
-if (!sw.includes("const CACHE = `${CACHE_PREFIX}v59`")) {
-  throw new Error('Wydanie 2.5.1 wymaga cache PWA v59.');
+if (!sw.includes("const CACHE = `${CACHE_PREFIX}v60`")) {
+  throw new Error('Wydanie 2.5.1 wymaga cache PWA v60.');
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');

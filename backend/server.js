@@ -550,6 +550,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     if (!selected.length) {
       return {
         ok: true,
+        mailSourceRevision: 'director-forwarding-v1',
         source: config.from,
         since,
         count: 0,
@@ -594,6 +595,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   const newestDate = items[0]?.date || '';
   return {
     ok: true,
+    mailSourceRevision: 'director-forwarding-v1',
     source: config.from,
     since,
     count: items.length,

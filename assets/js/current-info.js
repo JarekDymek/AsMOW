@@ -612,6 +612,9 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     if (!response.ok || data.ok === false) {
       throw new Error(data.error || `Błąd synchronizacji HTTP ${response.status}`);
     }
+    if (data.mailSourceRevision !== CURRENT_INFO_SOURCE_REVISION) {
+      throw new Error('Backend jest w trakcie aktualizacji obsługi poczty. Ponów synchronizację za chwilę.');
+    }
     const before = currentInfoItems.length;
     mergeCurrentInfoItems(data.items || []);
     const scheduleIndexSupported = Object.prototype.hasOwnProperty.call(data, 'scheduleDocuments');

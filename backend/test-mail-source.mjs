@@ -63,3 +63,13 @@ sandbox.isTestMode = () => true;
 sandbox.saveCurrentInfoSyncSettings();
 assert.equal(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-forwarding-v1');
 console.log('OK: forwarding, exact senders, attachment access, deduplication, all attachments and sync migration.');
+
+// An old backend response must not advance the migration checkpoint.
+memory.clear();
+sandbox.getTestAccessToken = () => 'unit-test';
+sandbox.getAIBackendBaseUrl = () => '';
+sandbox.fetch = async () => ({ ok: true, json: async () => ({ ok: true, items: [] }) });
+const oldBackendResult = await sandbox.syncCurrentInfoMail(false);
+assert.equal(oldBackendResult.ok, false);
+assert.equal(sandbox.getCurrentInfoSyncSettings().lastSyncAt, '');
+assert.notEqual(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-forwarding-v1');
