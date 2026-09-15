@@ -44,7 +44,7 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.4.0'",
+  "const BACKEND_VERSION = '1.4.1'",
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",
@@ -70,8 +70,8 @@ if (installListener < 0 || installListener > installSetup) {
 if (sw.includes("'mow-pwa-'")) {
   throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
 }
-if (!sw.includes("const CACHE = `${CACHE_PREFIX}v58`")) {
-  throw new Error('Wydanie 2.5.0 wymaga cache PWA v58.');
+if (!sw.includes("const CACHE = `${CACHE_PREFIX}v59`")) {
+  throw new Error('Wydanie 2.5.1 wymaga cache PWA v59.');
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');

@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.0**
+Aktualna wersja PWA: **2.5.1**
 
-Aktualna wersja backendu: **1.4.0**
+Aktualna wersja backendu: **1.4.1**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -144,3 +144,13 @@ Nie używaj czyszczenia danych jako pierwszego sposobu aktualizacji.
 - testy lokalne nie zastępują próby z prawdziwym kontem IMAP, wdrożeniem Apps Script i telefonem;
 - lokalny indeks istnieje osobno na każdym urządzeniu i wymaga skonfigurowanego tokenu poczty;
 - PWA nie powinna być traktowana jako jedyne źródło decyzji kadrowej — przy ostrzeżeniu zawsze otwórz dokument źródłowy.
+
+## Zmiany wersji 2.5.1 / backendu 1.4.1
+
+- Skrzynka IMAP pozostaje dotychczasowym Gmailem. Nowy nadawca źródłowy: `dariusz.gorski@mowmalbork.pl`; zaufany przekazujący: `dymek.jaroslaw@mowmalbork.pl`.
+- Obsługiwane są wiadomości bezpośrednie i wielokrotnie przekazane, z adresem dyrektora w polu Od/From oraz datą oryginału. Sama wzmianka o adresie nie wystarcza.
+- Info, załączniki i indeks DOCX korzystają z tej samej kwalifikacji wiadomości. Powtórzenia rozpoznaje skrót oryginalnej treści, daty, tematu i zawartości wszystkich załączników.
+- Pierwsza synchronizacja po aktualizacji ponownie sprawdza pocztę od początku skonfigurowanego okresu. Archiwum urządzenia pozostaje zachowane.
+- Stary adres usunięto z aktywnego filtra i konfiguracji. Wyłącznie pobieranie historycznych załączników zachowuje zgodność przez odcisk nadawcy i datę dostarczenia sprzed 16 września 2026; ta reguła nie importuje nowych wiadomości.
+- Nie obcinamy listy załączników do dwunastu; dotychczasowy limit rozmiaru pojedynczego pliku nadal obowiązuje.
+- Zaktualizowano zgodne wersje zależności parserów poczty/XML wskazane przez kontrolę bezpieczeństwa; `npm audit` nie zgłasza podatności.

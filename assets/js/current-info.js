@@ -1,4 +1,5 @@
-const DIRECTOR_EMAIL = 'dgorski5@wp.pl';
+const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
+const CURRENT_INFO_SOURCE_REVISION = 'director-forwarding-v1';
 const CURRENT_INFO_START_DATE = '2026-01-01';
 
 function loadCurrentInfo() {
@@ -39,6 +40,8 @@ function normalizeCurrentInfoItem(item) {
     source: String(item.source || DIRECTOR_EMAIL).trim().slice(0, 120),
     body: body.slice(0, 40_000),
     mailUid: item.mailUid ? String(item.mailUid) : '',
+    mailFingerprint: String(item.mailFingerprint || ''),
+    forwardedBy: String(item.forwardedBy || ''),
     attachments: normalizeCurrentInfoAttachments(item.attachments),
     createdAt: String(item.createdAt || new Date().toISOString())
   };
@@ -46,7 +49,7 @@ function normalizeCurrentInfoItem(item) {
 
 function normalizeCurrentInfoAttachments(attachments) {
   if (!Array.isArray(attachments)) return [];
-  return attachments.slice(0, 12).map((attachment, index) => {
+  return attachments.map((attachment, index) => {
     if (!attachment || typeof attachment !== 'object') return null;
     const name = String(attachment.name || attachment.filename || `Załącznik ${index + 1}`).trim().slice(0, 180);
     const id = String(attachment.id || attachment.attachmentId || index).trim();
@@ -497,6 +500,7 @@ function getCurrentInfoSyncSettings() {
     const settings = {
       token: String(parsed.token || ''),
       auto: Boolean(parsed.auto),
+      sourceRevision: String(parsed.sourceRevision || ''),
       lastSyncAt: String(parsed.lastSyncAt || '')
     };
     if (typeof isTestMode === 'function' && isTestMode()) settings.auto = true;
@@ -515,6 +519,7 @@ function saveCurrentInfoSyncSettings(extra = {}) {
       token: '',
       auto: true,
       lastSyncAt: current.lastSyncAt,
+      sourceRevision: current.sourceRevision,
       ...extra
     };
     localStorage.setItem(CURRENT_INFO_SYNC_KEY, JSON.stringify(settings));
@@ -525,6 +530,7 @@ function saveCurrentInfoSyncSettings(extra = {}) {
     token: tokenEl ? tokenEl.value.trim() : current.token,
     auto: autoEl ? autoEl.checked : current.auto,
     lastSyncAt: current.lastSyncAt,
+    sourceRevision: current.sourceRevision,
     ...extra
   };
   localStorage.setItem(CURRENT_INFO_SYNC_KEY, JSON.stringify(settings));
@@ -563,7 +569,7 @@ async function autoSyncCurrentInfoMail() {
   if (!settings.auto || (!settings.token && !testAccessToken)) return;
   const last = settings.lastSyncAt ? new Date(settings.lastSyncAt).getTime() : 0;
   const sixHours = 6 * 60 * 60 * 1000;
-  if (last && Date.now() - last < sixHours) return;
+  if (settings.sourceRevision === CURRENT_INFO_SOURCE_REVISION && last && Date.now() - last < sixHours) return;
   return syncCurrentInfoMail(false);
 }
 
@@ -582,7 +588,8 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
   }
   try {
     const syncStartedAt = new Date().toISOString();
-    const since = options.since
+    const needsSourceRescan = settings.sourceRevision !== CURRENT_INFO_SOURCE_REVISION;
+    const since = needsSourceRescan ? CURRENT_INFO_START_DATE : options.since
       ? getCurrentInfoSyncSince(options.since)
       : options.fullRescan
         ? CURRENT_INFO_START_DATE
@@ -615,7 +622,7 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
       mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
     }
     const added = currentInfoItems.length - before;
-    saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt });
+    saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt, sourceRevision: CURRENT_INFO_SOURCE_REVISION });
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
     const scheduleDocuments = Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : [];
     const indexedWeeks = [...new Set(scheduleDocuments.map(item => item.weekStart).filter(Boolean))].sort();
@@ -636,10 +643,12 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
 function mergeCurrentInfoItems(items = []) {
   items.map(normalizeCurrentInfoItem).filter(Boolean).forEach(item => {
     const fingerprint = getCurrentInfoFingerprint(item);
-    const existingIndex = currentInfoItems.findIndex(entry => getCurrentInfoFingerprint(entry) === fingerprint);
+    const existingIndex = currentInfoItems.findIndex(entry => getCurrentInfoFingerprint(entry) === fingerprint || (item.mailUid && entry.mailUid === item.mailUid));
     if (existingIndex >= 0) {
       currentInfoItems[existingIndex] = {
         ...currentInfoItems[existingIndex],
+        mailFingerprint: item.mailFingerprint || currentInfoItems[existingIndex].mailFingerprint,
+        forwardedBy: item.forwardedBy || currentInfoItems[existingIndex].forwardedBy,
         mailUid: item.mailUid || currentInfoItems[existingIndex].mailUid || '',
         attachments: item.attachments?.length ? item.attachments : currentInfoItems[existingIndex].attachments || []
       };
@@ -651,6 +660,7 @@ function mergeCurrentInfoItems(items = []) {
 }
 
 function getCurrentInfoFingerprint(item) {
+  if (item.mailFingerprint) return item.mailFingerprint;
   const mailUid = String(item.mailUid || '').trim();
   return normalizeForCurrentInfoSearch(`${mailUid}|${item.date}|${item.title}|${String(item.body || '').slice(0, 220)}`);
 }

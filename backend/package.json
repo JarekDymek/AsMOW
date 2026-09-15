@@ -1,11 +1,11 @@
 {
   "name": "mow-ai-backend",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "test": "node test-schedule-parser.mjs"
+    "test": "node test-mail-source.mjs && node test-schedule-parser.mjs"
   },
   "dependencies": {
     "imapflow": "^1.0.194",

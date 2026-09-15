@@ -7,11 +7,12 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import { resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail, FORWARDER_EMAIL } from './mail-source.js';
 import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.4.0';
+const BACKEND_VERSION = '1.4.1';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -23,7 +24,7 @@ const PROVIDER = resolveProvider();
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dgorski5@wp.pl';
+const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dariusz.gorski@mowmalbork.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
 const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
@@ -543,7 +544,7 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   try {
     const sinceDate = new Date(`${since}T00:00:00Z`);
-    const uids = await searchCurrentInfoMail(client, sinceDate, config.from);
+    const uids = await searchDirectorMail(client, sinceDate, config);
     const selected = uids.slice(-limit);
     scannedCount = selected.length;
     if (!selected.length) {
@@ -564,9 +565,15 @@ async function fetchCurrentInfoMail(payload = {}) {
       internalDate: true
     }, { uid: true })) {
       const parsed = await simpleParser(message.source);
+      const resolved = resolveDirectorMail(parsed, config);
+      if (!resolved) continue;
       const item = normalizeCurrentInfoMailMessage(message, parsed, config.from);
       if (!item) continue;
-      if (!isExpectedCurrentInfoSender(item.source, config.from)) continue;
+      item.source = resolved.source;
+      item.forwardedBy = resolved.forwardedBy;
+      item.date = resolved.originalDate || item.date;
+      item.mailFingerprint = directorMailFingerprint(parsed, resolved);
+      if (items.some(existing => existing.mailFingerprint === item.mailFingerprint)) continue;
       items.push(item);
       if (hasInternatScheduleDocument(parsed, item)) scheduleCandidates.push({ parsed, item });
     }
@@ -643,8 +650,7 @@ async function fetchCurrentInfoAttachment(payload = {}) {
     }
 
     const parsed = await simpleParser(message.source);
-    const fromText = parsed.from?.text || message.envelope?.from?.map(formatAddress).join(', ') || config.from;
-    if (!isExpectedCurrentInfoSender(fromText, config.from)) {
+    if (!canReadDirectorAttachment(parsed, message, config)) {
       throwHttpError('Ta wiadomość nie pochodzi z dozwolonego adresu dyrektora.', 403, 'CURRENT_INFO_ATTACHMENT_FORBIDDEN');
     }
 
@@ -692,26 +698,6 @@ async function fetchCurrentInfoAttachment(payload = {}) {
     if (lock) lock.release();
     await client.logout().catch(() => {});
   }
-}
-
-async function searchCurrentInfoMail(client, sinceDate, from) {
-  try {
-    return await client.search({ since: sinceDate, from }, { uid: true });
-  } catch (err) {
-    if (!isGenericImapCommandFailure(err)) throw err;
-    return client.search({ since: sinceDate }, { uid: true });
-  }
-}
-
-function isExpectedCurrentInfoSender(source = '', expected = '') {
-  const normalizedSource = normalizeMailSearch(source);
-  const normalizedExpected = normalizeMailSearch(expected);
-  return !normalizedExpected || normalizedSource.includes(normalizedExpected);
-}
-
-function isGenericImapCommandFailure(err) {
-  const text = `${err?.message || ''} ${err?.responseText || ''} ${err?.serverResponse || ''}`;
-  return /command failed|search|bad|no/i.test(text);
 }
 
 function throwCurrentInfoMailError(err, stage, config = {}) {
@@ -841,6 +827,7 @@ function getCurrentInfoMailConfig() {
     user,
     password,
     from: CURRENT_INFO_FROM,
+    forwarder: process.env.CURRENT_INFO_FORWARDER || FORWARDER_EMAIL,
     since: CURRENT_INFO_SINCE,
     mailbox: process.env.CURRENT_INFO_IMAP_MAILBOX || 'INBOX'
   };
@@ -875,7 +862,7 @@ function normalizeCurrentInfoMailMessage(message, parsed, expectedFrom) {
 
 function normalizeCurrentInfoMailAttachments(parsed) {
   const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
-  return attachments.slice(0, 12).map((attachment, index) => ({
+  return attachments.map((attachment, index) => ({
     id: getCurrentInfoAttachmentId(attachment, index),
     name: sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`),
     contentType: String(attachment.contentType || 'application/octet-stream').slice(0, 120),
@@ -1059,7 +1046,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
       const parsedSchedule = parseInternatScheduleHtml(converted.value || '', source);
       if (parsedSchedule.ignored) {
         ignored.push({
-          id: `${item.mailUid}:${attachmentId}`,
+          id: `${item.mailFingerprint || item.mailUid}:${attachmentId}`,
           ...source,
           weekStart: parsedSchedule.weekStart,
           reason: parsedSchedule.ignoreReason
@@ -1069,7 +1056,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
       const isCorrection = normalizeMailSearch(scheduleHint).includes('korekt');
       const needsSourceVerification = isCorrection && !parsedSchedule.hasCompleteWeek;
       documents.push({
-        id: `${item.mailUid}:${attachmentId}`,
+        id: `${item.mailFingerprint || item.mailUid}:${attachmentId}`,
         ...source,
         ...parsedSchedule,
         isCorrection,
@@ -1081,7 +1068,7 @@ async function extractInternatScheduleDocuments(parsed, item) {
       });
     } catch (err) {
       documents.push({
-        id: `${item.mailUid}:${attachmentId}`,
+        id: `${item.mailFingerprint || item.mailUid}:${attachmentId}`,
         ...source,
         weekStart: extractInternatWeekStart(scheduleHint),
         records: [],
@@ -2018,6 +2005,9 @@ function end(res, status) {
 }
 
 export {
+  normalizeCurrentInfoMailMessage,
+  extractInternatScheduleDocuments,
+  fetchCurrentInfoMail,
   dedupeLegalCandidates,
   decodeInternatHtmlCell,
   extractInternatEmployeeCandidates,

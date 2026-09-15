@@ -60,3 +60,10 @@ localStorage.setItem('mow_ai_backend_url', 'https://twoj-render.onrender.com/api
 
 Do katalogu `backend/knowledge` dodaj pliki `.txt`, `.md` albo `.json` z wyciągami z dokumentów MOW.
 Backend dołącza je do instrukcji modelu i każe traktować je jako nadrzędne przy procedurach.
+
+## Wiadomości dyrektora — przekazywanie z poczty służbowej
+
+`CURRENT_INFO_FROM=dariusz.gorski@mowmalbork.pl`
+`CURRENT_INFO_FORWARDER=dymek.jaroslaw@mowmalbork.pl`
+
+Zachowaj aktualne dane logowania IMAP do Gmaila. Backend rozpoznaje dokładny adres bezpośredniego nadawcy albo pole Od/From z datą w wiadomości przekazanej z zaufanego konta. Obsługuje tekst i HTML, również wielokrotne przekazania. Pobieranie załączników używa identycznej reguły; starsze załączniki mają oddzielną, ograniczoną datą zgodność archiwalną.

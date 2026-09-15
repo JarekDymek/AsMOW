@@ -20,8 +20,10 @@ services:
         value: "993"
       - key: CURRENT_INFO_IMAP_SECURE
         value: "true"
+      - key: CURRENT_INFO_FORWARDER
+        value: dymek.jaroslaw@mowmalbork.pl
       - key: CURRENT_INFO_FROM
-        value: dgorski5@wp.pl
+        value: dariusz.gorski@mowmalbork.pl
       - key: CURRENT_INFO_SINCE
         value: "2026-01-01"
       - key: CURRENT_INFO_IMAP_USER
