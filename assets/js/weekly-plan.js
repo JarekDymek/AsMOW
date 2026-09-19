@@ -47,15 +47,47 @@ function setWeeklyStatus(text) {
 }
 
 async function fetchWeeklyPlan(options = {}) {
+  const testMode = typeof isTestMode === 'function' && isTestMode();
   const settings = saveWeeklySettings();
-  const educator = settings.educator || 'Dymek';
-  setWeeklyStatus('Pobieram aktualne grafiki i korekty z poczty…');
-  const result = await syncCurrentInfoMail(true, { fullRescan: Boolean(options.rescan) });
-  if (!result?.ok) {
-    setWeeklyStatus(`Nie udało się pobrać poczty: ${result?.error?.message || 'sprawdź token synchronizacji w zakładce Info'}`);
+  if (!testMode && !settings.backendUrl) {
+    setWeeklyStatus('Brak adresu wdrożenia Apps Script Harmonogram-MOW.');
     return;
   }
-  rebuildWeeklyPlanFromMail(educator);
+  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
+    setWeeklyStatus('Adres backendu Harmonogram-MOW musi kończyć się na /exec.');
+    return;
+  }
+  const rescan = Boolean(options.rescan) && !testMode;
+  const automatic = Boolean(options.automatic);
+  setWeeklyStatus(rescan
+    ? 'Skanuję Harmonogram-MOW i pobieram aktualny plan…'
+    : (automatic ? 'Odświeżam plan z Harmonogram-MOW…' : 'Pobieram plan z Harmonogram-MOW…'));
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), rescan ? 120000 : 25000);
+    const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        targetUrl: testMode ? '' : settings.backendUrl,
+        token: testMode ? '' : settings.token,
+        testAccessToken: testMode ? getTestAccessToken() : '',
+        educator: settings.educator || 'Dymek',
+        action: rescan ? 'scan' : 'dashboard'
+      })
+    });
+    clearTimeout(timer);
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+    setWeeklyPlanFromPayload(
+      payload.data || payload,
+      rescan ? 'Przeskanowano i pobrano z Harmonogram-MOW' : 'Pobrano z Harmonogram-MOW'
+    );
+  } catch (err) {
+    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
+    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. ${tokenHint}`);
+  }
 }
 
 function rebuildWeeklyPlanFromMail(educator = '') {
