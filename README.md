@@ -167,4 +167,5 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - synchronizacja Info/IMAP nie nadpisuje już planu tygodniowego z Harmonogram-MOW;
 - lokalny indeks DOCX pozostaje pomocniczy do wyszukiwania dokumentów i innych wychowawców;
 - ustawiono aktualny adres wdrożenia Apps Script jako domyślny backend Harmonogram-MOW;
+- na GitHub Pages Asystent może odczytać zapisany `VIEW_TOKEN` i adres backendu z danych Harmonogram-MOW w tym samym origin (`localStorage`), bez ponownego wpisywania tokenu;
 - podbito cache PWA, aby urządzenia pobrały poprawioną wersję plików.

@@ -4,15 +4,32 @@
 const WEEKLY_DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwBTAjRfp5cK5oRvDZ0oRAJ_zrxzsqE_4v7pgvrpMZYcXQovb9Fd7JWlQggYEVkotBwBA/exec';
 let weeklyPlanRefreshPromise = null;
 let weeklyPlanRefreshAt = 0;
+
+function getSharedHarmonogramMowSettings() {
+  const keys = ['harmonogram-mow-state-v12', 'harmonogram-mow-state-v11', 'harmonogram-mow-state-v10'];
+  for (const key of keys) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!parsed || typeof parsed !== 'object') continue;
+      return {
+        backendUrl: String(parsed.backendUrl || ''),
+        token: String(parsed.viewToken || parsed.adminToken || ''),
+        educator: String(parsed.educator || '')
+      };
+    } catch {}
+  }
+  return { backendUrl: '', token: '', educator: '' };
+}
 function loadWeeklyPlanState() {
   try {
     const settings = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}');
+    const shared = getSharedHarmonogramMowSettings();
     const backend = document.getElementById('weekly-backend-url');
     const token = document.getElementById('weekly-token');
     const educator = document.getElementById('weekly-educator');
-    if (backend) backend.value = settings.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
-    if (token) token.value = settings.token || '';
-    if (educator) educator.value = settings.educator || '';
+    if (backend) backend.value = settings.backendUrl || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
+    if (token) token.value = settings.token || shared.token || '';
+    if (educator) educator.value = settings.educator || shared.educator || '';
   } catch {}
   try {
     const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
@@ -32,10 +49,11 @@ function saveWeeklySettings() {
       educator: profile.weeklyEducator || document.getElementById('weekly-educator')?.value.trim() || ''
     };
   }
+  const shared = getSharedHarmonogramMowSettings();
   const settings = {
-    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || WEEKLY_DEFAULT_BACKEND_URL,
-    token: document.getElementById('weekly-token')?.value.trim() || '',
-    educator: document.getElementById('weekly-educator')?.value.trim() || ''
+    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL,
+    token: document.getElementById('weekly-token')?.value.trim() || shared.token || '',
+    educator: document.getElementById('weekly-educator')?.value.trim() || shared.educator || ''
   };
   localStorage.setItem(WEEKLY_SETTINGS_KEY, JSON.stringify(settings));
   return settings;
