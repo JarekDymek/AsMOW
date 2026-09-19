@@ -1,13 +1,16 @@
 /* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
+const WEEKLY_DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwBTAjRfp5cK5oRvDZ0oRAJ_zrxzsqE_4v7pgvrpMZYcXQovb9Fd7JWlQggYEVkotBwBA/exec';
+let weeklyPlanRefreshPromise = null;
+let weeklyPlanRefreshAt = 0;
 function loadWeeklyPlanState() {
   try {
     const settings = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}');
     const backend = document.getElementById('weekly-backend-url');
     const token = document.getElementById('weekly-token');
     const educator = document.getElementById('weekly-educator');
-    if (backend) backend.value = settings.backendUrl || '';
+    if (backend) backend.value = settings.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
     if (token) token.value = settings.token || '';
     if (educator) educator.value = settings.educator || '';
   } catch {}
@@ -100,6 +103,25 @@ function rebuildWeeklyPlanFromMail(educator = '') {
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
   renderWeeklyPlan();
   setWeeklyStatus(`Aktualne grafiki z poczty: ${weeks.length} tyg., wychowawca: ${person}. Korekty zastępują wcześniejsze dane w swoim zakresie.`);
+}
+
+async function refreshWeeklyPlanOnOpen() {
+  const testMode = typeof isTestMode === 'function' && isTestMode();
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
+  const backendUrl = document.getElementById('weekly-backend-url')?.value.trim() || saved.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
+  const token = document.getElementById('weekly-token')?.value.trim() || saved.token || '';
+  if (!testMode && (!backendUrl || !token)) return false;
+  if (weeklyPlanRefreshPromise) return weeklyPlanRefreshPromise;
+  if (weeklyPlan && Date.now() - weeklyPlanRefreshAt < 60_000) return true;
+  weeklyPlanRefreshPromise = fetchWeeklyPlan({ automatic: true })
+    .then(() => {
+      weeklyPlanRefreshAt = Date.now();
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => { weeklyPlanRefreshPromise = null; });
+  return weeklyPlanRefreshPromise;
 }
 
 async function loadSampleWeeklyPlan() {
