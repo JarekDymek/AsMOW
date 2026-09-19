@@ -623,7 +623,6 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     }
     if (scheduleIndexSupported && typeof mergeInternatScheduleDocuments === 'function') {
       mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
-      if (typeof rebuildWeeklyPlanFromMail === 'function') rebuildWeeklyPlanFromMail();
     }
     const added = currentInfoItems.length - before;
     saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt, sourceRevision: CURRENT_INFO_SOURCE_REVISION });

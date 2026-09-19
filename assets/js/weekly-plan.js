@@ -33,7 +33,7 @@ function saveWeeklySettings() {
     };
   }
   const settings = {
-    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || '',
+    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || WEEKLY_DEFAULT_BACKEND_URL,
     token: document.getElementById('weekly-token')?.value.trim() || '',
     educator: document.getElementById('weekly-educator')?.value.trim() || ''
   };

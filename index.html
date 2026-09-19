@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.5.2</span>
+  <span class="hdr-badge">v2.5.3</span>
 </header>
 
 <!-- MAIN -->
@@ -457,7 +457,7 @@
   <div class="weekly-grid" id="weekly-plan"></div>
 
   <div class="card card-body" style="margin-bottom:10px">
-    <div style="font-weight:900;margin-bottom:8px">📅 Zapytaj o grafik internatu</div>
+    <div style="font-weight:900;margin-bottom:8px">📅 Wyszukaj w dokumentach grafiku internatu</div>
     <label class="internat-week-field" for="internat-schedule-week">
       <span>Tydzień grafiku</span>
       <select id="internat-schedule-week" onchange="changeInternatScheduleWeek()" aria-label="Wybierz tydzień grafiku"></select>
@@ -476,7 +476,7 @@
     style="display:none" onchange="handleHarmFile(this)">
 
   <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')">
-    <span class="st-main">Aktualny plan tygodniowy z poczty dyrektora</span><span class="st-state">Rozwiń</span>
+    <span class="st-main">Aktualny plan tygodniowy z Harmonogram-MOW</span><span class="st-state">Rozwiń</span>
   </button>
 
   <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
@@ -495,7 +495,7 @@
       <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
       <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
     </div>
-    <div class="weekly-status" id="weekly-status">Grafiki są pobierane z tej samej poczty co zakładka Info. Obowiązuje najnowsza korekta w swoim zakresie.</div>
+    <div class="weekly-status" id="weekly-status">Plan tygodniowy jest pobierany z Harmonogram-MOW i jest źródłem nadrzędnym. Indeks poczty służy pomocniczo do wyszukiwania dokumentów.</div>
   </div></div>
 
   <div class="collapsible-card accordion-panel" id="harm-upload-card">

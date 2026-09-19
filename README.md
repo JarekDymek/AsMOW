@@ -2,7 +2,7 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.2**
+Aktualna wersja PWA: **2.5.3**
 
 Aktualna wersja backendu: **1.4.2**
 
@@ -18,7 +18,7 @@ Ostatni pełny audyt: **26 sierpnia 2026**
 - stopnie uspołecznienia i lokalne notatki;
 - centralna oraz lokalna baza wiedzy z kontrolą aktualności aktów ELI;
 - archiwum wiadomości dyrekcji i bezpieczne pobieranie załączników;
-- dwa niezależne źródła grafiku: lokalny indeks DOCX z poczty oraz indywidualny plan z Harmonogramu MOW;
+- nadrzędny plan tygodniowy z Harmonogramu MOW oraz pomocniczy lokalny indeks DOCX z poczty;
 - kopia i przywracanie danych zapisanych na urządzeniu;
 - instalacja jako PWA, praca offline i kontrolowana aktualizacja app shell.
 
@@ -45,11 +45,11 @@ Parser oznacza dokument jako niejednoznaczny, gdy:
 
 `POST /api/weekly-plan` działa jako pośrednik do wdrożenia Google Apps Script. Adres `/exec` oraz token nie są wpisane do repozytorium. Asystent zachowuje odebrane tygodnie w `localStorage`, klasyfikuje je jako poprzedni, bieżący i przyszłe oraz niezależnie ostrzega, gdy pojedynczy dzień przekracza 24 godziny.
 
-Ta warstwa jest celowo niezależna od lokalnego indeksu poczty. Awaria jednego źródła nie usuwa wcześniej zapisanych danych drugiego źródła.
+Plan tygodniowy z Harmonogramu MOW jest źródłem nadrzędnym w zakładce Grafik. Lokalny indeks poczty pozostaje niezależny i pomocniczy: służy do wyszukiwania dokumentów oraz innych wychowawców, ale synchronizacja Info nie nadpisuje już planu pobranego z Harmonogramu MOW.
 
 ## Walidacja i bezpieczeństwo
 
-- sekrety AI, IMAP i tokeny Harmonogramu nie mogą trafić do frontendu, repozytorium ani logów;
+- sekrety AI i IMAP nie mogą trafić do frontendu, repozytorium ani logów; token Harmonogramu nie może trafić do repozytorium ani logów;
 - token poczty jest porównywany stałoczasowo z konfiguracją Render;
 - synchronizacja poczty ma ograniczenia liczby żądań, rozmiaru załączników i zakresu dat;
 - dokumenty zespołu diagnostyczno-terapeutycznego są odrzucane przez parser grafiku internatu;
@@ -158,3 +158,13 @@ Nie używaj czyszczenia danych jako pierwszego sposobu aktualizacji.
 ## Zmiany 2.5.2 / 1.4.2
 
 Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info, bez starego wdrożenia Apps Script. Odczyt zapisuje zakres komórek korekty: dzień/grupa lub dzień/osoba, także dni wolne. Korekta usuwa poprzednie wpisy w tym zakresie, więc zmiana osoby lub wyzerowanie dyżuru nie przywraca starszego planu. Kolejność uwzględnia datę i godzinę wiadomości oryginalnej, a nie kolejnego przekazania. Ostrzeżenia parsera pozostają widoczne. Zestawienie pokazuje godziny faktyczne; nadgodzin nie wylicza bez indywidualnego wymiaru pracy.
+
+
+## Zmiany 2.5.3
+
+- przywrócono Harmonogram-MOW jako nadrzędne źródło planu tygodniowego w zakładce Grafik;
+- wejście do zakładki Grafik automatycznie odświeża plan przez istniejący proxy `/api/weekly-plan`;
+- synchronizacja Info/IMAP nie nadpisuje już planu tygodniowego z Harmonogram-MOW;
+- lokalny indeks DOCX pozostaje pomocniczy do wyszukiwania dokumentów i innych wychowawców;
+- ustawiono aktualny adres wdrożenia Apps Script jako domyślny backend Harmonogram-MOW;
+- podbito cache PWA, aby urządzenia pobrały poprawioną wersję plików.
