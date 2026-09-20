@@ -6,7 +6,7 @@ function openHelp() {
   if (!title || !source || !body || !view) return;
 
   title.textContent = 'Pomoc';
-  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.3';
+  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.4';
   body.innerHTML = `
     <div class="help-panel">
       <div class="help-card help-card--strong">
@@ -52,7 +52,7 @@ function openHelp() {
         <ul>
           <li>Inf. zapisuje komunikaty dyrekcji bez grafików. Załącznik można najpierw otworzyć, a potem pobrać.</li>
           <li>Synchronizacja poczty pobiera nowe wiadomości od ostatniego zapisanego punktu; poprzednie wpisy pozostają na urządzeniu.</li>
-          <li>Plan tygodniowy w zakładce Grafik jest pobierany z Harmonogram-MOW i ma pierwszeństwo przed lokalnym indeksem wiadomości.</li><li>Lokalny indeks poczty pozostaje pomocniczym narzędziem do wyszukiwania dokumentów i innych wychowawców.</li>
+          <li>Plan tygodniowy w zakładce Grafik jest budowany na backendzie Render bezpośrednio z najnowszych wiadomości dyrektora i korekt; Harmonogram-MOW jest używany awaryjnie.</li><li>Lokalny indeks poczty pozostaje pomocniczym narzędziem do wyszukiwania dokumentów i innych wychowawców.</li>
           <li>Przy błędzie generatora sprawdź adres Apps Script zakończony na /exec, token i aktualne wdrożenie Code.gs.</li>
         </ul>
       </div>
