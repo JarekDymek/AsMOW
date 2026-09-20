@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.4.3';
+const BACKEND_VERSION = '1.4.4';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -636,6 +636,7 @@ function normalizeMailScheduleDocument(item) {
     sourceAttachment: String(item.sourceAttachment || ''),
     scheduleKind: item.scheduleKind === 'team' ? 'team' : 'internat',
     isCorrection: Boolean(item.isCorrection),
+    hasCompleteWeek: Boolean(item.hasCompleteWeek),
     ambiguous: Boolean(item.ambiguous),
     coveredScopes: Array.isArray(item.coveredScopes) ? item.coveredScopes : [],
     records
@@ -661,6 +662,37 @@ function buildActiveMailSchedule(index, weekStart) {
   ['internat', 'team'].forEach(kind => {
     const kindDocuments = documents.filter(item => item.scheduleKind === kind);
     if (!kindDocuments.length) return;
+
+    // Pełny dokument jest migawką całego tygodnia. Najnowsza pełna migawka
+    // zastępuje wszystkie starsze wersje niezależnie od słowa "korekta" w temacie.
+    const latestComplete = kindDocuments.find(item => item.hasCompleteWeek && item.records.length) || null;
+    if (latestComplete) {
+      let kindRecords = latestComplete.records.map(record => ({
+        ...record,
+        sourceDocumentId: latestComplete.id
+      }));
+      sources.push(latestComplete);
+      if (latestComplete.ambiguous) requiresVerification = true;
+
+      const newerPartialCorrections = kindDocuments
+        .filter(item =>
+          item.isCorrection
+          && !item.hasCompleteWeek
+          && compareMailScheduleDocuments(item, latestComplete) < 0)
+        .sort((a, b) => compareMailScheduleDocuments(b, a));
+
+      newerPartialCorrections.forEach(correction => {
+        const applied = applyMailScheduleCorrection(kindRecords, correction);
+        kindRecords = applied.records;
+        if (applied.used || correction.ambiguous) sources.push(correction);
+        if (correction.ambiguous || applied.uncertain) requiresVerification = true;
+      });
+
+      records.push(...kindRecords);
+      return;
+    }
+
+    // Fallback dla historycznych/niepełnych wiadomości bez pełnej migawki.
     const base = kindDocuments.find(item => !item.isCorrection) || null;
     let kindRecords = base ? base.records.map(record => ({ ...record, sourceDocumentId: base.id })) : [];
     if (base) sources.push(base);
@@ -1788,6 +1820,8 @@ function parseInternatEmployeeCandidate(value = '', genericWords) {
   const cleaned = String(value)
     .replace(internatTimeRangePattern(), ' ')
     .replace(/\b(?:grupa|gr)\.?\s*[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9-]+/gi, ' ')
+    .replace(/\bzast\.\s*/gi, ' ')
+    .replace(/\bzast\s+(?=[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż])/gi, ' ')
     .replace(/\b(?:noc|dyzur|godziny|praca|wolne|urlop|zastepstwo)\b/gi, ' ')
     .replace(/[\d()[\]{}:,]+/g, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -2360,5 +2394,6 @@ export {
   getNonInternatScheduleReason,
   normalizeLegalAct,
   parseInternatScheduleCellEntries,
-  parseInternatScheduleHtml
+  parseInternatScheduleHtml,
+  buildActiveMailSchedule
 };
