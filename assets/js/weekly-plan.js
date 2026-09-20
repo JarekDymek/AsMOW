@@ -64,23 +64,53 @@ function setWeeklyStatus(text) {
   if (el) el.textContent = text;
 }
 
+async function fetchMailScheduleDashboard(options = {}) {
+  const currentInfo = getCurrentInfoSyncSettings();
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!currentInfo.token && !testAccessToken) return null;
+
+  const educator = document.getElementById('weekly-educator')?.value.trim() || 'Dymek';
+  const response = await fetch(`${getAIBackendBaseUrl()}/api/schedule-dashboard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: testAccessToken ? '' : currentInfo.token,
+      testAccessToken,
+      educator,
+      since: options.fullRescan ? CURRENT_INFO_START_DATE : undefined
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `HTTP ${response.status}`);
+  }
+  return payload;
+}
+
 async function fetchWeeklyPlan(options = {}) {
+  setWeeklyStatus(options.rescan
+    ? 'Odświeżam plan z najnowszych wiadomości i korekt…'
+    : 'Pobieram aktualny plan…');
+
+  try {
+    const mailPayload = await fetchMailScheduleDashboard({ fullRescan: Boolean(options.rescan) });
+    if (mailPayload?.weeks?.length || mailPayload?.data?.weeks?.length) {
+      setWeeklyPlanFromPayload(mailPayload, 'Pobrano z aktualnej poczty dyrektora przez Render');
+      return;
+    }
+  } catch (mailError) {
+    console.warn('Mail schedule dashboard failed; trying Apps Script fallback.', mailError);
+  }
+
   const testMode = typeof isTestMode === 'function' && isTestMode();
   const settings = saveWeeklySettings();
   if (!testMode && !settings.backendUrl) {
-    setWeeklyStatus('Brak adresu wdrożenia Apps Script Harmonogram-MOW.');
+    setWeeklyStatus('Nie udało się odświeżyć planu z poczty, a brak adresu awaryjnego Harmonogram-MOW.');
     return;
   }
-  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
-    setWeeklyStatus('Adres backendu Harmonogram-MOW musi kończyć się na /exec.');
-    return;
-  }
-  const rescan = Boolean(options.rescan) && !testMode;
-  const automatic = Boolean(options.automatic);
-  setWeeklyStatus(rescan
-    ? 'Skanuję Harmonogram-MOW i pobieram aktualny plan…'
-    : (automatic ? 'Odświeżam plan z Harmonogram-MOW…' : 'Pobieram plan z Harmonogram-MOW…'));
+
   try {
+    const rescan = Boolean(options.rescan) && !testMode;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), rescan ? 120000 : 25000);
     const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
@@ -98,13 +128,9 @@ async function fetchWeeklyPlan(options = {}) {
     clearTimeout(timer);
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-    setWeeklyPlanFromPayload(
-      payload.data || payload,
-      rescan ? 'Przeskanowano i pobrano z Harmonogram-MOW' : 'Pobrano z Harmonogram-MOW'
-    );
-  } catch (err) {
-    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
-    setWeeklyStatus(`Nie udało się pobrać planu: ${err.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : err.message}. ${tokenHint}`);
+    setWeeklyPlanFromPayload(payload.data || payload, 'Pobrano awaryjnie z Harmonogram-MOW');
+  } catch (error) {
+    setWeeklyStatus(`Nie udało się odświeżyć planu. Źródło pocztowe i awaryjny Harmonogram-MOW zwróciły błąd: ${error.message}`);
   }
 }
 
