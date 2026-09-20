@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.4.2';
+const BACKEND_VERSION = '1.4.3';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -128,6 +128,13 @@ const server = http.createServer(async (req, res) => {
       const payload = await readJson(req);
       const plan = await fetchWeeklyPlan(payload);
       return json(res, 200, plan);
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/schedule-dashboard') {
+      if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
+      const payload = await readJson(req);
+      const dashboard = await fetchMailScheduleDashboard(payload);
+      return json(res, 200, dashboard);
     }
 
     if (req.method === 'POST' && url.pathname === '/api/current-info-mail') {
@@ -484,6 +491,330 @@ async function fetchWeeklyPlan(payload = {}) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+
+async function fetchMailScheduleDashboard(payload = {}) {
+  const now = new Date();
+  const currentWeek = getInternatMonday(formatInternatServerIsoDate(now));
+  const since = normalizeCurrentInfoSince(payload.since || addInternatDays(currentWeek, -56));
+  const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
+  const mail = await fetchCurrentInfoMail({
+    token: payload.token,
+    testAccessToken: payload.testAccessToken,
+    since,
+    limit: Math.min(Math.max(Number(payload.limit || 500), 50), 1200)
+  });
+
+  const index = (Array.isArray(mail.scheduleDocuments) ? mail.scheduleDocuments : [])
+    .map(normalizeMailScheduleDocument)
+    .filter(Boolean);
+  const weekStarts = [...new Set(index.map(item => item.weekStart).filter(Boolean))].sort();
+  const availableEducators = [...new Set(index.flatMap(item => item.records.map(record => record.employee)).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pl'));
+  const educator = resolveMailScheduleEducator(educatorQuery, availableEducators);
+  const internatWeeks = {};
+
+  const weeks = weekStarts.map(weekStart => {
+    const active = buildActiveMailSchedule(index, weekStart);
+    const previous = buildActiveMailSchedule(index, addInternatDays(weekStart, -7));
+    const records = dedupeMailScheduleRecords([
+      ...active.records,
+      ...previous.records.filter(record => record.date === weekStart)
+    ]);
+    const days = buildMailScheduleDays(records, weekStart, educator, false);
+    const fullDays = buildMailScheduleDays(records, weekStart, '', true);
+    const totalHours = roundMailScheduleHours(days.reduce((sum, day) => sum + day.hoursDay, 0));
+    const weekendHours = roundMailScheduleHours(days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0));
+
+    internatWeeks[weekStart] = {
+      weekStart,
+      dateFrom: weekStart,
+      dateTo: addInternatDays(weekStart, 6),
+      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
+      days: fullDays,
+      staff: [...new Set(fullDays.flatMap(day => day.shifts.map(shift => shift.educator)).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'pl')),
+      sourceDocuments: active.sources.map(source => source.sourceAttachment).filter(Boolean),
+      requiresVerification: active.requiresVerification
+    };
+
+    return {
+      label: 'Tydzień',
+      weekStart,
+      dateFrom: weekStart,
+      dateTo: addInternatDays(weekStart, 6),
+      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
+      days,
+      summary: {
+        totalHours,
+        overtimeHours: '—',
+        weekendHours,
+        weekendWorkDays: days.slice(5).filter(day => day.hoursDay > 0).length
+      },
+      validationWarnings: active.requiresVerification
+        ? ['Część danych pochodzi z niepełnej albo niejednoznacznej korekty. Sprawdź dokument źródłowy.']
+        : [],
+      sourceFilename: active.sources.map(source => source.sourceAttachment).filter(Boolean).join('; ')
+    };
+  });
+
+  const updatedAt = new Date().toISOString();
+  const history = weeks.map(week => ({
+    range: week.range,
+    dateFrom: week.dateFrom,
+    dateTo: week.dateTo,
+    ...(week.summary || {})
+  }));
+  const data = {
+    educator,
+    calendarEducator: educator,
+    updatedAt,
+    generatedAt: updatedAt,
+    weeks,
+    history,
+    alerts: [],
+    changes: [],
+    internatWeeks,
+    availableEducators
+  };
+
+  return {
+    ok: true,
+    action: 'dashboard',
+    source: 'director-mail-render',
+    backendVersion: BACKEND_VERSION,
+    mailSourceRevision: mail.mailSourceRevision || 'director-forwarding-v2',
+    educator,
+    calendarEducator: educator,
+    updatedAt,
+    generatedAt: updatedAt,
+    weeks,
+    history,
+    alerts: [],
+    changes: [],
+    internatWeeks,
+    availableEducators,
+    dashboardWeekStarts: weekStarts,
+    scheduleDocumentsCount: index.length,
+    ignoredScheduleDocumentsCount: Array.isArray(mail.ignoredScheduleDocuments) ? mail.ignoredScheduleDocuments.length : 0,
+    newestDate: mail.newestDate || '',
+    security: { access: 'mail-sync-token' },
+    data
+  };
+}
+
+function normalizeMailScheduleDocument(item) {
+  if (!item || typeof item !== 'object') return null;
+  const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(String(item.weekStart || '')) ? String(item.weekStart) : '';
+  if (!weekStart) return null;
+  const records = (Array.isArray(item.records) ? item.records : []).map(record => {
+    const date = String(record?.date || '');
+    const employee = String(record?.employee || '').trim();
+    const from = String(record?.from || '');
+    const to = String(record?.to || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !employee || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) return null;
+    return {
+      ...record,
+      date,
+      sourceDay: String(record.sourceDay || date),
+      employee,
+      group: String(record.group || '').trim(),
+      from,
+      to,
+      weekStart
+    };
+  }).filter(Boolean);
+  return {
+    ...item,
+    id: String(item.id || item.sourceMailUid || item.sourceAttachment || weekStart),
+    weekStart,
+    sourceMailUid: String(item.sourceMailUid || ''),
+    sourceAttachmentOrder: Number(item.sourceAttachmentOrder || 0),
+    sourceSentAt: String(item.sourceSentAt || ''),
+    sourceDate: String(item.sourceDate || ''),
+    sourceAttachment: String(item.sourceAttachment || ''),
+    scheduleKind: item.scheduleKind === 'team' ? 'team' : 'internat',
+    isCorrection: Boolean(item.isCorrection),
+    ambiguous: Boolean(item.ambiguous),
+    coveredScopes: Array.isArray(item.coveredScopes) ? item.coveredScopes : [],
+    records
+  };
+}
+
+function compareMailScheduleDocuments(a, b) {
+  const byDate = String(b.sourceSentAt || b.sourceDate || '').localeCompare(String(a.sourceSentAt || a.sourceDate || ''));
+  if (byDate) return byDate;
+  const byUid = Number(b.sourceMailUid || 0) - Number(a.sourceMailUid || 0);
+  if (byUid) return byUid;
+  return Number(b.sourceAttachmentOrder || 0) - Number(a.sourceAttachmentOrder || 0);
+}
+
+function buildActiveMailSchedule(index, weekStart) {
+  const documents = (Array.isArray(index) ? index : [])
+    .filter(item => item && item.weekStart === weekStart)
+    .sort(compareMailScheduleDocuments);
+  const records = [];
+  const sources = [];
+  let requiresVerification = false;
+
+  ['internat', 'team'].forEach(kind => {
+    const kindDocuments = documents.filter(item => item.scheduleKind === kind);
+    if (!kindDocuments.length) return;
+    const base = kindDocuments.find(item => !item.isCorrection) || null;
+    let kindRecords = base ? base.records.map(record => ({ ...record, sourceDocumentId: base.id })) : [];
+    if (base) sources.push(base);
+    if (base?.ambiguous) requiresVerification = true;
+
+    const corrections = kindDocuments
+      .filter(item => item.isCorrection && (!base || compareMailScheduleDocuments(item, base) <= 0))
+      .sort((a, b) => compareMailScheduleDocuments(b, a));
+
+    corrections.forEach(correction => {
+      const applied = applyMailScheduleCorrection(kindRecords, correction);
+      kindRecords = applied.records;
+      if (applied.used || correction.ambiguous) sources.push(correction);
+      if (correction.ambiguous || applied.uncertain) requiresVerification = true;
+    });
+
+    if (!base && corrections.length) requiresVerification = true;
+    records.push(...kindRecords);
+  });
+
+  const uniqueSources = [];
+  const sourceIds = new Set();
+  sources.forEach(source => {
+    if (!source || sourceIds.has(source.id)) return;
+    sourceIds.add(source.id);
+    uniqueSources.push(source);
+  });
+
+  return {
+    weekStart,
+    records: dedupeMailScheduleRecords(records),
+    sources: uniqueSources,
+    requiresVerification
+  };
+}
+
+function applyMailScheduleCorrection(existingRecords, correction) {
+  let records = [...existingRecords];
+  const scopes = correction.coveredScopes || [];
+
+  if (scopes.length) {
+    records = records.filter(record => !scopes.some(scope =>
+      (record.sourceDay || record.date) === scope.date
+      && (!scope.employee || normalizeMailSearch(record.employee) === normalizeMailSearch(scope.employee))
+      && (!scope.group || normalizeMailSearch(record.group) === normalizeMailSearch(scope.group))
+      && (scope.employee || scope.group)));
+    return {
+      records: [...records, ...correction.records.map(record => ({ ...record, sourceDocumentId: correction.id }))],
+      used: true,
+      uncertain: Boolean(correction.ambiguous)
+    };
+  }
+
+  const groups = new Map();
+  correction.records.forEach(record => {
+    const key = record.date + '|' + normalizeMailSearch(record.employee) + '|' + normalizeMailSearch(record.group);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ ...record, sourceDocumentId: correction.id });
+  });
+
+  let uncertain = false;
+  groups.forEach(correctionRecords => {
+    const sample = correctionRecords[0];
+    const samePersonAndDate = records
+      .map((record, index) => ({ record, index }))
+      .filter(item => item.record.date === sample.date
+        && normalizeMailSearch(item.record.employee) === normalizeMailSearch(sample.employee));
+    const sameGroup = sample.group
+      ? samePersonAndDate.filter(item => normalizeMailSearch(item.record.group) === normalizeMailSearch(sample.group))
+      : [];
+    const replace = sameGroup.length ? sameGroup : samePersonAndDate.length === 1 ? samePersonAndDate : [];
+    if (samePersonAndDate.length > 1 && !sameGroup.length) uncertain = true;
+    [...replace].sort((a, b) => b.index - a.index).forEach(item => records.splice(item.index, 1));
+    records.push(...correctionRecords);
+  });
+
+  return { records, used: correction.records.length > 0, uncertain };
+}
+
+function dedupeMailScheduleRecords(records = []) {
+  const seen = new Set();
+  return records.filter(record => {
+    const key = [record.date, normalizeMailSearch(record.employee), normalizeMailSearch(record.group), record.from, record.to].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function resolveMailScheduleEducator(query, availableEducators) {
+  const normalizedQuery = normalizeMailSearch(query).replace(/[^a-z0-9]+/g, ' ').trim();
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return query || 'Dymek';
+  const exact = availableEducators.find(name =>
+    normalizeMailSearch(name).replace(/[^a-z0-9]+/g, ' ').trim() === normalizedQuery);
+  if (exact) return exact;
+  const matches = availableEducators.filter(name => {
+    const normalized = normalizeMailSearch(name).replace(/[^a-z0-9]+/g, ' ');
+    return tokens.every(token => normalized.includes(token));
+  });
+  return matches.length === 1 ? matches[0] : (query || 'Dymek');
+}
+
+function buildMailScheduleDays(records, weekStart, educator, includeAll = false) {
+  const educatorNorm = normalizeMailSearch(educator || '');
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addInternatDays(weekStart, index);
+    const shifts = records
+      .filter(record => record.date === date && (includeAll || normalizeMailSearch(record.employee) === educatorNorm))
+      .map(record => {
+        const duration = getMailScheduleDuration(record.from, record.to);
+        return {
+          type: 'dyzur',
+          label: record.group || 'Dyżur',
+          sourceGroup: record.group || '',
+          groupLabel: record.group || '',
+          groupKey: normalizeMailSearch(record.group || '').replace(/\s+/g, '-'),
+          hours: record.from + '–' + record.to,
+          start: record.from,
+          end: record.to,
+          duration,
+          hoursValue: duration,
+          educator: record.employee,
+          sourceTitle: record.sourceTitle || '',
+          sourceAttachment: record.sourceAttachment || ''
+        };
+      })
+      .sort((a, b) => a.start.localeCompare(b.start)
+        || String(a.educator).localeCompare(String(b.educator), 'pl'));
+
+    return {
+      date,
+      isoDate: date,
+      name: new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long' }),
+      weekend: index >= 5,
+      shifts,
+      hoursDay: roundMailScheduleHours(shifts.reduce((sum, shift) => sum + shift.duration, 0))
+    };
+  });
+}
+
+function getMailScheduleDuration(from, to) {
+  const parse = value => {
+    const [hour, minute] = String(value || '00:00').split(':').map(Number);
+    return hour * 60 + minute;
+  };
+  const start = parse(from);
+  let end = to === '24:00' ? 24 * 60 : parse(to);
+  if (end < start) end += 24 * 60;
+  return Math.max(0, (end - start) / 60);
+}
+
+function roundMailScheduleHours(value) {
+  return Math.round((Number(value) || 0) * 100) / 100;
 }
 
 function parseMaybeJson(text) {
