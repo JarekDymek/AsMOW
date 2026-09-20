@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 process.env.ASMOW_TEST_MODE = '1';
-const { parseInternatScheduleHtml } = await import('./server.js');
+const { parseInternatScheduleHtml, buildActiveMailSchedule } = await import('./server.js');
 const context = vm.createContext({ console, Date });
 vm.runInContext(fs.readFileSync(new URL('../assets/js/harmonogram.js', import.meta.url), 'utf8'), context);
 const record = (employee, group, from = '06:00', to = '14:00') => ({ date: '2026-09-14', employee, group, from, to });
@@ -19,6 +19,34 @@ assert.ok(active.records.some(r => r.employee === 'Dymek'));
 const partial = { ...correction, coveredScopes: [{ date: '2026-09-14', employee: 'Dymek', group: '' }], records: [] };
 active = context.buildActiveInternatSchedule([base, partial], base.weekStart);
 assert.deepEqual(Array.from(active.records, r => r.employee), ['Other']);
+
+// Backend Render: najnowszy pełny dokument jest migawką całego tygodnia,
+// więc nie wolno mieszać go ze starszą pełną wersją.
+const fullBase = {
+  ...base,
+  id: 'full-base',
+  hasCompleteWeek: true,
+  isCorrection: false,
+  sourceSentAt: '2026-09-06T20:44',
+  records: [record('Dymek', 'VI'), record('Old VII', 'VII')]
+};
+const fullCorrection = {
+  ...base,
+  id: 'full-correction',
+  hasCompleteWeek: true,
+  isCorrection: true,
+  sourceSentAt: '2026-09-16T13:15',
+  records: [record('Dymek', 'VI', '18:00', '22:00'), record('New VII', 'VII')]
+};
+let mailActive = buildActiveMailSchedule([fullBase, fullCorrection], base.weekStart);
+assert.deepEqual(
+  mailActive.records.map(r => [r.employee, r.group, r.from, r.to]).sort(),
+  [
+    ['Dymek', 'VI', '18:00', '22:00'],
+    ['New VII', 'VII', '06:00', '14:00']
+  ].sort()
+);
+assert.deepEqual(mailActive.sources.map(source => source.id), ['full-correction']);
 
 const parsed = parseInternatScheduleHtml('<p>INTERNAT 14.09 - 20.09.2026</p><table><tr><td>Gr</td><td>PONIEDZIAŁEK 14.09.</td></tr><tr><td>VI</td><td>wolne</td></tr></table>');
 assert.ok(parsed.coveredScopes.some(s => s.date === '2026-09-14' && s.group === 'VI'));
