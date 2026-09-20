@@ -4,7 +4,7 @@ Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łąc
 
 Aktualna wersja PWA: **2.5.4**
 
-Aktualna wersja backendu: **1.4.3**
+Aktualna wersja backendu: **1.4.4**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -178,3 +178,12 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - Asystent używa źródła pocztowego jako podstawowego, a Apps Script tylko jako fallback;
 - plan nie zależy już od lokalnego indeksu dokumentów ani sprawności mostu iframe/JSONP do Apps Script;
 - podbito cache PWA do v64.
+
+
+## Poprawka grafiku 1.4.4 — 20 września 2026
+
+- ponownie włączono historyczny adres dyrektora `dgorski5@wp.pl` dla wiadomości sprzed migracji na adres służbowy;
+- każdy z trzech dozwolonych kanałów poczty jest wyszukiwany osobno w IMAP i dopiero potem wyniki są scalane;
+- skrót `zast.` jest usuwany przed rozpoznaniem nazwiska, więc `zast. Dymek` oznacza pracownika Dymek, a nie fikcyjną osobę „zast Dymek”;
+- najnowszy pełny grafik danego tygodnia jest traktowany jako kompletna migawka i zastępuje wszystkie starsze pełne wersje;
+- tylko nowsza niepełna korekta może zostać nałożona na najnowszą pełną migawkę.
