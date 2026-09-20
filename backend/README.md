@@ -6,7 +6,7 @@ Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 - `GET /api/knowledge` - centralna baza wiedzy z katalogu `backend/knowledge`.
 - `GET /api/legal-updates` - status monitorowanych aktów i publikacje do weryfikacji z oficjalnego API ELI; bez użycia AI.
 - `POST /api/chat` - rozmowa z asystentem.
-- `POST /api/weekly-plan` - bezpieczne pobranie planu z Harmonogram-MOW.
+- `POST /api/weekly-plan` - awaryjne pobranie planu z Harmonogram-MOW.\n- `POST /api/schedule-dashboard` - aktualny plan budowany bezpośrednio z wiadomości IMAP i najnowszych korekt.
 - `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
 - `POST /api/current-info-attachment` - pobranie wybranego załącznika z wiadomości dyrektora.
 - `POST /api/extract-file` - odczyt tekstu z plików przekazanych do analizy.
