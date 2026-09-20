@@ -48,12 +48,18 @@ assert.equal(resolveDirectorMail(html).source, DIRECTOR_EMAIL);
 const parsedMime = await simpleParser(`From: <${FORWARDER_EMAIL}>\r\nSubject: Fwd: Grafik\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${original}`);
 assert.ok(resolveDirectorMail(parsedMime));
 let searches = [];
-await searchDirectorMail({ search: async query => { searches.push(query); return [1, 2]; } }, new Date());
-assert.deepEqual(searches[0].or, [
-  { from: DIRECTOR_EMAIL },
-  { from: FORWARDER_EMAIL },
-  { from: ARCHIVE_DIRECTOR_EMAIL }
+const searchResult = await searchDirectorMail({
+  search: async query => {
+    searches.push(query);
+    return query.from === ARCHIVE_DIRECTOR_EMAIL ? [2, 3] : [1, 2];
+  }
+}, new Date());
+assert.deepEqual(searches.map(query => query.from), [
+  DIRECTOR_EMAIL,
+  FORWARDER_EMAIL,
+  ARCHIVE_DIRECTOR_EMAIL
 ]);
+assert.deepEqual(searchResult, [1, 2, 3]);
 
 // Exercise the real frontend merge and migration settings without touching user data.
 const memory = new Map();
