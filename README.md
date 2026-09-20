@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.3**
+Aktualna wersja PWA: **2.5.4**
 
-Aktualna wersja backendu: **1.4.2**
+Aktualna wersja backendu: **1.4.3**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -169,3 +169,12 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - ustawiono aktualny adres wdrożenia Apps Script jako domyślny backend Harmonogram-MOW;
 - na GitHub Pages Asystent może odczytać zapisany `VIEW_TOKEN` i adres backendu z danych Harmonogram-MOW w tym samym origin (`localStorage`), bez ponownego wpisywania tokenu;
 - podbito cache PWA, aby urządzenia pobrały poprawioną wersję plików.
+
+
+## Zmiany 2.5.4 / backend 1.4.3
+
+- dodano `POST /api/schedule-dashboard`, który buduje plan bezpośrednio z IMAP na backendzie Render;
+- przy każdym odświeżeniu backend ponownie ocenia dokument bazowy oraz nowsze korekty według czasu oryginalnej wiadomości;
+- Asystent używa źródła pocztowego jako podstawowego, a Apps Script tylko jako fallback;
+- plan nie zależy już od lokalnego indeksu dokumentów ani sprawności mostu iframe/JSONP do Apps Script;
+- podbito cache PWA do v64.
