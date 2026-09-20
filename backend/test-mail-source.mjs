@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { simpleParser } from 'mailparser';
-import { DIRECTOR_EMAIL, FORWARDER_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
+import { DIRECTOR_EMAIL, FORWARDER_EMAIL, ARCHIVE_DIRECTOR_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
 
 const original = `Od: Dariusz Górski <${DIRECTOR_EMAIL}>\nDate: pt., 11 wrz 2026 o 15:10\nPozdrawiam`;
 const forwarded = text => ({
@@ -23,6 +23,15 @@ assert.notEqual(directorMailFingerprint(changed, resolved), directorMailFingerpr
 assert.ok(canReadDirectorAttachment(nested, { internalDate: new Date() }));
 const direct = { ...single, from: { value: [{ address: DIRECTOR_EMAIL }] }, text: 'Pozdrawiam' };
 assert.ok(resolveDirectorMail(direct));
+const archiveDirect = {
+  ...single,
+  from: { value: [{ address: ARCHIVE_DIRECTOR_EMAIL }] },
+  date: new Date('2026-09-06T18:44:20Z'),
+  text: 'Grafik internat 14-20 września'
+};
+assert.ok(resolveDirectorMail(archiveDirect));
+const archiveTooLate = { ...archiveDirect, date: new Date('2026-09-17T10:00:00Z') };
+assert.equal(resolveDirectorMail(archiveTooLate), null);
 for (const parsed of [
   { ...single, from: { value: [{ address: 'stranger@example.org', name: DIRECTOR_EMAIL }] } },
   { ...single, from: { value: [{ address: `${FORWARDER_EMAIL}.evil.org` }] } },
@@ -40,7 +49,11 @@ const parsedMime = await simpleParser(`From: <${FORWARDER_EMAIL}>\r\nSubject: Fw
 assert.ok(resolveDirectorMail(parsedMime));
 let searches = [];
 await searchDirectorMail({ search: async query => { searches.push(query); return [1, 2]; } }, new Date());
-assert.deepEqual(searches[0].or, [{ from: DIRECTOR_EMAIL }, { from: FORWARDER_EMAIL }]);
+assert.deepEqual(searches[0].or, [
+  { from: DIRECTOR_EMAIL },
+  { from: FORWARDER_EMAIL },
+  { from: ARCHIVE_DIRECTOR_EMAIL }
+]);
 
 // Exercise the real frontend merge and migration settings without touching user data.
 const memory = new Map();
