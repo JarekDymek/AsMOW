@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 export const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
 export const FORWARDER_EMAIL = 'dymek.jaroslaw@mowmalbork.pl';
-// Read-only compatibility for historical attachments; never used by mail search.
+export const ARCHIVE_DIRECTOR_EMAIL = 'dgorski5@wp.pl';
 const ARCHIVE_SENDER_HASH = 'b76c6571d958be756b5f772b2eda7afe342d63aba6682e35e20bd67f6d470c3e';
 const ARCHIVE_BEFORE = Date.parse('2026-09-16T00:00:00Z');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -11,6 +11,12 @@ function headerAddress(value = '') {
   const text = String(value).trim();
   const bracketed = text.match(/<([^<>\s]+@[^<>\s]+)>\s*$/);
   return (bracketed?.[1] || (/^[^\s<>@]+@[^\s<>@]+$/.test(text) ? text : '')).toLowerCase();
+}
+
+function isArchivedDirectorAddress(address, dateValue) {
+  const addressHash = hash(String(address || '').toLowerCase());
+  const time = new Date(dateValue || 0).getTime();
+  return addressHash === ARCHIVE_SENDER_HASH && Number.isFinite(time) && time < ARCHIVE_BEFORE;
 }
 
 function plainBody(parsed) {
@@ -40,6 +46,9 @@ export function resolveDirectorMail(parsed, config = {}) {
   const sender = String(senders[0].address || '').toLowerCase();
   const body = plainBody(parsed).replace(/\r\n/g, '\n');
   if (sender === director) return { source: director, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
+  if (isArchivedDirectorAddress(sender, parsed.date)) {
+    return { source: director, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
+  }
   if (sender !== forwarder) return null;
 
   const lines = body.split('\n').map(line => line.replace(/^\s*(?:>\s*)+/, '').trim());
@@ -48,10 +57,11 @@ export function resolveDirectorMail(parsed, config = {}) {
     if (!match) continue;
     const address = headerAddress(match[1]);
     if (address === forwarder) continue;
-    if (address !== director) return null;
     const dateIndex = lines.findIndex((line, j) => j > i && j <= i + 3 && /^(?:Date|Data|Sent|Wysłano):/i.test(line));
     if (dateIndex < 0) return null;
     const originalDate = forwardedDate(lines[dateIndex].replace(/^[^:]+:\s*/, ''));
+    const originalDateValue = originalDate ? originalDate + 'T00:00:00Z' : '';
+    if (address !== director && !isArchivedDirectorAddress(address, originalDateValue)) return null;
     let start = dateIndex + 1;
     while (start < lines.length && /^(?:(?:Subject|Temat|To|Do|Cc|DW):|\s*$)/i.test(lines[start])) start++;
     return {
@@ -68,8 +78,7 @@ export function canReadDirectorAttachment(parsed, message, config = {}) {
   if (resolveDirectorMail(parsed, config)) return true;
   const senders = parsed.from?.value || [];
   const received = new Date(message.internalDate).getTime();
-  return senders.length === 1 && Number.isFinite(received) && received < ARCHIVE_BEFORE
-    && hash(String(senders[0].address || '').toLowerCase()) === ARCHIVE_SENDER_HASH;
+  return senders.length === 1 && isArchivedDirectorAddress(senders[0].address, received);
 }
 
 export function directorMailFingerprint(parsed, resolved) {
@@ -81,7 +90,14 @@ export function directorMailFingerprint(parsed, resolved) {
 }
 
 export async function searchDirectorMail(client, since, config = {}) {
-  const query = { since, or: [{ from: config.from || DIRECTOR_EMAIL }, { from: config.forwarder || FORWARDER_EMAIL }] };
+  const query = {
+    since,
+    or: [
+      { from: config.from || DIRECTOR_EMAIL },
+      { from: config.forwarder || FORWARDER_EMAIL },
+      { from: ARCHIVE_DIRECTOR_EMAIL }
+    ]
+  };
   try {
     return await client.search(query, { uid: true });
   } catch (err) {
