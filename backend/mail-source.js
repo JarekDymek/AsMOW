@@ -90,16 +90,18 @@ export function directorMailFingerprint(parsed, resolved) {
 }
 
 export async function searchDirectorMail(client, since, config = {}) {
-  const query = {
-    since,
-    or: [
-      { from: config.from || DIRECTOR_EMAIL },
-      { from: config.forwarder || FORWARDER_EMAIL },
-      { from: ARCHIVE_DIRECTOR_EMAIL }
-    ]
-  };
+  const senders = [
+    config.from || DIRECTOR_EMAIL,
+    config.forwarder || FORWARDER_EMAIL,
+    ARCHIVE_DIRECTOR_EMAIL
+  ];
   try {
-    return await client.search(query, { uid: true });
+    const unique = new Set();
+    for (const from of senders) {
+      const found = await client.search({ since, from }, { uid: true });
+      (found || []).forEach(uid => unique.add(uid));
+    }
+    return [...unique].sort((a, b) => Number(a) - Number(b));
   } catch (err) {
     if (!/command failed|search|bad|no/i.test(`${err.message || ''} ${err.responseText || ''}`)) throw err;
     return client.search({ since }, { uid: true });
