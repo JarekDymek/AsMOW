@@ -5,6 +5,7 @@ process.env.ASMOW_TEST_MODE = '1';
 const {
   decodeInternatHtmlCell,
   extractInternatEmployeeCandidates,
+  parseInternatScheduleCellEntries,
   parseInternatScheduleHtml
 } = await import('./server.js');
 
@@ -122,4 +123,17 @@ assert.deepEqual(
   ['Dembiński', 'Chlebowski']
 );
 
-console.log('OK: parser grafików rozpoznaje tryb wakacyjny i szkolny, waliduje godziny oraz odrzuca grafik innego zespołu.');
+const substituteEntries = parseInternatScheduleCellEntries(
+  '1400-1800\nzast. Dembiński\n1800-2200\nzast. Dymek',
+  '',
+  'VI'
+);
+assert.deepEqual(
+  substituteEntries.map(entry => ({ employee: entry.employee, from: entry.range.from, to: entry.range.to })),
+  [
+    { employee: 'Dembiński', from: '14:00', to: '18:00' },
+    { employee: 'Dymek', from: '18:00', to: '22:00' }
+  ]
+);
+
+console.log('OK: parser grafików rozpoznaje tryb wakacyjny i szkolny, zastępstwa zapisane jako "zast.", waliduje godziny oraz odrzuca grafik innego zespołu.');
