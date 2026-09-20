@@ -124,7 +124,7 @@ assert.deepEqual(
 );
 
 const substituteEntries = parseInternatScheduleCellEntries(
-  '1400-1800\nzast. Dembiński\n1800-2200\nzast. Dymek',
+  '14:00-18:00\nzast. Dembiński\n18:00-22:00\nzast. Dymek',
   '',
   'VI'
 );
