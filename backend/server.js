@@ -603,7 +603,7 @@ async function fetchMailScheduleDashboard(payload = {}) {
     action: 'dashboard',
     source: 'director-mail-render',
     backendVersion: BACKEND_VERSION,
-    mailSourceRevision: mail.mailSourceRevision || 'director-canonical-v3',
+    mailSourceRevision: mail.mailSourceRevision || 'director-canonical-v4',
     schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
     scheduleRevision,
     authoritativeWeeks,
@@ -911,11 +911,13 @@ async function fetchCurrentInfoMail(payload = {}) {
   }
 
   let lock;
+  let mailbox = config.mailbox;
   try {
-    lock = await client.getMailboxLock(config.mailbox);
+    mailbox = await resolveCurrentInfoMailbox(client, config.mailbox);
+    lock = await client.getMailboxLock(mailbox);
   } catch (err) {
     await client.logout().catch(() => {});
-    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`, config);
+    throwCurrentInfoMailError(err, `otwarcie folderu ${mailbox || config.mailbox}`, config);
   }
 
   try {
@@ -928,7 +930,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     if (!selected.length) {
       return {
         ok: true,
-        mailSourceRevision: 'director-canonical-v3',
+        mailSourceRevision: 'director-canonical-v4',
         source: config.from,
         since,
         count: 0,
@@ -977,7 +979,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   const newestDate = items[0]?.date || '';
   return {
     ok: true,
-    mailSourceRevision: 'director-canonical-v3',
+    mailSourceRevision: 'director-canonical-v4',
     source: config.from,
     since,
     count: items.length,
@@ -1018,11 +1020,13 @@ async function fetchCurrentInfoAttachment(payload = {}) {
   }
 
   let lock;
+  let mailbox = config.mailbox;
   try {
-    lock = await client.getMailboxLock(config.mailbox);
+    mailbox = await resolveCurrentInfoMailbox(client, config.mailbox);
+    lock = await client.getMailboxLock(mailbox);
   } catch (err) {
     await client.logout().catch(() => {});
-    throwCurrentInfoMailError(err, `otwarcie folderu ${config.mailbox}`, config);
+    throwCurrentInfoMailError(err, `otwarcie folderu ${mailbox || config.mailbox}`, config);
   }
 
   try {
@@ -1217,6 +1221,17 @@ function getCurrentInfoMailConfig() {
     since: CURRENT_INFO_SINCE,
     mailbox: process.env.CURRENT_INFO_IMAP_MAILBOX || 'INBOX'
   };
+}
+
+async function resolveCurrentInfoMailbox(client, configuredMailbox = 'INBOX') {
+  try {
+    const boxes = await client.list();
+    const allMail = (boxes || []).find(box => String(box.specialUse || '').toLowerCase() === '\\all');
+    if (allMail?.path) return allMail.path;
+  } catch (error) {
+    console.warn('Nie udało się wykryć folderu All Mail; używam skonfigurowanego folderu.', error?.message || error);
+  }
+  return configuredMailbox || 'INBOX';
 }
 
 function normalizeCurrentInfoSince(value) {
