@@ -584,7 +584,7 @@ async function fetchWeeklyPlan(payload = {}) {
 }
 
 
-async async function fetchMailScheduleDashboardCached(payload = {}) {
+async function fetchMailScheduleDashboardCached(payload = {}) {
   assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
 
   const educator = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
@@ -639,7 +639,7 @@ async async function fetchMailScheduleDashboardCached(payload = {}) {
   return promise;
 }
 
-function fetchMailScheduleDashboard(payload = {}) {
+async function fetchMailScheduleDashboard(payload = {}) {
   const since = normalizeCurrentInfoSince(SCHEDULE_ARCHIVE_SINCE);
   const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const mail = await fetchCurrentInfoMail({
