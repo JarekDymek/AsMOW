@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 process.env.ASMOW_TEST_MODE = '1';
-const { parseInternatScheduleHtml, buildActiveMailSchedule } = await import('./server.js');
+const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision } = await import('./server.js');
 
 const context = vm.createContext({ console, Date });
 vm.runInContext(fs.readFileSync(new URL('../assets/js/harmonogram.js', import.meta.url), 'utf8'), context);
@@ -101,6 +101,22 @@ assert.deepEqual(
 );
 assert.deepEqual(mailActive.sources.map(s => s.id), ['full-correction']);
 assert.ok(mailActive.sourceVersion);
+
+// Ta sama wiadomość/ten sam załącznik musi mieć identyczną wersję nawet,
+ // jeśli zmieni się implementacja parsera i rekordy zostaną odczytane inaczej.
+ const sameSourceDifferentParse = {
+   ...fullCorrection,
+   records: [record('Inny wynik parsera', 'VI', '01:00', '02:00')]
+ };
+ assert.equal(
+   getMailScheduleDocumentRevision(fullCorrection),
+   getMailScheduleDocumentRevision(sameSourceDifferentParse)
+ );
+ const newAttachment = { ...fullCorrection, id: 'full-correction-new-file', sourceAttachmentId: 'new-att' };
+ assert.notEqual(
+   getMailScheduleDocumentRevision(fullCorrection),
+   getMailScheduleDocumentRevision(newAttachment)
+ );
 
 // Kolejność tablicy wejściowej nie może wpływać na wynik.
 const shuffled = buildActiveMailSchedule([teamDocument, fullCorrection, base, partialCorrection], base.weekStart);
