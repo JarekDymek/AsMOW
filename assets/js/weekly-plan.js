@@ -89,6 +89,21 @@ async function fetchMailScheduleDashboard(options = {}) {
 
 async function fetchWeeklyPlan(options = {}) {
   setWeeklyStatus(options.rescan
+    ? 'Sprawdzam kanoniczne grafiki w poczcie od początku archiwum…'
+    : 'Pobieram kanoniczny plan z backendu Render…');
+
+  try {
+    const mailPayload = await fetchMailScheduleDashboard({ fullRescan: true });
+    if (!mailPayload?.weeks?.length && !mailPayload?.data?.weeks?.length) {
+      throw new Error('backend Render nie zwrócił żadnego tygodnia grafiku internatu');
+    }
+    setWeeklyPlanFromPayload(mailPayload, 'Kanoniczny grafik z poczty dyrektora przez Render');
+  } catch (error) {
+    console.error('Canonical schedule refresh failed.', error);
+    setWeeklyStatus(`Nie udało się odświeżyć kanonicznego grafiku: ${error.message}. Zachowano ostatnią poprawnie zapisaną wersję; nie użyto Apps Script ani lokalnego indeksu jako zamiennika.`);
+  }
+}) {
+  setWeeklyStatus(options.rescan
     ? 'Odświeżam plan z najnowszych wiadomości i korekt…'
     : 'Pobieram aktualny plan…');
 
@@ -134,51 +149,10 @@ async function fetchWeeklyPlan(options = {}) {
   }
 }
 
-function rebuildWeeklyPlanFromMail(educator = '') {
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
-  const who = educator || document.getElementById('weekly-educator')?.value.trim() || saved.educator || 'Dymek';
-  const index = loadInternatScheduleIndex();
-  const names = [...new Set(index.flatMap(doc => doc.records.map(record => record.employee)))];
-  const matches = names.filter(name => internatScheduleNameMatches(name, getInternatScheduleQueryTokens(who)));
-  if (matches.length !== 1) {
-    setWeeklyStatus(matches.length ? 'Doprecyzuj imię i nazwisko wychowawcy.' : `Brak odczytanego grafiku dla: ${who}. Sprawdź dokumenty w Info.`);
-    return;
-  }
-  const person = matches[0];
-  const weeks = [...new Set(index.map(doc => doc.weekStart).filter(Boolean))].sort().map(weekStart => {
-    const active = buildActiveInternatSchedule(index, weekStart);
-    const previousDate = new Date(`${weekStart}T12:00:00`);
-    previousDate.setDate(previousDate.getDate() - 7);
-    const previous = buildActiveInternatSchedule(index, formatInternatIsoDate(previousDate));
-    const seen = new Set();
-    const records = [...active.records, ...previous.records.filter(record => record.date === weekStart)].filter(record => {
-      const key = `${record.date}|${record.employee}|${record.group}|${record.from}|${record.to}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    const days = Array.from({ length: 7 }, (_, dayIndex) => {
-      const date = new Date(`${weekStart}T12:00:00`);
-      date.setDate(date.getDate() + dayIndex);
-      const iso = formatInternatIsoDate(date);
-      const shifts = records.filter(record => record.date === iso && normalizeInternatScheduleText(record.employee) === normalizeInternatScheduleText(person))
-        .map(record => ({ label: formatInternatScheduleGroup(record.group), hours: `${record.from}–${record.to}`, hoursValue: (Number(record.to.split(':')[0]) * 60 + Number(record.to.split(':')[1]) - Number(record.from.split(':')[0]) * 60 - Number(record.from.split(':')[1])) / 60 }));
-      return { date: iso, name: date.toLocaleDateString('pl-PL', { weekday: 'long' }), shifts, hoursDay: shifts.reduce((sum, shift) => sum + shift.hoursValue, 0) };
-    });
-    const total = days.reduce((sum, day) => sum + day.hoursDay, 0);
-    return { label: 'Tydzień', dateFrom: weekStart, dateTo: days[6].date, range: `${weekStart} – ${days[6].date}`, days,
-      summary: { totalHours: total, overtimeHours: '—', weekendHours: days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0) },
-      validationWarnings: active.requiresVerification ? ['Odczyt dokumentu wymaga sprawdzenia. Aktualna korekta ma pierwszeństwo; nie przywracamy zastąpionych dyżurów.'] : [],
-      sourceFilename: active.sources.map(doc => doc.sourceAttachment).join('; ') };
-  });
-  if (!weeks.length) return;
-  weeklyPlan = normalizeWeeklyPayload({ weeks, educator: person, updatedAt: new Date().toISOString() });
-  weeklyPlanMeta = { source: 'Aktualne grafiki z poczty dyrektora', sourceType: 'mail', loadedAt: new Date().toISOString() };
-  weeklyPlan.meta = weeklyPlanMeta;
-  localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
-  renderWeeklyPlan();
-  setWeeklyStatus(`Aktualne grafiki z poczty: ${weeks.length} tyg., wychowawca: ${person}. Korekty zastępują wcześniejsze dane w swoim zakresie.`);
+async function rebuildWeeklyPlanFromMail(educator = '') {
+  const input = document.getElementById('weekly-educator');
+  if (input && educator) input.value = educator;
+  return fetchWeeklyPlan({ rescan: true });
 }
 
 async function refreshWeeklyPlanOnOpen() {
@@ -215,26 +189,31 @@ async function loadSampleWeeklyPlan() {
 function setWeeklyPlanFromPayload(payload, sourceLabel) {
   const extracted = extractWeeklyDashboard(payload);
   if (extracted.ok === false) {
-    setWeeklyStatus(`Generator Harmonogram-MOW zwrócił błąd: ${extracted.error || 'brak szczegółów'}. Sprawdź VIEW_TOKEN/ADMIN_TOKEN i czy link /exec jest z aktualnego wdrożenia.`);
+    setWeeklyStatus(`Backend grafiku zwrócił błąd: ${extracted.error || 'brak szczegółów'}.`);
     return;
   }
-  const normalized = mergeWeeklyPlans(weeklyPlan, normalizeWeeklyPayload(extracted));
+  const normalized = normalizeWeeklyPayload(extracted);
   if (!normalized.weeks.length) {
     const details = [
       extracted.status ? `status: ${extracted.status}` : '',
       extracted.action ? `akcja: ${extracted.action}` : '',
-      extracted.appName ? `aplikacja: ${extracted.appName}` : '',
       extracted.error ? `błąd: ${extracted.error}` : ''
     ].filter(Boolean).join(', ');
-    setWeeklyStatus(`Odpowiedź z generatora nie zawiera tygodniowego planu${details ? ` (${details})` : ''}. Sprawdź, czy generator ma już zeskanowane grafiki i czy token daje dostęp do widoku.`);
+    setWeeklyStatus(`Odpowiedź nie zawiera żadnego kanonicznego tygodnia${details ? ` (${details})` : ''}. Poprzednio zapisany plan nie został zmieniony.`);
     return;
   }
   weeklyPlan = normalized;
-  weeklyPlanMeta = { source: sourceLabel, loadedAt: new Date().toISOString() };
+  weeklyPlanMeta = {
+    source: sourceLabel,
+    sourceType: 'render-canonical',
+    schedulePolicyRevision: extracted.schedulePolicyRevision || extracted.data?.schedulePolicyRevision || '',
+    scheduleRevision: extracted.scheduleRevision || extracted.data?.scheduleRevision || '',
+    loadedAt: new Date().toISOString()
+  };
   weeklyPlan.meta = weeklyPlanMeta;
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
   renderWeeklyPlan();
-  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} tydz. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)} ${getWeeklyAllWeeksText(weeklyPlan)} ${getWeeklyGeneratorDiagnostic(extracted)}`.trim());
+  setWeeklyStatus(`${sourceLabel}: zapisano ${weeklyPlan.weeks.length} kanonicznych tyg. dla: ${weeklyPlan.educator || weeklyPlan.calendarEducator || 'wychowawca'}. ${getWeeklyCoverageText(weeklyPlan)} ${getWeeklyAllWeeksText(weeklyPlan)} ${getWeeklyGeneratorDiagnostic(extracted)}`.trim());
 }
 
 function extractWeeklyDashboard(payload) {
@@ -369,19 +348,9 @@ function normalizeWeeklyHistoryWeek(w = {}) {
 
 function mergeWeeklyPlans(existing, incoming) {
   if (!incoming || !Array.isArray(incoming.weeks)) return incoming || { weeks: [] };
-  const map = new Map();
-  const addWeeks = weeks => (weeks || []).forEach(week => {
-    const key = getWeeklyIdentity(week);
-    if (!key) return;
-    const previous = map.get(key);
-    if (previous && !previous.partialFromHistory && week.partialFromHistory) return;
-    map.set(key, { ...week });
-  });
-  addWeeks(existing?.weeks);
-  addWeeks(incoming.weeks);
   return {
     ...incoming,
-    weeks: classifyWeeklyWeeks([...map.values()])
+    weeks: classifyWeeklyWeeks((incoming.weeks || []).map(week => ({ ...week })))
   };
 }
 
