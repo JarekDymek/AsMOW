@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.10';
+const BACKEND_VERSION = '1.5.11';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1173,6 +1173,20 @@ function collectImapAttachmentMetadata(node, target = [], path = '') {
   return target;
 }
 
+function formatBootstrapMailTimestamp(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).format(date).replace(' ', 'T');
+}
+
 function buildBootstrapMetadataCandidate(message = {}) {
   const title = String(message?.envelope?.subject || '').trim();
   const attachments = collectImapAttachmentMetadata(message.bodyStructure);
@@ -1182,8 +1196,8 @@ function buildBootstrapMetadataCandidate(message = {}) {
       ? normalizeMailDate(message.internalDate)
       : (message.envelope?.date instanceof Date ? normalizeMailDate(message.envelope.date) : ''),
     sentAt: message.internalDate instanceof Date
-      ? localMailTimestamp(message.internalDate)
-      : (message.envelope?.date instanceof Date ? localMailTimestamp(message.envelope.date) : ''),
+      ? formatBootstrapMailTimestamp(message.internalDate)
+      : (message.envelope?.date instanceof Date ? formatBootstrapMailTimestamp(message.envelope.date) : ''),
     title,
     attachments
   };
@@ -3009,6 +3023,7 @@ export {
   resolveCurrentInfoMailbox,
   collectImapAttachmentMetadata,
   buildBootstrapMetadataCandidate,
+  formatBootstrapMailTimestamp,
   chooseBootstrapMessageUids,
   selectLatestScheduleAttachments,
   selectBootstrapScheduleAttachments,
