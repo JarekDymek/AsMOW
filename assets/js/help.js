@@ -6,7 +6,7 @@ function openHelp() {
   if (!title || !source || !body || !view) return;
 
   title.textContent = 'Pomoc';
-  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.4';
+  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.5';
   body.innerHTML = `
     <div class="help-panel">
       <div class="help-card help-card--strong">
@@ -52,8 +52,8 @@ function openHelp() {
         <ul>
           <li>Inf. zapisuje komunikaty dyrekcji bez grafików. Załącznik można najpierw otworzyć, a potem pobrać.</li>
           <li>Synchronizacja poczty pobiera nowe wiadomości od ostatniego zapisanego punktu; poprzednie wpisy pozostają na urządzeniu.</li>
-          <li>Plan tygodniowy w zakładce Grafik jest budowany na backendzie Render bezpośrednio z najnowszych wiadomości dyrektora i korekt; Harmonogram-MOW jest używany awaryjnie.</li><li>Lokalny indeks poczty pozostaje pomocniczym narzędziem do wyszukiwania dokumentów i innych wychowawców.</li>
-          <li>Przy błędzie generatora sprawdź adres Apps Script zakończony na /exec, token i aktualne wdrożenie Code.gs.</li>
+          <li>Plan tygodniowy w zakładce Grafik jest pobierany wyłącznie z kanonicznego backendu Render. Dla każdego tygodnia obowiązuje jeden, najnowszy dokument grafiku internatu; starsze wersje nie są z nim scalane.</li><li>Lokalny indeks poczty przechowuje dokumenty do audytu i wyszukiwania, ale nie jest alternatywnym źródłem planu tygodniowego.</li>
+          <li>Przy błędzie Grafiku sprawdź token synchronizacji poczty i status backendu Render. Błąd nie powoduje przełączenia na starszy grafik; zachowana zostaje ostatnia poprawna wersja.</li>
         </ul>
       </div>
 
