@@ -197,7 +197,7 @@ const server = http.createServer(async (req, res) => {
 
 if (process.env.ASMOW_TEST_MODE !== '1') {
   server.listen(PORT, () => {
-    console.log(\`MOW AI backend \${BACKEND_VERSION} działa na porcie \${PORT}\`);
+    console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
     setTimeout(() => probeCurrentInfoMailConnection().catch(() => {}), 750);
   });
 }
