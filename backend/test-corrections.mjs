@@ -237,9 +237,10 @@ const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan(options 
 const fetchEnd = weeklySource.indexOf('\nasync function rebuildWeeklyPlanFromMail', fetchStart);
 assert.ok(fetchStart >= 0 && fetchEnd > fetchStart);
 const fetchBody = weeklySource.slice(fetchStart, fetchEnd);
-assert.match(fetchBody, /fetchMailScheduleDashboard/);
-assert.doesNotMatch(fetchBody, /\/api\/weekly-plan/);
-assert.doesNotMatch(fetchBody, /Apps Script fallback/);
+assert.match(fetchBody, /\/api\/weekly-plan/);
+assert.match(fetchBody, /targetUrl/);
+assert.match(fetchBody, /settings\.token/);
+assert.doesNotMatch(fetchBody, /fetchMailScheduleDashboard/);
 assert.doesNotMatch(fetchBody, /syncCurrentInfoMail/);
 
 const setStart = weeklySource.indexOf('function setWeeklyPlanFromPayload');
@@ -247,4 +248,4 @@ const setEnd = weeklySource.indexOf('\nfunction ', setStart + 20);
 const setBody = weeklySource.slice(setStart, setEnd);
 assert.doesNotMatch(setBody, /mergeWeeklyPlans\(weeklyPlan/);
 
-console.log('OK: jeden najnowszy dokument internatu na tydzień, bez scalania, bez Apps Script fallback i bez zależności od kolejności skanu.');
+console.log('OK: korekty są deterministyczne, a AsMOW pobiera Grafik przez backend Harmonogram-MOW.');
