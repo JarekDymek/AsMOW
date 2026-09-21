@@ -2417,6 +2417,7 @@ export {
   fetchLegalUpdates,
   getNonInternatScheduleReason,
   normalizeLegalAct,
+  classifyInternatScheduleKind,
   parseInternatScheduleCellEntries,
   parseInternatScheduleHtml,
   buildActiveMailSchedule
