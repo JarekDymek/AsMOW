@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.4';
+const BACKEND_VERSION = '1.5.5';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -63,7 +63,10 @@ const rate = new Map();
 const KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md']);
 let knowledgeFilesCache = { signature: '', files: [] };
 let legalUpdatesCache = { at: 0, payload: null };
-const SCHEDULE_DASHBOARD_CACHE_MS = 60_000;
+const SCHEDULE_DASHBOARD_CACHE_MS = 15 * 60_000;
+const SCHEDULE_FORCE_REFRESH_WAIT_MS = 6_000;
+const SCHEDULE_BOOTSTRAP_DAYS = 42;
+const SCHEDULE_BOOTSTRAP_LIMIT = 250;
 const scheduleDashboardCache = new Map();
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
@@ -213,17 +216,18 @@ async function prewarmCanonicalScheduleCache() {
     console.warn('[SCHEDULE_CACHE] prewarm skipped: no sync token configured');
     return false;
   }
+
+  const educator = TEST_WEEKLY_EDUCATOR || 'Dymek';
+  const key = normalizeMailSearch(educator) || 'dymek';
+
   try {
-    const dashboard = await fetchMailScheduleDashboardCached({
-      token,
-      educator: TEST_WEEKLY_EDUCATOR || 'Dymek',
-      forceRefresh: true
-    });
-    console.log('[SCHEDULE_CACHE] prewarm ok', JSON.stringify({
+    const dashboard = await getOrStartScheduleBootstrap(key, { token, educator });
+    console.log('[SCHEDULE_CACHE] prewarm bootstrap ready', JSON.stringify({
       weeks: Array.isArray(dashboard?.weeks) ? dashboard.weeks.length : 0,
       revision: dashboard?.scheduleRevision || '',
       newestDate: dashboard?.newestDate || ''
     }));
+    startScheduleDashboardRefresh(key, { token, educator }, scheduleDashboardCache.get(key) || {});
     return true;
   } catch (error) {
     console.error('[SCHEDULE_CACHE] prewarm failed', error?.code || '', error?.message || '');
@@ -590,66 +594,168 @@ async function fetchMailScheduleDashboardCached(payload = {}) {
   const educator = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const key = normalizeMailSearch(educator) || 'dymek';
   const now = Date.now();
-  const existing = scheduleDashboardCache.get(key);
+  let existing = scheduleDashboardCache.get(key);
 
-  if (!payload.forceRefresh && existing?.payload && now - existing.at < SCHEDULE_DASHBOARD_CACHE_MS) {
+  if (existing?.payload) {
+    const age = Math.max(0, now - Number(existing.at || 0));
+    const expired = age >= SCHEDULE_DASHBOARD_CACHE_MS;
+    let refreshPromise = existing.promise || null;
+
+    if ((payload.forceRefresh || expired) && !refreshPromise) {
+      refreshPromise = startScheduleDashboardRefresh(key, payload, existing);
+      existing = scheduleDashboardCache.get(key);
+    }
+
+    if (payload.forceRefresh && refreshPromise) {
+      const waited = await settleWithin(refreshPromise, SCHEDULE_FORCE_REFRESH_WAIT_MS);
+      if (waited.done && waited.value) return waited.value;
+    }
+
     return {
       ...existing.payload,
       cached: true,
-      cacheAgeMs: now - existing.at
+      stale: expired,
+      refreshing: Boolean(refreshPromise),
+      cacheAgeMs: age
     };
   }
 
-  if (existing?.promise) return existing.promise;
+  // Zimny start: nigdy nie blokuj UI pełnym skanem archiwum.
+  // Najpierw pobierz tylko ostatnie tygodnie, a pełne 39+ tygodni uzupełnij w tle.
+  const bootstrap = await getOrStartScheduleBootstrap(key, payload);
+  const afterBootstrap = scheduleDashboardCache.get(key);
+  if (!afterBootstrap?.promise) startScheduleDashboardRefresh(key, payload, afterBootstrap || {});
+  return {
+    ...bootstrap,
+    cached: false,
+    bootstrap: true,
+    refreshing: true
+  };
+}
 
-  const promise = fetchMailScheduleDashboard(payload)
-    .then(result => {
-      scheduleDashboardCache.set(key, { at: Date.now(), payload: result, promise: null });
-      return result;
-    })
-    .catch(error => {
-      const previous = scheduleDashboardCache.get(key);
-      if (previous?.payload) {
-        console.warn('[SCHEDULE_CACHE] serving last good snapshot after refresh error:', error?.code || '', error?.message || '');
-        return {
-          ...previous.payload,
-          cached: true,
-          stale: true,
-          staleReason: error?.message || 'Błąd odświeżenia źródła pocztowego.'
-        };
-      }
-      throw error;
-    })
-    .finally(() => {
-      const current = scheduleDashboardCache.get(key);
-      if (current?.promise === promise) {
-        if (current.payload) {
-          scheduleDashboardCache.set(key, { at: current.at || Date.now(), payload: current.payload, promise: null });
-        } else {
-          scheduleDashboardCache.delete(key);
-        }
-      }
+function getScheduleBootstrapSince() {
+  const today = formatInternatServerIsoDate(new Date());
+  const monday = getInternatMonday(today);
+  return addInternatDays(monday, -SCHEDULE_BOOTSTRAP_DAYS);
+}
+
+async function getOrStartScheduleBootstrap(key, payload = {}) {
+  const existing = scheduleDashboardCache.get(key);
+  if (existing?.payload) return existing.payload;
+  if (existing?.bootstrapPromise) return existing.bootstrapPromise;
+
+  const startedAt = Date.now();
+  const bootstrapPromise = fetchMailScheduleDashboard({
+    ...payload,
+    forceRefresh: false,
+    since: getScheduleBootstrapSince(),
+    limit: SCHEDULE_BOOTSTRAP_LIMIT,
+    requireCompleteArchive: false
+  }).then(result => {
+    const current = scheduleDashboardCache.get(key) || {};
+    scheduleDashboardCache.set(key, {
+      ...current,
+      at: Date.now(),
+      payload: result,
+      bootstrapPromise: null
     });
+    console.log('[SCHEDULE_CACHE] bootstrap ok', JSON.stringify({
+      ms: Date.now() - startedAt,
+      weeks: Array.isArray(result?.weeks) ? result.weeks.length : 0,
+      revision: result?.scheduleRevision || '',
+      newestDate: result?.newestDate || ''
+    }));
+    return result;
+  }).catch(error => {
+    const current = scheduleDashboardCache.get(key) || {};
+    scheduleDashboardCache.set(key, { ...current, bootstrapPromise: null });
+    console.error('[SCHEDULE_CACHE] bootstrap failed', error?.code || '', error?.message || '');
+    throw error;
+  });
 
   scheduleDashboardCache.set(key, {
-    at: existing?.at || 0,
-    payload: existing?.payload || null,
+    ...(existing || {}),
+    bootstrapPromise
+  });
+  return bootstrapPromise;
+}
+
+function startScheduleDashboardRefresh(key, payload = {}, existing = {}) {
+  const current = scheduleDashboardCache.get(key) || existing || {};
+  if (current.promise) return current.promise;
+
+  const startedAt = Date.now();
+  const promise = fetchMailScheduleDashboard({
+    ...payload,
+    forceRefresh: false,
+    since: SCHEDULE_ARCHIVE_SINCE,
+    limit: 1200,
+    requireCompleteArchive: true
+  }).then(result => {
+    const latest = scheduleDashboardCache.get(key) || {};
+    scheduleDashboardCache.set(key, {
+      ...latest,
+      at: Date.now(),
+      payload: result,
+      promise: null
+    });
+    console.log('[SCHEDULE_CACHE] full refresh ok', JSON.stringify({
+      ms: Date.now() - startedAt,
+      weeks: Array.isArray(result?.weeks) ? result.weeks.length : 0,
+      revision: result?.scheduleRevision || '',
+      newestDate: result?.newestDate || ''
+    }));
+    return result;
+  }).catch(error => {
+    const latest = scheduleDashboardCache.get(key) || {};
+    scheduleDashboardCache.set(key, { ...latest, promise: null });
+    console.warn('[SCHEDULE_CACHE] full refresh failed; last good snapshot retained:', error?.code || '', error?.message || '');
+    if (latest.payload) return {
+      ...latest.payload,
+      cached: true,
+      stale: true,
+      staleReason: error?.message || 'Błąd odświeżenia źródła pocztowego.'
+    };
+    throw error;
+  });
+
+  scheduleDashboardCache.set(key, {
+    ...current,
     promise
   });
+
+  // Zawsze dołącz obsługę odrzucenia, bo automatyczne odświeżenie może działać bez await.
+  promise.catch(() => {});
   return promise;
 }
 
+async function settleWithin(promise, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise).then(value => ({ done: true, value })),
+      new Promise(resolve => {
+        timer = setTimeout(() => resolve({ done: false, value: null }), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function fetchMailScheduleDashboard(payload = {}) {
-  const since = normalizeCurrentInfoSince(SCHEDULE_ARCHIVE_SINCE);
+  const since = normalizeCurrentInfoSince(payload.since || SCHEDULE_ARCHIVE_SINCE);
+  const limit = Math.min(Math.max(Number(payload.limit || 1200), 25), 1200);
+  const requireCompleteArchive = payload.requireCompleteArchive !== false;
   const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const mail = await fetchCurrentInfoMail({
     token: payload.token,
     testAccessToken: payload.testAccessToken,
     since,
-    limit: 1200
+    limit
   });
 
-  if (mail.scanTruncated) {
+  if (mail.scanTruncated && requireCompleteArchive) {
     throwHttpError(
       `Archiwum poczty ma ${mail.matched || 'więcej niż limit'} pasujących wiadomości, a bezpieczny skan objął tylko ${mail.scanned || 0}. Nie podmieniono grafiku, aby nie utracić starszych tygodni.`,
       409,
@@ -2637,5 +2743,8 @@ export {
   parseInternatScheduleHtml,
   buildActiveMailSchedule,
   getMailScheduleDocumentRevision,
-  resolveCurrentInfoMailbox
+  resolveCurrentInfoMailbox,
+  fetchMailScheduleDashboardCached,
+  getScheduleBootstrapSince,
+  settleWithin
 };
