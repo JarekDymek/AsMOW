@@ -25,6 +25,7 @@ assert.notEqual(directorMailFingerprint(changed, resolved), directorMailFingerpr
 assert.ok(canReadDirectorAttachment(nested, { internalDate: new Date() }));
 const direct = { ...single, from: { value: [{ address: DIRECTOR_EMAIL }] }, text: 'Pozdrawiam' };
 assert.ok(resolveDirectorMail(direct));
+assert.ok(resolveDirectorMail(direct, { from: 'stary-adres@example.com' }));
 const archiveDirect = {
   ...single,
   from: { value: [{ address: ARCHIVE_DIRECTOR_EMAIL }] },
@@ -58,6 +59,20 @@ const searchResult = await searchDirectorMail({
 }, new Date());
 assert.deepEqual(searches.map(query => query.from), [
   DIRECTOR_EMAIL,
+  FORWARDER_EMAIL,
+  ARCHIVE_DIRECTOR_EMAIL
+]);
+
+searches = [];
+await searchDirectorMail({
+  search: async query => {
+    searches.push(query);
+    return [];
+  }
+}, new Date(), { from: 'stary-adres@example.com' });
+assert.deepEqual(searches.map(query => query.from), [
+  DIRECTOR_EMAIL,
+  'stary-adres@example.com',
   FORWARDER_EMAIL,
   ARCHIVE_DIRECTOR_EMAIL
 ]);
