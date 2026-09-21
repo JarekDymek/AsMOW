@@ -2481,5 +2481,6 @@ export {
   parseInternatScheduleCellEntries,
   parseInternatScheduleHtml,
   buildActiveMailSchedule,
-  getMailScheduleDocumentRevision
+  getMailScheduleDocumentRevision,
+  resolveCurrentInfoMailbox
 };
