@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.4**
+Aktualna wersja PWA: **2.5.5**
 
-Aktualna wersja backendu: **1.4.4**
+Aktualna wersja backendu: **1.5.0**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -18,7 +18,7 @@ Ostatni pełny audyt: **26 sierpnia 2026**
 - stopnie uspołecznienia i lokalne notatki;
 - centralna oraz lokalna baza wiedzy z kontrolą aktualności aktów ELI;
 - archiwum wiadomości dyrekcji i bezpieczne pobieranie załączników;
-- nadrzędny plan tygodniowy z Harmonogramu MOW oraz pomocniczy lokalny indeks DOCX z poczty;
+- kanoniczny plan tygodniowy z backendu Render/IMAP, współdzielony z Harmonogram-MOW, oraz lokalne archiwum dokumentów DOCX do audytu;
 - kopia i przywracanie danych zapisanych na urządzeniu;
 - instalacja jako PWA, praca offline i kontrolowana aktualizacja app shell.
 
@@ -32,7 +32,7 @@ Frontend wysyła token poczty do endpointu `POST /api/current-info-mail`. Backen
 data + osoba + grupa + godzina od + godzina do + dokument źródłowy
 ```
 
-Indeks jest przechowywany wyłącznie w pamięci przeglądarki. Korekty są nakładane na dokument bazowy, a odpowiedź dla nazwiska zawsze pokazuje źródło. Tryb szkolny rozpoznaje grupy `I`–`VIII` także wtedy, gdy komórka zawiera wyłącznie cyfrę rzymską. Wiersz `NOC` zachowuje własną etykietę.
+Indeks jest przechowywany wyłącznie w pamięci przeglądarki jako archiwum dokumentów. Nie wyznacza już planu przez scalanie korekt z bazą. Dla każdego tygodnia aktywny jest wyłącznie najnowszy dokument grafiku internatu; odpowiedź dla nazwiska pokazuje to jedno źródło. Tryb szkolny rozpoznaje grupy `I`–`VIII` także wtedy, gdy komórka zawiera wyłącznie cyfrę rzymską. Wiersz `NOC` zachowuje własną etykietę.
 
 Parser oznacza dokument jako niejednoznaczny, gdy:
 
@@ -41,11 +41,21 @@ Parser oznacza dokument jako niejednoznaczny, gdy:
 - jednej osobie przypisano ponad 24 godziny w ciągu dnia;
 - liczba rekordów jest nietypowo duża.
 
-### Plan z Harmonogramu MOW
+### Kanoniczny plan tygodniowy
 
-`POST /api/weekly-plan` działa jako pośrednik do wdrożenia Google Apps Script. Adres `/exec` oraz token nie są wpisane do repozytorium. Asystent zachowuje odebrane tygodnie w `localStorage`, klasyfikuje je jako poprzedni, bieżący i przyszłe oraz niezależnie ostrzega, gdy pojedynczy dzień przekracza 24 godziny.
+Zakładka **Grafik** wywołuje bezpośrednio `POST /api/schedule-dashboard` na Renderze. Ten sam endpoint jest źródłem dla aplikacji Harmonogram MOW.
 
-Plan tygodniowy z Harmonogramu MOW jest źródłem nadrzędnym w zakładce Grafik. Lokalny indeks poczty pozostaje niezależny i pomocniczy: służy do wyszukiwania dokumentów oraz innych wychowawców, ale synchronizacja Info nie nadpisuje już planu pobranego z Harmonogramu MOW.
+Reguła danych jest celowo rygorystyczna:
+
+1. wiadomości są przypisywane do tygodnia, którego dotyczy załączony grafik internatu;
+2. dla każdego tygodnia dokumenty są sortowane według czasu oryginalnej wiadomości, UID i kolejności załącznika;
+3. **obowiązuje dokładnie jeden najnowszy dokument grafiku internatu dla tego tygodnia**;
+4. starszy dokument nie uzupełnia, nie naprawia i nie scala się z nowszym;
+5. jeżeli najnowszy dokument jest niepełny albo nieczytelny, aplikacja pokazuje ostrzeżenie zamiast przywracać starszy grafik;
+6. błąd Rendera pozostawia ostatnią poprawnie zapisaną wersję i nie uruchamia Apps Script jako fallbacku;
+7. historia jest skanowana od stałej daty archiwum, więc stary tydzień nie znika wraz z upływem czasu.
+
+Odpowiedź zawiera `schedulePolicyRevision`, `scheduleRevision` i `sourceVersion` każdego tygodnia. Dzięki temu ten sam tydzień jest niezmienny, dopóki nie pojawi się nowszy dokument dotyczący właśnie tego tygodnia.
 
 ## Walidacja i bezpieczeństwo
 
@@ -187,3 +197,15 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - skrót `zast.` jest usuwany przed rozpoznaniem nazwiska, więc `zast. Dymek` oznacza pracownika Dymek, a nie fikcyjną osobę „zast Dymek”;
 - najnowszy pełny grafik danego tygodnia jest traktowany jako kompletna migawka i zastępuje wszystkie starsze pełne wersje;
 - tylko nowsza niepełna korekta może zostać nałożona na najnowszą pełną migawkę.
+
+
+## Zmiany 2.5.5 / backend 1.5.0 — kanoniczny grafik
+
+- jedna reguła źródła dla Asystenta MOW i Harmonogram-MOW: najnowszy dokument grafiku internatu dla konkretnego tygodnia;
+- usunięto scalanie dokumentu bazowego z korektami w warstwie aktywnego planu;
+- usunięto Apps Script jako fallback zakładki Grafik;
+- usunięto łączenie z rekordami poprzedniego tygodnia oraz z grafikami innych zespołów;
+- zakres archiwum grafiku jest stały od 2026-01-01, a nie ruchomy względem bieżącej daty;
+- błędny/niedostępny backend nie nadpisuje ostatniego poprawnego planu;
+- dodano rewizje źródła i polityki oraz wymuszono jednorazową przebudowę starego indeksu;
+- cache PWA v65 wymusza pobranie nowej logiki na zainstalowanych urządzeniach.
