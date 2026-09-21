@@ -63,6 +63,21 @@ assert.deepEqual(searches.map(query => query.from), [
 ]);
 assert.deepEqual(searchResult, [1, 2, 3]);
 
+searches = [];
+await searchDirectorMail({
+  search: async query => {
+    searches.push(query);
+    return [];
+  }
+}, new Date(), { scheduleOnly: true });
+assert.equal(searches.length, 3);
+assert.ok(searches.every(query => query.subject === 'grafik'));
+assert.deepEqual(searches.map(query => query.from), [
+  DIRECTOR_EMAIL,
+  FORWARDER_EMAIL,
+  ARCHIVE_DIRECTOR_EMAIL
+]);
+
 assert.equal(
   await resolveCurrentInfoMailbox({
     list: async () => [
