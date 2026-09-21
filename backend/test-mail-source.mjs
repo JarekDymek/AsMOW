@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { simpleParser } from 'mailparser';
 import { DIRECTOR_EMAIL, FORWARDER_EMAIL, ARCHIVE_DIRECTOR_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
 process.env.ASMOW_TEST_MODE = '1';
-const { resolveCurrentInfoMailbox } = await import('./server.js');
+const { resolveCurrentInfoMailbox, collectImapAttachmentMetadata, chooseBootstrapMessageUids } = await import('./server.js');
 
 const original = `Od: Dariusz Górski <${DIRECTOR_EMAIL}>\nDate: pt., 11 wrz 2026 o 15:10\nPozdrawiam`;
 const forwarded = text => ({
@@ -90,6 +90,47 @@ assert.equal(
 assert.equal(
   await resolveCurrentInfoMailbox({ list: async () => [{ path: 'INBOX' }] }, 'INBOX'),
   'INBOX'
+);
+
+const bodyStructure = {
+  childNodes: [
+    { type: 'text/plain' },
+    {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      disposition: 'attachment',
+      dispositionParameters: { filename: '4. 21- 27. 09.2026r..docx' }
+    }
+  ]
+};
+assert.deepEqual(
+  collectImapAttachmentMetadata(bodyStructure).map(item => item.filename),
+  ['4. 21- 27. 09.2026r..docx']
+);
+assert.deepEqual(
+  chooseBootstrapMessageUids([
+    {
+      uid: '100',
+      date: '2026-09-20',
+      sentAt: '2026-09-20T12:00',
+      title: 'Grafik',
+      attachments: [{ filename: '3. 14- 20. 09.2026r..docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }]
+    },
+    {
+      uid: '101',
+      date: '2026-09-21',
+      sentAt: '2026-09-21T08:00',
+      title: 'Grafik',
+      attachments: [{ filename: '4. 21- 27. 09.2026r..docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }]
+    },
+    {
+      uid: '102',
+      date: '2026-09-21',
+      sentAt: '2026-09-21T09:00',
+      title: 'Grafik na kolejny tydzień',
+      attachments: [{ filename: '5. 28.09. - 04.10.2026r..docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }]
+    }
+  ], '2026-09-21'),
+  ['101']
 );
 
 // Exercise the real frontend merge and migration settings without touching user data.
