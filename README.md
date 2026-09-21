@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.6**
+Aktualna wersja PWA: **2.5.7**
 
-Aktualna wersja backendu: **1.5.1**
+Aktualna wersja backendu: **1.5.2**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -219,3 +219,12 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - zakładka Grafik nie dubluje tych samych tygodni z pól `weeks` i `history`;
 - automatyczne odświeżenie Grafiku używa tokenu źródła pocztowego Render, a nie starego tokenu Apps Script;
 - zapisany lokalnie plan o starej polityce źródła jest odrzucany zamiast przywracany po ponownym uruchomieniu.
+
+
+## Poprawka 2.5.7 / backend 1.5.2 — niezmienność tygodnia
+
+- `sourceVersion` zależy wyłącznie od dokumentu źródłowego i jego treściowej tożsamości, nie od wyniku parsera;
+- ponowne odczytanie tego samego DOCX nie może zmienić zapisanego tygodnia;
+- lokalnie zapisany tydzień jest zastępowany tylko przez faktycznie nowszy dokument/korektę;
+- tygodnie nieobecne chwilowo w odpowiedzi nie są automatycznie kasowane z zapisanej historii;
+- polityka `latest-document-per-week-v2` wymusza jednokrotną migrację ze starego, niestabilnego cache.
