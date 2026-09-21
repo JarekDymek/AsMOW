@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.5';
+const BACKEND_VERSION = '1.5.6';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -65,8 +65,8 @@ let knowledgeFilesCache = { signature: '', files: [] };
 let legalUpdatesCache = { at: 0, payload: null };
 const SCHEDULE_DASHBOARD_CACHE_MS = 15 * 60_000;
 const SCHEDULE_FORCE_REFRESH_WAIT_MS = 6_000;
-const SCHEDULE_BOOTSTRAP_DAYS = 42;
-const SCHEDULE_BOOTSTRAP_LIMIT = 250;
+const SCHEDULE_BOOTSTRAP_DAYS = 21;
+const SCHEDULE_BOOTSTRAP_LIMIT = 80;
 const scheduleDashboardCache = new Map();
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
@@ -752,7 +752,8 @@ async function fetchMailScheduleDashboard(payload = {}) {
     token: payload.token,
     testAccessToken: payload.testAccessToken,
     since,
-    limit
+    limit,
+    scheduleOnly: true
   });
 
   if (mail.scanTruncated && requireCompleteArchive) {
@@ -1174,7 +1175,7 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   try {
     const sinceDate = new Date(`${since}T00:00:00Z`);
-    const uids = await searchDirectorMail(client, sinceDate, config);
+    const uids = await searchDirectorMail(client, sinceDate, { ...config, scheduleOnly: Boolean(payload.scheduleOnly) });
     matchedCount = uids.length;
     scanTruncated = matchedCount > limit;
     const selected = uids.slice(-limit);
