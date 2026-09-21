@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { simpleParser } from 'mailparser';
 import { DIRECTOR_EMAIL, FORWARDER_EMAIL, ARCHIVE_DIRECTOR_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
 process.env.ASMOW_TEST_MODE = '1';
-const { resolveCurrentInfoMailbox, collectImapAttachmentMetadata, buildBootstrapMetadataCandidate, formatBootstrapMailTimestamp, chooseBootstrapMessageUids } = await import('./server.js');
+const { resolveCurrentInfoMailbox, collectImapAttachmentMetadata, buildBootstrapMetadataCandidate, formatBootstrapMailTimestamp, extractInternatWeekStart, selectLatestScheduleAttachments, chooseBootstrapMessageUids } = await import('./server.js');
 
 const original = `Od: Dariusz Górski <${DIRECTOR_EMAIL}>\nDate: pt., 11 wrz 2026 o 15:10\nPozdrawiam`;
 const forwarded = text => ({
@@ -144,6 +144,25 @@ assert.deepEqual(
   ], '2026-09-21'),
   ['101']
 );
+
+assert.equal(extractInternatWeekStart('3. 14- 20. 09.2026r..docx'), '2026-09-14');
+assert.equal(extractInternatWeekStart('3. 14- 20. 09.2026r. (1).docx'), '2026-09-14');
+assert.equal(extractInternatWeekStart('4. 21- 27. 09.2026r..docx'), '2026-09-21');
+
+const wordMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const mkScheduleCandidate = (filename, title, sourceSentAt, uid) => ({
+  parsed: { attachments: [{ filename, contentType: wordMime }] },
+  item: { title, sourceSentAt, date: sourceSentAt.slice(0, 10), mailUid: uid }
+});
+const latestForSep14 = selectLatestScheduleAttachments([
+  mkScheduleCandidate('3. 14- 20. 09.2026r..docx', 'Grafik internat 14-20 września', '2026-09-06T20:44', '202600'),
+  mkScheduleCandidate('3. 14- 20. 09.2026r..docx', 'Fwd: Korekta grafiku na kolejny tydzień', '2026-09-15T09:48', '202700'),
+  mkScheduleCandidate('3. 14- 20. 09.2026r. (1).docx', 'korekta grafiku na bieżący tydzień Gr 7', '2026-09-16T13:15', '202800')
+]);
+assert.equal(latestForSep14.length, 1);
+assert.equal(latestForSep14[0].weekStart, '2026-09-14');
+assert.equal(latestForSep14[0].filename, '3. 14- 20. 09.2026r. (1).docx');
+assert.equal(latestForSep14[0].sourceSentAt, '2026-09-16T13:15');
 
 // Exercise the real frontend merge and migration settings without touching user data.
 const memory = new Map();
