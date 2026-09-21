@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'asmow-private-';
-const CACHE = `${CACHE_PREFIX}v68`;
+const CACHE = `${CACHE_PREFIX}v69`;
 const APP_SHELL = [
   './',
   './index.html',
