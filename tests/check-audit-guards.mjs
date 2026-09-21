@@ -73,7 +73,7 @@ if (sw.includes("'mow-pwa-'")) {
   throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
 }
 const expectedCacheRevision = Number(frontendPackage.version.split('.').at(-1)) + 60;
-if (!sw.includes(`const CACHE = \`${CACHE_PREFIX}v${expectedCacheRevision}\``)) {
+if (!sw.includes('const CACHE = `${CACHE_PREFIX}v' + expectedCacheRevision + '`;')) {
   throw new Error(`Cache PWA nie odpowiada wydaniu ${frontendPackage.version}; oczekiwano v${expectedCacheRevision}.`);
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
