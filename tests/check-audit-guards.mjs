@@ -11,6 +11,8 @@ const server = read('backend/server.js');
 const pwa = read('assets/js/pwa.js');
 const weeklyPlan = read('assets/js/weekly-plan.js');
 const answerBankSize = fs.statSync(path.join(root, 'assets/js/data-answer-bank.js')).size;
+const frontendPackage = JSON.parse(read('package.json'));
+const backendPackage = JSON.parse(read('backend/package.json'));
 
 const directAnswerBankScripts = [
   'src="assets/js/data-answer-bank.js"',
@@ -44,7 +46,7 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.5.0'",
+  `const BACKEND_VERSION = '${backendPackage.version}'`,
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",
@@ -70,8 +72,9 @@ if (installListener < 0 || installListener > installSetup) {
 if (sw.includes("'mow-pwa-'")) {
   throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
 }
-if (!sw.includes("const CACHE = `${CACHE_PREFIX}v65`")) {
-  throw new Error('Kanoniczne wydanie Asystenta wymaga cache PWA v65.');
+const expectedCacheRevision = Number(frontendPackage.version.split('.').at(-1)) + 60;
+if (!sw.includes(`const CACHE = \`${CACHE_PREFIX}v${expectedCacheRevision}\``)) {
+  throw new Error(`Cache PWA nie odpowiada wydaniu ${frontendPackage.version}; oczekiwano v${expectedCacheRevision}.`);
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');
