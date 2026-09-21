@@ -95,15 +95,17 @@ export async function searchDirectorMail(client, since, config = {}) {
     config.forwarder || FORWARDER_EMAIL,
     ARCHIVE_DIRECTOR_EMAIL
   ];
+  const subject = config.scheduleOnly ? 'grafik' : '';
   try {
     const unique = new Set();
     for (const from of senders) {
-      const found = await client.search({ since, from }, { uid: true });
+      const query = subject ? { since, from, subject } : { since, from };
+      const found = await client.search(query, { uid: true });
       (found || []).forEach(uid => unique.add(uid));
     }
     return [...unique].sort((a, b) => Number(a) - Number(b));
   } catch (err) {
     if (!/command failed|search|bad|no/i.test(`${err.message || ''} ${err.responseText || ''}`)) throw err;
-    return client.search({ since }, { uid: true });
+    return client.search(subject ? { since, subject } : { since }, { uid: true });
   }
 }
