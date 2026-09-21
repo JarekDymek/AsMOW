@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.5.10</span>
+  <span class="hdr-badge">v2.5.11</span>
 </header>
 
 <!-- MAIN -->
@@ -495,7 +495,7 @@
       <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
       <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
     </div>
-    <div class="weekly-status" id="weekly-status">Plan tygodniowy jest odświeżany bezpośrednio z najnowszych wiadomości i korekt przez backend Render. Harmonogram-MOW pozostaje źródłem awaryjnym.</div>
+    <div class="weekly-status" id="weekly-status">Plan tygodniowy jest pobierany z Harmonogram-MOW. Asystent używa zapisanego backendu oraz VIEW_TOKEN/ADMIN_TOKEN Harmonogram-MOW.</div>
   </div></div>
 
   <div class="collapsible-card accordion-panel" id="harm-upload-card">
