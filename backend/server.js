@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.2';
+const BACKEND_VERSION = '1.5.3';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -197,8 +197,67 @@ const server = http.createServer(async (req, res) => {
 
 if (process.env.ASMOW_TEST_MODE !== '1') {
   server.listen(PORT, () => {
-    console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
+    console.log(\`MOW AI backend \${BACKEND_VERSION} działa na porcie \${PORT}\`);
+    setTimeout(() => probeCurrentInfoMailConnection().catch(() => {}), 750);
   });
+}
+
+async function probeCurrentInfoMailConnection() {
+  let config;
+  try {
+    config = getCurrentInfoMailConfig();
+  } catch (error) {
+    console.error('[IMAP_PROBE] config_error', error?.code || '', error?.message || '');
+    return false;
+  }
+
+  const client = new ImapFlow({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.user, pass: config.password },
+    logger: false,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 12_000
+  });
+
+  try {
+    await client.connect();
+    const mailbox = await resolveCurrentInfoMailbox(client, config.mailbox);
+    console.log('[IMAP_PROBE] ok', JSON.stringify({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: maskMailUser(config.user),
+      mailbox
+    }));
+    return true;
+  } catch (error) {
+    console.error('[IMAP_PROBE] failed', JSON.stringify({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: maskMailUser(config.user),
+      code: error?.code || '',
+      message: error?.message || '',
+      responseText: error?.responseText || '',
+      serverResponse: error?.serverResponse || '',
+      responseStatus: error?.responseStatus || ''
+    }));
+    return false;
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
+function maskMailUser(value = '') {
+  const text = String(value || '');
+  const at = text.indexOf('@');
+  if (at < 0) return text ? text.slice(0, 2) + '***' : '';
+  const local = text.slice(0, at);
+  const domain = text.slice(at + 1);
+  return (local.slice(0, Math.min(2, local.length)) || '*') + '***@' + domain;
 }
 
 function setCors(req, res) {
@@ -894,7 +953,10 @@ async function fetchCurrentInfoMail(payload = {}) {
       user: config.user,
       pass: config.password
     },
-    logger: false
+    logger: false,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 20_000
   });
 
   const items = [];
@@ -1010,7 +1072,10 @@ async function fetchCurrentInfoAttachment(payload = {}) {
       user: config.user,
       pass: config.password
     },
-    logger: false
+    logger: false,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 20_000
   });
 
   try {
@@ -1091,7 +1156,13 @@ async function fetchCurrentInfoAttachment(payload = {}) {
 }
 
 function throwCurrentInfoMailError(err, stage, config = {}) {
-  const raw = `${err?.message || ''} ${err?.responseText || ''} ${err?.serverResponse || ''}`.trim();
+  const raw = [
+    err?.code || '',
+    err?.message || '',
+    err?.responseText || '',
+    err?.serverResponse || '',
+    err?.responseStatus || ''
+  ].filter(Boolean).join(' ').trim();
   const message = mapCurrentInfoMailError(raw, stage, config);
   const wrapped = new Error(message);
   wrapped.status = /token|dostęp/i.test(message) ? 403 : 502;
