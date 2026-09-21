@@ -4,7 +4,7 @@ Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łąc
 
 Aktualna wersja PWA: **2.5.9**
 
-Aktualna wersja backendu: **1.5.6**
+Aktualna wersja backendu: **1.5.7**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -263,3 +263,12 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - zimny bootstrap obejmuje 21 dni i maksymalnie 80 pasujących wiadomości;
 - pełne archiwum nadal jest uzupełniane w tle;
 - ogólna zakładka Info nadal czyta wszystkie wiadomości od dozwolonych nadawców.
+
+
+## Backend 1.5.7 — selekcja przed parsowaniem DOCX
+
+- przed uruchomieniem Mammoth backend ustala tydzień z tematu/nazwy załącznika;
+- dla każdego tygodnia do parsera trafia wyłącznie najnowszy dokument internatu;
+- grafiki zespołu są odrzucane przed parsowaniem;
+- starsze wersje tego samego tygodnia nie są rozpakowywane ani łączone;
+- wybrane dokumenty różnych tygodni są parsowane równolegle.
