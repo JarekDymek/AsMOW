@@ -34,9 +34,13 @@ function loadWeeklyPlanState() {
   } catch {}
   try {
     const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
-    if (saved && saved.weeks) {
+    if (saved && saved.weeks && saved.meta?.schedulePolicyRevision === WEEKLY_SCHEDULE_POLICY_REVISION) {
       weeklyPlan = saved;
       weeklyPlanMeta = saved.meta || null;
+    } else if (saved) {
+      localStorage.removeItem(WEEKLY_PLAN_KEY);
+      weeklyPlan = null;
+      weeklyPlanMeta = null;
     }
   } catch {}
 }
@@ -111,11 +115,11 @@ async function rebuildWeeklyPlanFromMail(educator = '') {
 
 async function refreshWeeklyPlanOnOpen() {
   const testMode = typeof isTestMode === 'function' && isTestMode();
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
-  const backendUrl = document.getElementById('weekly-backend-url')?.value.trim() || saved.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
-  const token = document.getElementById('weekly-token')?.value.trim() || saved.token || '';
-  if (!testMode && (!backendUrl || !token)) return false;
+  const currentInfo = typeof getCurrentInfoSyncSettings === 'function'
+    ? getCurrentInfoSyncSettings()
+    : { token: '' };
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!testMode && !currentInfo.token && !testAccessToken) return false;
   if (weeklyPlanRefreshPromise) return weeklyPlanRefreshPromise;
   if (weeklyPlan && Date.now() - weeklyPlanRefreshAt < 60_000) return true;
   weeklyPlanRefreshPromise = fetchWeeklyPlan({ automatic: true })
@@ -187,10 +191,18 @@ function normalizeWeeklyPayload(payload) {
   payload = repairWeeklyMojibake(payload);
   const weeks = Array.isArray(payload.weeks) ? payload.weeks : [];
   const history = Array.isArray(payload.history) ? payload.history : [];
-  const normalizedWeeks = [
-    ...weeks.map(normalizeWeeklyWeek),
-    ...history.map(normalizeWeeklyHistoryWeek)
-  ];
+
+  // "history" z kanonicznego backendu opisuje te same tygodnie co "weeks".
+  // Nie wolno dokładać drugiego, pustego wariantu tego samego tygodnia.
+  const normalizedWeeks = weeks.map(normalizeWeeklyWeek);
+  const identities = new Set(normalizedWeeks.map(getWeeklyIdentity).filter(Boolean));
+  history.map(normalizeWeeklyHistoryWeek).forEach(historyWeek => {
+    const identity = getWeeklyIdentity(historyWeek);
+    if (identity && identities.has(identity)) return;
+    normalizedWeeks.push(historyWeek);
+    if (identity) identities.add(identity);
+  });
+
   const normalized = {
     updatedAt: payload.updatedAt || payload.generatedAt || '',
     educator: payload.educator || '',
