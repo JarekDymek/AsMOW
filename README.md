@@ -4,7 +4,7 @@ Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łąc
 
 Aktualna wersja PWA: **2.5.9**
 
-Aktualna wersja backendu: **1.5.7**
+Aktualna wersja backendu: **1.5.8**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -272,3 +272,11 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - grafiki zespołu są odrzucane przed parsowaniem;
 - starsze wersje tego samego tygodnia nie są rozpakowywane ani łączone;
 - wybrane dokumenty różnych tygodni są parsowane równolegle.
+
+
+## Backend 1.5.8 — bieżący tydzień na zimnym starcie
+
+- po restarcie backendu pierwszy snapshot parsuje wyłącznie najnowszy dokument bieżącego tygodnia w strefie Europe/Warsaw;
+- poprzednie i przyszłe tygodnie nie blokują pierwszego wyświetlenia planu;
+- pełna historia jest odbudowywana w tle;
+- log produkcyjny zapisuje wybrany weekStart, nazwę pliku i UID, co pozwala zweryfikować rzeczywiste źródło.
