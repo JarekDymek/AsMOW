@@ -76,6 +76,12 @@ const expectedCacheRevision = Number(frontendPackage.version.split('.').at(-1)) 
 if (!sw.includes('const CACHE = `${CACHE_PREFIX}v' + expectedCacheRevision + '`;')) {
   throw new Error(`Cache PWA nie odpowiada wydaniu ${frontendPackage.version}; oczekiwano v${expectedCacheRevision}.`);
 }
+if (!weeklyPlan.includes('function mergeStableWeeklyPlan')) {
+  throw new Error('Brak blokady ponownego nadpisywania tygodnia przez ten sam dokument.');
+}
+if (!weeklyPlan.includes('incomingWeek.sourceVersion === existingWeek.sourceVersion')) {
+  throw new Error('Ten sam sourceVersion musi pozostawiać lokalny tydzień bez zmian.');
+}
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');
 }
@@ -83,7 +89,7 @@ if (!server.includes('function validateInternatScheduleRecords')) {
   throw new Error('Brak walidacji rekordów grafiku odczytanych z DOCX.');
 }
 for (const required of [
-  "const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1'",
+  "const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2'",
   "const SCHEDULE_ARCHIVE_SINCE = '2026-01-01'",
   'function buildActiveMailSchedule',
   'const authoritative = documents[0] || null',
