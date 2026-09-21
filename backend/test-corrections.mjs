@@ -101,6 +101,23 @@ assert.deepEqual(
 );
 assert.deepEqual(mailActive.sources.map(s => s.id), ['full-correction']);
 assert.ok(mailActive.sourceVersion);
+assert.equal(mailActive.requiresVerification, false);
+
+const fullButNonBlockingParserWarning = {
+  ...fullCorrection,
+  ambiguous: true,
+  warning: 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.'
+};
+const fullWarningActive = buildActiveMailSchedule([base, fullButNonBlockingParserWarning], base.weekStart);
+assert.equal(fullWarningActive.requiresVerification, false);
+
+const fullWithBlockingValidationWarning = {
+  ...fullCorrection,
+  ambiguous: true,
+  warning: 'Wykryto nieprawidłowy przedział godzin.'
+};
+const blockingWarningActive = buildActiveMailSchedule([base, fullWithBlockingValidationWarning], base.weekStart);
+assert.equal(blockingWarningActive.requiresVerification, true);
 
 // Ta sama wiadomość/ten sam załącznik musi mieć identyczną wersję nawet,
  // jeśli zmieni się implementacja parsera i rekordy zostaną odczytane inaczej.
