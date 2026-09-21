@@ -4,7 +4,7 @@ Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łąc
 
 Aktualna wersja PWA: **2.5.9**
 
-Aktualna wersja backendu: **1.5.5**
+Aktualna wersja backendu: **1.5.6**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -255,3 +255,11 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - TTL dashboardu zwiększono z 60 s do 15 min;
 - przy zimnym starcie najpierw pobierane są ostatnie tygodnie, a pełne archiwum jest uzupełniane w tle;
 - ręczne odświeżenie czeka maksymalnie 6 s na świeży wynik, po czym zwraca ostatni poprawny snapshot zamiast blokować UI.
+
+
+## Backend 1.5.6 — szybki bootstrap grafiku
+
+- ścieżka grafiku przeszukuje wyłącznie wiadomości z tematem zawierającym `grafik`;
+- zimny bootstrap obejmuje 21 dni i maksymalnie 80 pasujących wiadomości;
+- pełne archiwum nadal jest uzupełniane w tle;
+- ogólna zakładka Info nadal czyta wszystkie wiadomości od dozwolonych nadawców.
