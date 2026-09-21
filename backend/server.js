@@ -28,6 +28,7 @@ const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dariusz.gorski@mowma
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
 const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1';
+const SCHEDULE_ARCHIVE_SINCE = '2026-01-01';
 const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
 const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 12_000);
 const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
@@ -496,7 +497,7 @@ async function fetchWeeklyPlan(payload = {}) {
 
 
 async function fetchMailScheduleDashboard(payload = {}) {
-  const since = normalizeCurrentInfoSince(CURRENT_INFO_SINCE);
+  const since = normalizeCurrentInfoSince(SCHEDULE_ARCHIVE_SINCE);
   const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const mail = await fetchCurrentInfoMail({
     token: payload.token,
