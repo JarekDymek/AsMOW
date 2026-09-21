@@ -103,17 +103,17 @@ export async function searchDirectorMail(client, since, config = {}) {
     String(config.forwarder || '').toLowerCase(),
     ARCHIVE_DIRECTOR_EMAIL
   ].filter(Boolean))];
-  const subject = config.scheduleOnly ? 'grafik' : '';
   try {
     const unique = new Set();
     for (const from of senders) {
-      const query = subject ? { since, from, subject } : { since, from };
-      const found = await client.search(query, { uid: true });
+      // Nie filtruj po temacie. "Grafik", "grafiku", "korekta grafiku",
+      // "zmiana planu" itd. są rozstrzygane dopiero po pobraniu wiadomości.
+      const found = await client.search({ since, from }, { uid: true });
       (found || []).forEach(uid => unique.add(uid));
     }
     return [...unique].sort((a, b) => Number(a) - Number(b));
   } catch (err) {
     if (!/command failed|search|bad|no/i.test(`${err.message || ''} ${err.responseText || ''}`)) throw err;
-    return client.search(subject ? { since, subject } : { since }, { uid: true });
+    return client.search({ since }, { uid: true });
   }
 }
