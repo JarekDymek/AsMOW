@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 process.env.ASMOW_TEST_MODE = '1';
-const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision, getScheduleBootstrapSince, settleWithin } = await import('./server.js');
+const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision, getScheduleBootstrapSince, settleWithin, selectLatestScheduleAttachments } = await import('./server.js');
 
 const context = vm.createContext({ console, Date });
 vm.runInContext(fs.readFileSync(new URL('../assets/js/harmonogram.js', import.meta.url), 'utf8'), context);
@@ -153,6 +153,31 @@ assert.ok(schoolLabels.records.some(r => r.group === 'VI' && r.employee === 'Dym
 assert.ok(schoolLabels.records.some(r => r.group === 'IV' && r.employee === 'Kowalska'));
 
 // Grafik w Asystencie musi korzystać tylko z Render; żadnego Apps Script ani lokalnej odbudowy jako fallback.
+const makeScheduleCandidate = (title, filename, sourceSentAt, mailUid) => ({
+  item: { title, sourceSentAt, date: sourceSentAt.slice(0, 10), mailUid: String(mailUid) },
+  parsed: {
+    attachments: [{
+      filename,
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      content: Buffer.from('test')
+    }]
+  }
+});
+
+const selectedRealistic = selectLatestScheduleAttachments([
+  makeScheduleCandidate('Grafik internat 14-20 września', '3. 14-20.09.2026r..docx', '2026-09-06T18:44', 100),
+  makeScheduleCandidate('korekta grafiku na bieżący tydzień Gr 7', '3. 14-20.09.2026r. (1).docx', '2026-09-16T13:15', 120),
+  makeScheduleCandidate('Grafik zespołu 14-20.09.2026r.', 'grafik zespół 14-20.09.2026r..docx', '2026-09-17T08:00', 130),
+  makeScheduleCandidate('Grafik internat 21-28 września 2026r.', '4. 21-27.09.2026r..docx', '2026-09-18T12:00', 140)
+]);
+assert.equal(selectedRealistic.length, 2);
+assert.equal(selectedRealistic[0].weekStart, '2026-09-14');
+assert.equal(selectedRealistic[0].sourceMailUid, '120');
+assert.match(selectedRealistic[0].filename, /14-20/);
+assert.equal(selectedRealistic[1].weekStart, '2026-09-21');
+assert.equal(selectedRealistic[1].sourceMailUid, '140');
+assert.ok(selectedRealistic.every(entry => entry.scheduleKind !== 'team'));
+
 const serverSource = fs.readFileSync(new URL('./server.js', import.meta.url), 'utf8');
 assert.doesNotMatch(
   serverSource,
