@@ -5,6 +5,7 @@ process.env.ASMOW_TEST_MODE = '1';
 const {
   decodeInternatHtmlCell,
   extractInternatEmployeeCandidates,
+  classifyInternatScheduleKind,
   parseInternatScheduleCellEntries,
   parseInternatScheduleHtml
 } = await import('./server.js');
@@ -115,6 +116,10 @@ const invalidLongDayHtml = `
 const invalidLongDay = parseInternatScheduleHtml(invalidLongDayHtml, { sourceAttachment: '1. 31.08.-06.09.2026r..docx' });
 assert.equal(invalidLongDay.ambiguous, true);
 assert.match(invalidLongDay.warning, /ponad 24 godziny/);
+
+assert.equal(classifyInternatScheduleKind('Grafik Zespołu\n4. 21-27.09.2026r..docx'), 'team');
+assert.equal(classifyInternatScheduleKind('Grafik internat 21-28 września 2026r.\n4. 21-27.09.2026r..docx'), 'internat');
+assert.equal(classifyInternatScheduleKind('korekta grafiku na bieżący tydzień Gr 7\n3. 14-20.09.2026r. (1).docx'), 'unknown');
 
 assert.equal(decodeInternatHtmlCell('7<sup>00</sup>-15<sup>30</sup>'), '7:00-15:30');
 assert.deepEqual(extractInternatEmployeeCandidates('Dariusz\nGórski\n24 h'), ['Dariusz Górski']);
