@@ -44,7 +44,7 @@ if (answerBankSize > 450_000) {
 
 for (const required of [
   "KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md'])",
-  "const BACKEND_VERSION = '1.4.2'",
+  "const BACKEND_VERSION = '1.5.0'",
   'version: BACKEND_VERSION',
   'function getConfiguredCurrentInfoSyncTokens()',
   "tokensMatch(suppliedToken, expected)",
@@ -70,14 +70,29 @@ if (installListener < 0 || installListener > installSetup) {
 if (sw.includes("'mow-pwa-'")) {
   throw new Error('Service worker nie może usuwać współdzielonego prefiksu cache innych aplikacji.');
 }
-if (!sw.includes("const CACHE = `${CACHE_PREFIX}v61`")) {
-  throw new Error('Wydanie 2.5.2 wymaga cache PWA v61.');
+if (!sw.includes("const CACHE = `${CACHE_PREFIX}v65`")) {
+  throw new Error('Kanoniczne wydanie Asystenta wymaga cache PWA v65.');
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');
 }
 if (!server.includes('function validateInternatScheduleRecords')) {
   throw new Error('Brak walidacji rekordów grafiku odczytanych z DOCX.');
+}
+for (const required of [
+  "const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1'",
+  "const SCHEDULE_ARCHIVE_SINCE = '2026-01-01'",
+  'function buildActiveMailSchedule',
+  'const authoritative = documents[0] || null',
+  "filter(item => item.scheduleKind === 'internat')"
+]) {
+  if (!server.includes(required)) throw new Error(`Brak strażnika kanonicznego grafiku: ${required}`);
+}
+if (weeklyPlan.includes('/api/weekly-plan') || weeklyPlan.includes('Apps Script fallback')) {
+  throw new Error('Zakładka Grafik nie może wracać do Apps Script jako alternatywnego źródła danych.');
+}
+if (!weeklyPlan.includes('fetchMailScheduleDashboard') || !weeklyPlan.includes('Zachowano ostatnią poprawnie zapisaną wersję')) {
+  throw new Error('Zakładka Grafik musi używać Render jako jedynego źródła i zachować ostatnią poprawną wersję przy błędzie.');
 }
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);
