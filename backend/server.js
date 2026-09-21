@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.16';
+const BACKEND_VERSION = '1.5.15';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -605,7 +605,7 @@ async function fetchWeeklyPlan(payload = {}) {
 
 
 async function fetchMailScheduleDashboardCached(payload = {}) {
-  await assertScheduleDashboardAccess(payload);
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
 
   const educator = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const key = normalizeMailSearch(educator) || 'dymek';
@@ -1650,75 +1650,6 @@ function assertCurrentInfoSyncToken(token, testAccessToken = '') {
     err.status = 403;
     err.code = 'CURRENT_INFO_SYNC_FORBIDDEN';
     throw err;
-  }
-}
-
-
-async function assertScheduleDashboardAccess(payload = {}) {
-  try {
-    assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
-    return { mode: payload.testAccessToken ? 'test-access-token' : 'mail-sync-token', level: 'admin' };
-  } catch (error) {
-    if (payload.testAccessToken || error?.code !== 'CURRENT_INFO_SYNC_FORBIDDEN') throw error;
-  }
-
-  const legacyBackendUrl = String(payload.legacyBackendUrl || payload.backendUrl || '').trim();
-  const token = String(payload.token || '').trim();
-  if (!legacyBackendUrl || !token) {
-    assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
-  }
-
-  return validateLegacyScheduleToken(legacyBackendUrl, token, Boolean(payload.forceRefresh), payload.educator);
-}
-
-async function validateLegacyScheduleToken(backendUrl, token, requireAdmin = false, educator = '') {
-  let url;
-  try {
-    url = new URL(String(backendUrl || '').trim());
-  } catch {
-    throwHttpError('Nieprawidłowy adres backendu Harmonogram-MOW do weryfikacji tokenu.', 400, 'LEGACY_SCHEDULE_BACKEND_INVALID');
-  }
-  if (url.protocol !== 'https:' || url.hostname !== 'script.google.com' || !/\/macros\/s\/[^/]+\/exec$/.test(url.pathname)) {
-    throwHttpError('Backend Harmonogram-MOW do weryfikacji tokenu musi być wdrożeniem Apps Script zakończonym /exec.', 400, 'LEGACY_SCHEDULE_BACKEND_INVALID');
-  }
-
-  url.searchParams.set('action', 'ping');
-  url.searchParams.set('token', String(token || '').slice(0, 500));
-  if (educator) url.searchParams.set('educator', String(educator).slice(0, 120));
-  url.searchParams.set('format', 'jsonp');
-  url.searchParams.set('callback', '__asmowScheduleAuth');
-  url.searchParams.set('_', Date.now());
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20_000);
-  try {
-    const response = await fetch(url.toString(), {
-      signal: ctrl.signal,
-      headers: { accept: 'application/json,text/plain,*/*' }
-    });
-    const text = await response.text();
-    if (!response.ok) {
-      throwHttpError(`Backend Harmonogram-MOW zwrócił HTTP ${response.status} podczas weryfikacji tokenu.`, 502, 'LEGACY_SCHEDULE_BACKEND_HTTP');
-    }
-    const data = parseMaybeJson(text);
-    if (!data || data.ok === false) {
-      throwHttpError(data?.error || 'VIEW_TOKEN / ADMIN_TOKEN Harmonogram-MOW nie został zaakceptowany.', 403, 'LEGACY_SCHEDULE_TOKEN_FORBIDDEN');
-    }
-    const level = String(data?.security?.accessLevel || data?.data?.security?.accessLevel || '').toLowerCase();
-    if (requireAdmin && level !== 'admin') {
-      throwHttpError('Pełne odświeżenie grafiku wymaga ADMIN_TOKEN Harmonogram-MOW.', 403, 'LEGACY_SCHEDULE_ADMIN_REQUIRED');
-    }
-    if (!['view', 'admin', 'open'].includes(level)) {
-      throwHttpError('Backend Harmonogram-MOW nie potwierdził poziomu dostępu tokenu.', 403, 'LEGACY_SCHEDULE_TOKEN_UNVERIFIED');
-    }
-    return { mode: 'legacy-harmonogram-token', level };
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      throwHttpError('Backend Harmonogram-MOW nie odpowiedział podczas weryfikacji tokenu.', 504, 'LEGACY_SCHEDULE_BACKEND_TIMEOUT');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
