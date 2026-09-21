@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.15';
+const BACKEND_VERSION = '1.5.16';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -597,7 +597,38 @@ async function fetchWeeklyPlan(payload = {}) {
         data
       };
     }
-    return { ok: true, proxied: true, data };
+
+    // Harmonogram-MOW pozostaje źródłem grafiku. Backend AsMOW jest tylko
+    // bezpiecznym proxy i dopisuje metadane potrzebne nowszemu klientowi.
+    const normalizedWeeks = weeks.map(week => {
+      if (week?.authoritativeDocument) return week;
+      const source = week?.sourceInfo || {};
+      return {
+        ...week,
+        authoritativeDocument: {
+          id: String(source.digest || week?.sourceVersion || source.filename || ''),
+          filename: String(source.filename || week?.source || ''),
+          sourceDate: String(source.messageDate || week?.updatedAt || ''),
+          sourceSentAt: String(source.messageDate || week?.updatedAt || '')
+        }
+      };
+    });
+    const dashboardWeekStarts = Array.isArray(candidate.dashboardWeekStarts)
+      ? candidate.dashboardWeekStarts
+      : normalizedWeeks.map(week => String(week?.weekStart || week?.dateFrom || '')).filter(Boolean);
+    const revisionSeed = normalizedWeeks.map(week =>
+      [week?.weekStart || week?.dateFrom || '', week?.sourceVersion || '', week?.authoritativeDocument?.id || ''].join('|')
+    ).join('||');
+    const enriched = {
+      ...candidate,
+      weeks: normalizedWeeks,
+      dashboardWeekStarts,
+      schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
+      scheduleRevision: revisionSeed ? crypto.createHash('sha256').update(revisionSeed).digest('hex').slice(0, 16) : '',
+      backendVersion: candidate.backendVersion || data.backendVersion || '',
+      sourceType: 'harmonogram-mow'
+    };
+    return { ok: true, proxied: true, data: enriched };
   } finally {
     clearTimeout(timer);
   }
@@ -1298,7 +1329,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     if (!selected.length) {
       return {
         ok: true,
-        mailSourceRevision: 'director-canonical-v4',
+        mailSourceRevision: 'director-canonical-v5',
         source: config.from,
         since,
         count: 0,
@@ -1422,7 +1453,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   const newestDate = items[0]?.date || '';
   return {
     ok: true,
-    mailSourceRevision: 'director-canonical-v4',
+    mailSourceRevision: 'director-canonical-v5',
     source: config.from,
     since,
     count: items.length,
