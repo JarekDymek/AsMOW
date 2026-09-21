@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.14';
+const BACKEND_VERSION = '1.5.15';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -914,6 +914,7 @@ function normalizeMailScheduleDocument(item) {
       weekStart
     };
   }).filter(Boolean);
+  const recordDates = new Set(records.map(record => record.date).filter(Boolean));
   return {
     ...item,
     id: String(item.id || item.sourceMailUid || item.sourceAttachment || weekStart),
@@ -925,7 +926,7 @@ function normalizeMailScheduleDocument(item) {
     sourceAttachment: String(item.sourceAttachment || ''),
     scheduleKind: item.scheduleKind === 'team' ? 'team' : 'internat',
     isCorrection: Boolean(item.isCorrection),
-    hasCompleteWeek: Boolean(item.hasCompleteWeek),
+    hasCompleteWeek: Boolean(item.hasCompleteWeek) || recordDates.size >= 7,
     ambiguous: Boolean(item.ambiguous),
     coveredScopes: Array.isArray(item.coveredScopes) ? item.coveredScopes : [],
     records
@@ -978,10 +979,13 @@ function buildActiveMailSchedule(index, weekStart) {
     ...record,
     sourceDocumentId: authoritative.id
   }));
+  const blockingWarning = /nieprawidlowy przedzial|ponad 24 godzin|nietypowo duza/.test(
+    normalizeMailSearch(authoritative.warning || '')
+  );
   const requiresVerification = Boolean(
-    authoritative.ambiguous
-    || !authoritative.hasCompleteWeek
+    !authoritative.hasCompleteWeek
     || !records.length
+    || blockingWarning
   );
   const sourceVersion = getMailScheduleDocumentRevision(authoritative);
 
@@ -2080,7 +2084,7 @@ function parseInternatScheduleHtml(html, source = {}) {
     weekStart,
     records: uniqueRecords,
     coveredScopes,
-    hasCompleteWeek: declaredDates.size >= 7,
+    hasCompleteWeek: declaredDates.size >= 7 || new Set(uniqueRecords.map(record => record.date).filter(Boolean)).size >= 7,
     ambiguous,
     warning: warnings.join(' '),
     ignored: false,
