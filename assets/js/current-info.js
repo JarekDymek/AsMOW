@@ -1,5 +1,5 @@
 const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
-const CURRENT_INFO_SOURCE_REVISION = 'director-forwarding-v2';
+const CURRENT_INFO_SOURCE_REVISION = 'director-canonical-v3';
 const CURRENT_INFO_START_DATE = '2026-01-01';
 
 function loadCurrentInfo() {
