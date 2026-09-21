@@ -1,3 +1,4 @@
+const WEEKLY_SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1';
 /* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
@@ -146,6 +147,10 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
     return;
   }
   const normalized = normalizeWeeklyPayload(extracted);
+  if (normalized.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) {
+    setWeeklyStatus(`Odrzucono odpowiedź Grafiku: niezgodna polityka źródła (${normalized.schedulePolicyRevision || 'brak'}).`);
+    return;
+  }
   if (!normalized.weeks.length) {
     const details = [
       extracted.status ? `status: ${extracted.status}` : '',
