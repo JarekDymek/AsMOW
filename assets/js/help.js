@@ -6,7 +6,7 @@ function openHelp() {
   if (!title || !source || !body || !view) return;
 
   title.textContent = 'Pomoc';
-  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.7';
+  source.textContent = 'Instrukcja praktyczna · Asystent MOW v2.5.8';
   body.innerHTML = `
     <div class="help-panel">
       <div class="help-card help-card--strong">
