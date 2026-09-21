@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.8';
+const BACKEND_VERSION = '1.5.9';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -95,6 +95,22 @@ const server = http.createServer(async (req, res) => {
         version: BACKEND_VERSION,
         provider: PROVIDER,
         model: PROVIDER === 'gemini' ? GEMINI_MODEL : PROVIDER === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL
+      });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/schedule-status') {
+      const snapshots = [...scheduleDashboardCache.values()].filter(entry => entry?.payload);
+      const latest = snapshots.sort((a, b) => Number(b?.at || 0) - Number(a?.at || 0))[0] || null;
+      const payload = latest?.payload || null;
+      return json(res, 200, {
+        ok: true,
+        version: BACKEND_VERSION,
+        cacheReady: Boolean(payload),
+        cacheAgeMs: latest ? Math.max(0, Date.now() - Number(latest.at || 0)) : null,
+        weeks: Array.isArray(payload?.weeks) ? payload.weeks.length : 0,
+        scheduleRevision: payload?.scheduleRevision || '',
+        newestDate: payload?.newestDate || '',
+        refreshing: [...scheduleDashboardCache.values()].some(entry => Boolean(entry?.promise || entry?.bootstrapPromise))
       });
     }
 
@@ -1132,6 +1148,75 @@ function parseMaybeJson(text) {
   try { return JSON.parse(match[0]); } catch { return null; }
 }
 
+
+function collectImapAttachmentMetadata(node, target = [], path = '') {
+  if (!node || typeof node !== 'object') return target;
+  const childNodes = Array.isArray(node.childNodes) ? node.childNodes : [];
+  if (childNodes.length) {
+    childNodes.forEach((child, index) => collectImapAttachmentMetadata(child, target, path ? path + '.' + (index + 1) : String(index + 1)));
+  }
+
+  const params = node.parameters && typeof node.parameters === 'object' ? node.parameters : {};
+  const dispositionParams = node.dispositionParameters && typeof node.dispositionParameters === 'object'
+    ? node.dispositionParameters
+    : {};
+  const filename = String(dispositionParams.filename || params.name || '').trim();
+  const contentType = String(node.type || '').trim();
+  const disposition = String(node.disposition || '').toLowerCase();
+  if (filename || disposition === 'attachment') {
+    target.push({
+      part: path,
+      filename: sanitizeMailAttachmentFilename(filename || 'zalacznik'),
+      contentType
+    });
+  }
+  return target;
+}
+
+function buildBootstrapMetadataCandidate(message = {}) {
+  const title = String(message?.envelope?.subject || '').trim();
+  const attachments = collectImapAttachmentMetadata(message.bodyStructure);
+  return {
+    uid: String(message.uid || ''),
+    date: message.internalDate instanceof Date
+      ? localMailDate(message.internalDate)
+      : (message.envelope?.date instanceof Date ? localMailDate(message.envelope.date) : ''),
+    sentAt: message.internalDate instanceof Date
+      ? localMailTimestamp(message.internalDate)
+      : (message.envelope?.date instanceof Date ? localMailTimestamp(message.envelope.date) : ''),
+    title,
+    attachments
+  };
+}
+
+function chooseBootstrapMessageUids(metadataCandidates = [], todayIso = getSchedulePolandIsoDate()) {
+  const currentWeek = getInternatMonday(todayIso);
+  const descriptors = [];
+
+  metadataCandidates.forEach(candidate => {
+    (candidate.attachments || []).forEach((attachment, attachmentIndex) => {
+      if (!isInternatScheduleAttachment(candidate.title, attachment.filename, attachment.contentType)) return;
+      const hint = (candidate.title || '') + '\n' + (attachment.filename || '');
+      if (classifyInternatScheduleKind(hint) === 'team') return;
+      descriptors.push({
+        uid: candidate.uid,
+        attachmentIndex,
+        filename: attachment.filename,
+        weekStart: extractInternatWeekStart(hint),
+        sourceSentAt: candidate.sentAt || '',
+        sourceDate: candidate.date || '',
+        sourceMailUid: candidate.uid || ''
+      });
+    });
+  });
+
+  const exact = descriptors.filter(entry => entry.weekStart === currentWeek);
+  const pool = exact.length ? exact : descriptors.filter(entry => !entry.weekStart);
+  if (!pool.length) return [];
+  const latest = [...pool].sort(compareScheduleAttachmentCandidates).slice(-1)[0];
+  return latest?.uid ? [latest.uid] : [];
+}
+
 async function fetchCurrentInfoMail(payload = {}) {
   assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
   const config = getCurrentInfoMailConfig();
@@ -1190,7 +1275,7 @@ async function fetchCurrentInfoMail(payload = {}) {
       }));
     }
     scanTruncated = matchedCount > limit;
-    const selected = uids.slice(-limit);
+    let selected = uids.slice(-limit);
     scannedCount = selected.length;
     if (!selected.length) {
       return {
@@ -1207,6 +1292,28 @@ async function fetchCurrentInfoMail(payload = {}) {
         ignoredScheduleDocuments: []
       };
     }
+
+    if (payload.scheduleOnly && payload.scheduleBootstrap) {
+      const metadataStartedAt = Date.now();
+      const metadataCandidates = [];
+      for await (const message of client.fetch(selected, {
+        uid: true,
+        envelope: true,
+        bodyStructure: true,
+        internalDate: true
+      }, { uid: true })) {
+        metadataCandidates.push(buildBootstrapMetadataCandidate(message));
+      }
+      const bootstrapSelected = chooseBootstrapMessageUids(metadataCandidates);
+      console.log('[SCHEDULE_TIMING] metadata-select', JSON.stringify({
+        ms: Date.now() - metadataStartedAt,
+        candidates: metadataCandidates.length,
+        selectedUids: bootstrapSelected
+      }));
+      if (bootstrapSelected.length) selected = bootstrapSelected;
+      scannedCount = selected.length;
+    }
+
     const fetchStartedAt = Date.now();
     for await (const message of client.fetch(selected, {
       uid: true,
@@ -1233,7 +1340,8 @@ async function fetchCurrentInfoMail(payload = {}) {
         ms: Date.now() - fetchStartedAt,
         scanned: scannedCount,
         accepted: items.length,
-        candidates: scheduleCandidates.length
+        candidates: scheduleCandidates.length,
+        bootstrap: Boolean(payload.scheduleBootstrap)
       }));
     }
   } catch (err) {
@@ -2899,6 +3007,8 @@ export {
   buildActiveMailSchedule,
   getMailScheduleDocumentRevision,
   resolveCurrentInfoMailbox,
+  collectImapAttachmentMetadata,
+  chooseBootstrapMessageUids,
   selectLatestScheduleAttachments,
   selectBootstrapScheduleAttachments,
   getSchedulePolandIsoDate,
