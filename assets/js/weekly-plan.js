@@ -324,11 +324,16 @@ function repairWeeklyMojibakeText(value = '') {
 }
 
 function getWeeklyGeneratorDiagnostic(payload = {}) {
-  const version = payload.backendVersion ? ` Wersja generatora: ${payload.backendVersion}.` : '';
+  const version = payload.backendVersion ? ` Wersja backendu: ${payload.backendVersion}.` : '';
+  if (payload.source === 'director-mail-render' || payload.schedulePolicyRevision === 'latest-document-per-week-v2') {
+    const starts = Array.isArray(payload.dashboardWeekStarts) ? payload.dashboardWeekStarts : [];
+    const count = starts.length || (Array.isArray(payload.weeks) ? payload.weeks.length : 0);
+    return `Źródło kanoniczne: Render / poczta dyrektora. Dostępnych tygodni: ${count}.${version}`;
+  }
   if (Array.isArray(payload.dashboardWeekStarts)) {
     return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.${version}`;
   }
-  return `Uwaga: aktywny generator nie zwraca pola dashboardWeekStarts, więc może nadal działać stare wdrożenie Apps Script.${version}`;
+  return `Źródło grafiku nie przekazało pełnej diagnostyki tygodni.${version}`;
 }
 
 function normalizeWeeklyWeek(w = {}) {
