@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.0';
+const BACKEND_VERSION = '1.5.1';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -820,8 +820,8 @@ function buildMailScheduleDays(records, weekStart, educator, includeAll = false)
       .map(record => {
         const duration = getMailScheduleDuration(record.from, record.to);
         return {
-          type: 'dyzur',
-          label: record.group || 'Dyżur',
+          type: record.substitution ? 'zast' : 'dyzur',
+          label: record.substitution ? `Zast. ${record.group || 'Dyżur'}` : (record.group || 'Dyżur'),
           sourceGroup: record.group || '',
           groupLabel: record.group || '',
           groupKey: normalizeMailSearch(record.group || '').replace(/\s+/g, '-'),
@@ -831,6 +831,8 @@ function buildMailScheduleDays(records, weekStart, educator, includeAll = false)
           duration,
           hoursValue: duration,
           educator: record.employee,
+          substitution: Boolean(record.substitution),
+          replacesPerson: record.replacesPerson || '',
           sourceTitle: record.sourceTitle || '',
           sourceAttachment: record.sourceAttachment || ''
         };
@@ -1741,7 +1743,12 @@ function parseInternatDateColumns(table, weekStart, source) {
       const entries = parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind);
       if (ranges.length > entries.length) unresolvedTimedCells += ranges.length - entries.length;
       entries.forEach(entry => {
-        records.push(...buildInternatScheduleRecords(date, entry.employee, entry.group, entry.range, weekStart, source).map(record => ({ ...record, sourceDay: date })));
+        records.push(...buildInternatScheduleRecords(date, entry.employee, entry.group, entry.range, weekStart, source).map(record => ({
+          ...record,
+          sourceDay: date,
+          substitution: Boolean(entry.substitution),
+          replacesPerson: entry.replacesPerson || ''
+        })));
       });
     });
   });
@@ -1758,11 +1765,23 @@ function parseInternatScheduleCellEntries(cell, rowEmployee, rowGroup, rowKind =
     : range;
   if (rowEmployee) return ranges.map(range => ({ employee: rowEmployee, group, range: withRowContext(range) }));
 
+  // Komórka zawierająca "zast." musi być analizowana sekwencyjnie.
+  // Nie wolno skrócić jej do "jeden wychowawca = wszystkie przedziały",
+  // bo zastępca może dotyczyć poprzedniego przedziału.
+  const hasShortSubstitution = /(^|\n)\s*zast\.?\s+/i.test(String(cell || ''));
   const candidates = extractInternatEmployeeCandidates(cell);
-  if (candidates.length === 1) {
+  if (!hasShortSubstitution && candidates.length === 1) {
     return ranges.map(range => ({ employee: candidates[0], group, range: withRowContext(range) }));
   }
   return parseInternatScheduleCellSequence(cell, group, withRowContext);
+}
+
+function extractInternatSubstituteCandidates(value = '') {
+  const raw = String(value || '').trim();
+  if (!/^zast\.?\s+/i.test(raw)) return [];
+  const withoutMarker = raw.replace(/^zast\.?\s+/i, '').trim();
+  const candidate = parseInternatEmployeeCandidate(withoutMarker);
+  return candidate ? [candidate] : [];
 }
 
 function parseInternatScheduleCellSequence(cell, group, withRowContext = range => range) {
@@ -1771,13 +1790,38 @@ function parseInternatScheduleCellSequence(cell, group, withRowContext = range =
   const pendingEmployees = [];
   const lines = String(cell || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
 
-  const addEntry = (employee, range) => {
+  const addEntry = (employee, range, metadata = {}) => {
     if (!employee || !range) return;
-    entries.push({ employee, group, range: withRowContext(range) });
+    entries.push({ employee, group, range: withRowContext(range), ...metadata });
   };
 
   lines.forEach(line => {
     const lineRanges = extractInternatTimeRanges(line);
+    const substituteEmployees = extractInternatSubstituteCandidates(line);
+
+    // "zast. X" nigdy nie może zostać zapamiętane jako osoba oczekująca
+    // na następny przedział. Dotyczy zakresu bezpośrednio przed nim
+    // albo zakresu zapisanego w tej samej linii.
+    if (substituteEmployees.length) {
+      const targetRanges = lineRanges.length
+        ? lineRanges
+        : pendingRanges.length
+          ? [pendingRanges.pop()]
+          : entries.length
+            ? [entries[entries.length - 1].range]
+            : [];
+      targetRanges.forEach(range => substituteEmployees.forEach(employee => {
+        const previous = entries.length ? entries[entries.length - 1] : null;
+        addEntry(employee, range, {
+          substitution: true,
+          replacesPerson: previous && previous.range.from === range.from && previous.range.to === range.to
+            ? previous.employee
+            : ''
+        });
+      }));
+      return;
+    }
+
     const lineEmployees = extractInternatEmployeeCandidates(line);
 
     if (lineRanges.length && lineEmployees.length) {
@@ -1812,13 +1856,20 @@ function extractInternatEmployee(value = '') {
 
 function extractInternatEmployeeCandidates(value = '') {
   const raw = String(value || '').trim();
-  if (!raw || /zast[eę]puje|zamiast|zmienia|zast[eę]pstwo/i.test(raw)) return [];
-  const isNumberedList = /^\s*\d+\s*[.)]/m.test(raw);
-  const wholeCellCandidate = extractInternatTimeRanges(raw).length || isNumberedList
+  if (!raw || /^zast\.?\s+/i.test(raw) || /zast[eę]puje|zamiast|zmienia/i.test(raw)) return [];
+  // Opis "zastępstwo za pracownika nocnego" jest adnotacją do nazwiska,
+  // a nie powodem do odrzucenia całej linii.
+  const candidateRaw = raw
+    .replace(/\bzast[eę]pstwo\s+za\s+pracownika\s+nocnego\b/gi, ' ')
+    .replace(/\bzast[eę]pstwo\b.*$/gi, ' ')
+    .trim();
+  if (!candidateRaw) return [];
+  const isNumberedList = /^\s*\d+\s*[.)]/m.test(candidateRaw);
+  const wholeCellCandidate = extractInternatTimeRanges(candidateRaw).length || isNumberedList
     ? ''
-    : parseInternatEmployeeCandidate(raw);
+    : parseInternatEmployeeCandidate(candidateRaw);
   if (wholeCellCandidate && wholeCellCandidate.split(/\s+/).length >= 2) return [wholeCellCandidate];
-  const parts = raw.split(/\n|[;|]/);
+  const parts = candidateRaw.split(/\n|[;|]/);
   const generic = new Set([
     'brak', 'dzien', 'dyzur', 'godziny', 'grupa', 'harmonogram', 'koniec', 'nazwisko', 'noc',
     'lacz', 'pon', 'poniedzialek', 'praca', 'pracownik', 'pt', 'siedziba', 'sob', 'sr', 'wt', 'wolne',
