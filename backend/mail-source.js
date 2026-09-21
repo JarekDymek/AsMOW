@@ -39,33 +39,39 @@ function forwardedDate(value) {
 }
 
 export function resolveDirectorMail(parsed, config = {}) {
-  const director = (config.from || DIRECTOR_EMAIL).toLowerCase();
-  const forwarder = (config.forwarder || FORWARDER_EMAIL).toLowerCase();
+  const directors = new Set([
+    DIRECTOR_EMAIL,
+    String(config.from || '').toLowerCase()
+  ].filter(Boolean));
+  const forwarders = new Set([
+    FORWARDER_EMAIL,
+    String(config.forwarder || '').toLowerCase()
+  ].filter(Boolean));
   const senders = parsed.from?.value || [];
   if (senders.length !== 1) return null;
   const sender = String(senders[0].address || '').toLowerCase();
   const body = plainBody(parsed).replace(/\r\n/g, '\n');
-  if (sender === director) return { source: director, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
+  if (directors.has(sender)) return { source: DIRECTOR_EMAIL, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
   if (isArchivedDirectorAddress(sender, parsed.date)) {
-    return { source: director, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
+    return { source: DIRECTOR_EMAIL, body, forwardedBy: '', originalDate: '', originalSentAt: parsed.date ? localMailTimestamp(parsed.date) : '' };
   }
-  if (sender !== forwarder) return null;
+  if (!forwarders.has(sender)) return null;
 
   const lines = body.split('\n').map(line => line.replace(/^\s*(?:>\s*)+/, '').trim());
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(/^(?:Od|From):\s*(.+)$/i);
     if (!match) continue;
     const address = headerAddress(match[1]);
-    if (address === forwarder) continue;
+    if (forwarders.has(address)) continue;
     const dateIndex = lines.findIndex((line, j) => j > i && j <= i + 3 && /^(?:Date|Data|Sent|Wysłano):/i.test(line));
     if (dateIndex < 0) return null;
     const originalDate = forwardedDate(lines[dateIndex].replace(/^[^:]+:\s*/, ''));
     const originalDateValue = originalDate ? originalDate + 'T00:00:00Z' : '';
-    if (address !== director && !isArchivedDirectorAddress(address, originalDateValue)) return null;
+    if (!directors.has(address) && !isArchivedDirectorAddress(address, originalDateValue)) return null;
     let start = dateIndex + 1;
     while (start < lines.length && /^(?:(?:Subject|Temat|To|Do|Cc|DW):|\s*$)/i.test(lines[start])) start++;
     return {
-      source: director, forwardedBy: sender,
+      source: DIRECTOR_EMAIL, forwardedBy: sender,
       originalDate,
       originalSentAt: originalDate ? originalDate + 'T' + (lines[dateIndex].match(/(?:o\s+|\s)(\d{1,2}:\d{2})/)?.[1] || '00:00').padStart(5, '0') : '',
       body: lines.slice(start).join('\n').trim()
@@ -90,11 +96,13 @@ export function directorMailFingerprint(parsed, resolved) {
 }
 
 export async function searchDirectorMail(client, since, config = {}) {
-  const senders = [
-    config.from || DIRECTOR_EMAIL,
-    config.forwarder || FORWARDER_EMAIL,
+  const senders = [...new Set([
+    DIRECTOR_EMAIL,
+    String(config.from || '').toLowerCase(),
+    FORWARDER_EMAIL,
+    String(config.forwarder || '').toLowerCase(),
     ARCHIVE_DIRECTOR_EMAIL
-  ];
+  ].filter(Boolean))];
   const subject = config.scheduleOnly ? 'grafik' : '';
   try {
     const unique = new Set();
