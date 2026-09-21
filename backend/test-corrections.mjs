@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 process.env.ASMOW_TEST_MODE = '1';
-const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision, getScheduleBootstrapSince, settleWithin, selectLatestScheduleAttachments } = await import('./server.js');
+const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision, getScheduleBootstrapSince, settleWithin, selectLatestScheduleAttachments, selectBootstrapScheduleAttachments } = await import('./server.js');
 
 const context = vm.createContext({ console, Date });
 vm.runInContext(fs.readFileSync(new URL('../assets/js/harmonogram.js', import.meta.url), 'utf8'), context);
@@ -177,6 +177,15 @@ assert.match(selectedRealistic[0].filename, /14-20/);
 assert.equal(selectedRealistic[1].weekStart, '2026-09-21');
 assert.equal(selectedRealistic[1].sourceMailUid, '140');
 assert.ok(selectedRealistic.every(entry => entry.scheduleKind !== 'team'));
+
+assert.deepEqual(
+  selectBootstrapScheduleAttachments(selectedRealistic, '2026-09-21').map(entry => [entry.weekStart, entry.sourceMailUid]),
+  [['2026-09-21', '140']]
+);
+assert.equal(
+  selectBootstrapScheduleAttachments(selectedRealistic, '2026-09-14')[0].sourceMailUid,
+  '120'
+);
 
 const serverSource = fs.readFileSync(new URL('./server.js', import.meta.url), 'utf8');
 assert.doesNotMatch(
