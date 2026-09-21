@@ -506,6 +506,14 @@ async function fetchMailScheduleDashboard(payload = {}) {
     limit: 1200
   });
 
+  if (mail.scanTruncated) {
+    throwHttpError(
+      `Archiwum poczty ma ${mail.matched || 'więcej niż limit'} pasujących wiadomości, a bezpieczny skan objął tylko ${mail.scanned || 0}. Nie podmieniono grafiku, aby nie utracić starszych tygodni.`,
+      409,
+      'SCHEDULE_ARCHIVE_TRUNCATED'
+    );
+  }
+
   const index = (Array.isArray(mail.scheduleDocuments) ? mail.scheduleDocuments : [])
     .map(normalizeMailScheduleDocument)
     .filter(Boolean)
@@ -898,6 +906,8 @@ async function fetchCurrentInfoMail(payload = {}) {
   const ignoredScheduleDocuments = [];
   const scheduleCandidates = [];
   let scannedCount = 0;
+  let matchedCount = 0;
+  let scanTruncated = false;
   try {
     await client.connect();
   } catch (err) {
@@ -915,6 +925,8 @@ async function fetchCurrentInfoMail(payload = {}) {
   try {
     const sinceDate = new Date(`${since}T00:00:00Z`);
     const uids = await searchDirectorMail(client, sinceDate, config);
+    matchedCount = uids.length;
+    scanTruncated = matchedCount > limit;
     const selected = uids.slice(-limit);
     scannedCount = selected.length;
     if (!selected.length) {
@@ -924,6 +936,9 @@ async function fetchCurrentInfoMail(payload = {}) {
         source: config.from,
         since,
         count: 0,
+        matched: matchedCount,
+        scanned: 0,
+        scanTruncated,
         items: [],
         scheduleDocuments: [],
         ignoredScheduleDocuments: []
@@ -970,7 +985,9 @@ async function fetchCurrentInfoMail(payload = {}) {
     source: config.from,
     since,
     count: items.length,
+    matched: matchedCount,
     scanned: scannedCount,
+    scanTruncated,
     newestDate,
     items,
     scheduleDocuments,
