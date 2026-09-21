@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.9**
+Aktualna wersja PWA: **2.5.10**
 
-Aktualna wersja backendu: **1.5.8**
+Aktualna wersja backendu: **1.5.15**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -235,7 +235,7 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - skan IMAP wykrywa folder oznaczony `\\All` i korzysta z całej poczty zamiast wyłącznie z INBOX;
 - zarchiwizowanie starej wiadomości w Gmailu nie może usunąć tygodnia z historii grafiku;
 - gdy serwer IMAP nie udostępnia `\\All`, backend wraca do skonfigurowanego folderu;
-- źródło poczty ma rewizję `director-canonical-v4`, a cache PWA v68 wymusza pobranie tej logiki.
+- źródło poczty ma rewizję `director-canonical-v4`, a cache PWA v70 wymusza pobranie aktualnej logiki.
 
 
 ## Poprawka 2.5.9 / backend 1.5.4 — szybkie i odporne odświeżanie grafiku
