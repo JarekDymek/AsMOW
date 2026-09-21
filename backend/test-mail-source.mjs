@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { simpleParser } from 'mailparser';
 import { DIRECTOR_EMAIL, FORWARDER_EMAIL, ARCHIVE_DIRECTOR_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
 process.env.ASMOW_TEST_MODE = '1';
-const { resolveCurrentInfoMailbox, collectImapAttachmentMetadata, chooseBootstrapMessageUids } = await import('./server.js');
+const { resolveCurrentInfoMailbox, collectImapAttachmentMetadata, buildBootstrapMetadataCandidate, chooseBootstrapMessageUids } = await import('./server.js');
 
 const original = `Od: Dariusz Górski <${DIRECTOR_EMAIL}>\nDate: pt., 11 wrz 2026 o 15:10\nPozdrawiam`;
 const forwarded = text => ({
@@ -106,6 +106,17 @@ assert.deepEqual(
   collectImapAttachmentMetadata(bodyStructure).map(item => item.filename),
   ['4. 21- 27. 09.2026r..docx']
 );
+const metadataCandidate = buildBootstrapMetadataCandidate({
+  uid: 101,
+  internalDate: new Date('2026-09-21T08:00:00Z'),
+  envelope: { subject: 'Grafik' },
+  bodyStructure
+});
+assert.equal(metadataCandidate.uid, '101');
+assert.equal(metadataCandidate.date, '2026-09-21');
+assert.equal(metadataCandidate.sentAt.startsWith('2026-09-21'), true);
+assert.deepEqual(metadataCandidate.attachments.map(item => item.filename), ['4. 21- 27. 09.2026r..docx']);
+
 assert.deepEqual(
   chooseBootstrapMessageUids([
     {
