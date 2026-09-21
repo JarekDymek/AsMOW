@@ -2554,14 +2554,14 @@ function getInternatWeekdayOffset(value = '') {
 
 function extractInternatWeekStart(value = '') {
   const text = String(value || '');
-  const range = text.match(/(?:^|[^\d])(\d{1,2})\s*[.\/-]\s*(\d{1,2})(?:\s*[.\/-]\s*(20\d{2}))?\s*[.]?\s*(?:r\.?)?\s*(?:-|–|—)\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(20\d{2})/i);
+  const range = text.match(/(?:^|[^\d])(0?[1-9]|[12]\d|3[01])\s*[.\/-]\s*(0?[1-9]|1[0-2])(?:\s*[.\/-]\s*(20\d{2}))?\s*[.]?\s*(?:r\.?)?\s*(?:-|–|—)\s*(0?[1-9]|[12]\d|3[01])\s*[.\/-]\s*(0?[1-9]|1[0-2])\s*[.\/-]\s*(20\d{2})/i);
   if (range) {
     let year = Number(range[3] || range[6]);
     if (!range[3] && Number(range[2]) > Number(range[5])) year -= 1;
     return getInternatMonday(createInternatIsoDate(year, Number(range[2]), Number(range[1])));
   }
 
-  const shortRange = text.match(/(?:^|[^\d])(\d{1,2})\s*[.]?\s*(?:-|–|—)\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(20\d{2})/i);
+  const shortRange = text.match(/(?:^|[^\d])(0?[1-9]|[12]\d|3[01])\s*[.]?\s*(?:-|–|—)\s*(0?[1-9]|[12]\d|3[01])\s*[.\/-]\s*(0?[1-9]|1[0-2])\s*[.\/-]\s*(20\d{2})/i);
   if (shortRange) {
     const startDay = Number(shortRange[1]);
     const endDay = Number(shortRange[2]);
