@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.7';
+const BACKEND_VERSION = '1.5.8';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -650,7 +650,8 @@ async function getOrStartScheduleBootstrap(key, payload = {}) {
     forceRefresh: false,
     since: getScheduleBootstrapSince(),
     limit: SCHEDULE_BOOTSTRAP_LIMIT,
-    requireCompleteArchive: false
+    requireCompleteArchive: false,
+    scheduleBootstrap: true
   }).then(result => {
     const current = scheduleDashboardCache.get(key) || {};
     scheduleDashboardCache.set(key, {
@@ -753,7 +754,8 @@ async function fetchMailScheduleDashboard(payload = {}) {
     testAccessToken: payload.testAccessToken,
     since,
     limit,
-    scheduleOnly: true
+    scheduleOnly: true,
+    scheduleBootstrap: Boolean(payload.scheduleBootstrap)
   });
 
   if (mail.scanTruncated && requireCompleteArchive) {
@@ -1243,7 +1245,10 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   const extractStartedAt = Date.now();
   if (payload.scheduleOnly) {
-    const selectedAttachments = selectLatestScheduleAttachments(scheduleCandidates);
+    let selectedAttachments = selectLatestScheduleAttachments(scheduleCandidates);
+    if (payload.scheduleBootstrap) {
+      selectedAttachments = selectBootstrapScheduleAttachments(selectedAttachments);
+    }
     const grouped = new Map();
     selectedAttachments.forEach(selected => {
       const group = grouped.get(selected.candidate) || new Set();
@@ -1263,7 +1268,13 @@ async function fetchCurrentInfoMail(payload = {}) {
     console.log('[SCHEDULE_TIMING] select', JSON.stringify({
       candidates: scheduleCandidates.length,
       selectedAttachments: selectedAttachments.length,
-      selectedMessages: grouped.size
+      selectedMessages: grouped.size,
+      bootstrap: Boolean(payload.scheduleBootstrap),
+      selected: selectedAttachments.map(entry => ({
+        weekStart: entry.weekStart || '',
+        filename: entry.filename || '',
+        mailUid: entry.sourceMailUid || ''
+      }))
     }));
   } else {
     for (const candidate of scheduleCandidates) {
@@ -1790,6 +1801,31 @@ function selectLatestScheduleAttachments(scheduleCandidates = []) {
       String(a.weekStart || '').localeCompare(String(b.weekStart || ''))
       || compareScheduleAttachmentCandidates(a, b)
     );
+}
+
+function getSchedulePolandIsoDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function selectBootstrapScheduleAttachments(selectedAttachments = [], todayIso = getSchedulePolandIsoDate()) {
+  const currentWeek = getInternatMonday(todayIso);
+  const exact = (selectedAttachments || []).filter(entry => entry.weekStart === currentWeek);
+  if (exact.length) return exact;
+
+  // Fallback tylko dla pliku, którego tygodnia nie da się ustalić z nazwy/tematu.
+  // Nie wolno podstawiać grafiku innego tygodnia.
+  const unknown = (selectedAttachments || []).filter(entry => !entry.weekStart);
+  if (!unknown.length) return [];
+  return [...unknown]
+    .sort(compareScheduleAttachmentCandidates)
+    .slice(-1);
 }
 
 async function extractInternatScheduleDocuments(parsed, item, options = {}) {
@@ -2864,6 +2900,8 @@ export {
   getMailScheduleDocumentRevision,
   resolveCurrentInfoMailbox,
   selectLatestScheduleAttachments,
+  selectBootstrapScheduleAttachments,
+  getSchedulePolandIsoDate,
   fetchMailScheduleDashboardCached,
   getScheduleBootstrapSince,
   settleWithin
