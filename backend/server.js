@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.4.4';
+const BACKEND_VERSION = '1.5.0';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -27,6 +27,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dariusz.gorski@mowmalbork.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
+const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1';
 const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
 const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 12_000);
 const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
@@ -495,6 +496,147 @@ async function fetchWeeklyPlan(payload = {}) {
 
 
 async function fetchMailScheduleDashboard(payload = {}) {
+  const since = normalizeCurrentInfoSince(CURRENT_INFO_SINCE);
+  const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
+  const mail = await fetchCurrentInfoMail({
+    token: payload.token,
+    testAccessToken: payload.testAccessToken,
+    since,
+    limit: 1200
+  });
+
+  const index = (Array.isArray(mail.scheduleDocuments) ? mail.scheduleDocuments : [])
+    .map(normalizeMailScheduleDocument)
+    .filter(Boolean)
+    .filter(item => item.scheduleKind === 'internat');
+
+  const weekStarts = [...new Set(index.map(item => item.weekStart).filter(Boolean))].sort();
+  const activeByWeek = new Map(weekStarts.map(weekStart => [
+    weekStart,
+    buildActiveMailSchedule(index, weekStart)
+  ]));
+  const authoritativeRecords = [...activeByWeek.values()].flatMap(active => active.records || []);
+  const availableEducators = [...new Set(authoritativeRecords.map(record => record.employee).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pl'));
+  const educator = resolveMailScheduleEducator(educatorQuery, availableEducators);
+  const internatWeeks = {};
+  const authoritativeWeeks = {};
+
+  const weeks = weekStarts.map(weekStart => {
+    const active = activeByWeek.get(weekStart);
+    const records = active.records || [];
+    const days = buildMailScheduleDays(records, weekStart, educator, false);
+    const fullDays = buildMailScheduleDays(records, weekStart, '', true);
+    const totalHours = roundMailScheduleHours(days.reduce((sum, day) => sum + day.hoursDay, 0));
+    const weekendHours = roundMailScheduleHours(days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0));
+    const source = active.sources[0] || {};
+    const sourceFilename = source.sourceAttachment || '';
+    const sourceLabel = sourceFilename
+      ? `Źródło: ${sourceFilename}`
+      : 'Źródło: najnowszy dokument internatu';
+
+    authoritativeWeeks[weekStart] = {
+      sourceVersion: active.sourceVersion,
+      ...active.authoritativeDocument
+    };
+
+    internatWeeks[weekStart] = {
+      weekStart,
+      sourceVersion: active.sourceVersion,
+      schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
+      dateFrom: weekStart,
+      dateTo: addInternatDays(weekStart, 6),
+      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
+      source: sourceLabel,
+      days: fullDays,
+      staff: [...new Set(fullDays.flatMap(day => day.shifts.map(shift => shift.educator)).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'pl')),
+      sourceDocuments: sourceFilename ? [sourceFilename] : [],
+      authoritativeDocument: active.authoritativeDocument,
+      requiresVerification: active.requiresVerification,
+      validationWarnings: active.requiresVerification
+        ? ['Najnowszy dokument dla tego tygodnia jest niepełny albo niejednoznaczny. Nie dołączono żadnych danych ze starszych grafików.']
+        : []
+    };
+
+    return {
+      label: 'Tydzień',
+      weekStart,
+      sourceVersion: active.sourceVersion,
+      schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
+      authoritativeDocument: active.authoritativeDocument,
+      source: sourceLabel,
+      dateFrom: weekStart,
+      dateTo: addInternatDays(weekStart, 6),
+      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
+      days,
+      summary: {
+        totalHours,
+        overtimeHours: '—',
+        weekendHours,
+        weekendWorkDays: days.slice(5).filter(day => day.hoursDay > 0).length
+      },
+      validationWarnings: active.requiresVerification
+        ? ['Najnowszy dokument dla tego tygodnia jest niepełny albo niejednoznaczny. Starsze grafiki nie zostały użyte jako uzupełnienie.']
+        : [],
+      sourceFilename
+    };
+  });
+
+  const scheduleRevision = shortHash(JSON.stringify(
+    weeks.map(week => [week.weekStart, week.sourceVersion])
+  ));
+  const updatedAt = new Date().toISOString();
+  const history = weeks.map(week => ({
+    range: week.range,
+    dateFrom: week.dateFrom,
+    dateTo: week.dateTo,
+    sourceVersion: week.sourceVersion,
+    ...(week.summary || {})
+  }));
+  const data = {
+    educator,
+    calendarEducator: educator,
+    updatedAt,
+    generatedAt: updatedAt,
+    schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
+    scheduleRevision,
+    authoritativeWeeks,
+    weeks,
+    history,
+    alerts: [],
+    changes: [],
+    internatWeeks,
+    availableEducators
+  };
+
+  return {
+    ok: true,
+    action: 'dashboard',
+    source: 'director-mail-render',
+    backendVersion: BACKEND_VERSION,
+    mailSourceRevision: mail.mailSourceRevision || 'director-forwarding-v2',
+    schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
+    scheduleRevision,
+    authoritativeWeeks,
+    educator,
+    calendarEducator: educator,
+    updatedAt,
+    generatedAt: updatedAt,
+    weeks,
+    history,
+    alerts: [],
+    changes: [],
+    internatWeeks,
+    availableEducators,
+    dashboardWeekStarts: weekStarts,
+    scheduleDocumentsCount: index.length,
+    ignoredScheduleDocumentsCount: Array.isArray(mail.ignoredScheduleDocuments) ? mail.ignoredScheduleDocuments.length : 0,
+    newestDate: mail.newestDate || '',
+    security: { access: 'mail-sync-token' },
+    data
+  };
+}) {
   const now = new Date();
   const currentWeek = getInternatMonday(formatInternatServerIsoDate(now));
   const since = normalizeCurrentInfoSince(payload.since || addInternatDays(currentWeek, -56));
@@ -651,81 +793,75 @@ function compareMailScheduleDocuments(a, b) {
   return Number(b.sourceAttachmentOrder || 0) - Number(a.sourceAttachmentOrder || 0);
 }
 
+function getMailScheduleDocumentRevision(documentItem) {
+  if (!documentItem) return '';
+  const records = (documentItem.records || []).map(record => [
+    record.date,
+    normalizeMailSearch(record.employee),
+    normalizeMailSearch(record.group),
+    record.from,
+    record.to
+  ]);
+  return shortHash(JSON.stringify([
+    SCHEDULE_POLICY_REVISION,
+    documentItem.id || '',
+    documentItem.weekStart || '',
+    documentItem.sourceSentAt || documentItem.sourceDate || '',
+    documentItem.sourceMailUid || '',
+    documentItem.sourceAttachmentId || '',
+    documentItem.sourceAttachmentOrder || 0,
+    records
+  ]));
+}
+
 function buildActiveMailSchedule(index, weekStart) {
   const documents = (Array.isArray(index) ? index : [])
-    .filter(item => item && item.weekStart === weekStart)
+    .filter(item => item
+      && item.weekStart === weekStart
+      && (item.scheduleKind === 'internat' || !item.scheduleKind))
     .sort(compareMailScheduleDocuments);
-  const records = [];
-  const sources = [];
-  let requiresVerification = false;
 
-  ['internat', 'team'].forEach(kind => {
-    const kindDocuments = documents.filter(item => item.scheduleKind === kind);
-    if (!kindDocuments.length) return;
+  const authoritative = documents[0] || null;
+  if (!authoritative) {
+    return {
+      weekStart,
+      records: [],
+      sources: [],
+      requiresVerification: false,
+      sourceVersion: '',
+      authoritativeDocument: null
+    };
+  }
 
-    // Pełny dokument jest migawką całego tygodnia. Najnowsza pełna migawka
-    // zastępuje wszystkie starsze wersje niezależnie od słowa "korekta" w temacie.
-    const latestComplete = kindDocuments.find(item => item.hasCompleteWeek && item.records.length) || null;
-    if (latestComplete) {
-      let kindRecords = latestComplete.records.map(record => ({
-        ...record,
-        sourceDocumentId: latestComplete.id
-      }));
-      sources.push(latestComplete);
-      if (latestComplete.ambiguous) requiresVerification = true;
-
-      const newerPartialCorrections = kindDocuments
-        .filter(item =>
-          item.isCorrection
-          && !item.hasCompleteWeek
-          && compareMailScheduleDocuments(item, latestComplete) < 0)
-        .sort((a, b) => compareMailScheduleDocuments(b, a));
-
-      newerPartialCorrections.forEach(correction => {
-        const applied = applyMailScheduleCorrection(kindRecords, correction);
-        kindRecords = applied.records;
-        if (applied.used || correction.ambiguous) sources.push(correction);
-        if (correction.ambiguous || applied.uncertain) requiresVerification = true;
-      });
-
-      records.push(...kindRecords);
-      return;
-    }
-
-    // Fallback dla historycznych/niepełnych wiadomości bez pełnej migawki.
-    const base = kindDocuments.find(item => !item.isCorrection) || null;
-    let kindRecords = base ? base.records.map(record => ({ ...record, sourceDocumentId: base.id })) : [];
-    if (base) sources.push(base);
-    if (base?.ambiguous) requiresVerification = true;
-
-    const corrections = kindDocuments
-      .filter(item => item.isCorrection && (!base || compareMailScheduleDocuments(item, base) <= 0))
-      .sort((a, b) => compareMailScheduleDocuments(b, a));
-
-    corrections.forEach(correction => {
-      const applied = applyMailScheduleCorrection(kindRecords, correction);
-      kindRecords = applied.records;
-      if (applied.used || correction.ambiguous) sources.push(correction);
-      if (correction.ambiguous || applied.uncertain) requiresVerification = true;
-    });
-
-    if (!base && corrections.length) requiresVerification = true;
-    records.push(...kindRecords);
-  });
-
-  const uniqueSources = [];
-  const sourceIds = new Set();
-  sources.forEach(source => {
-    if (!source || sourceIds.has(source.id)) return;
-    sourceIds.add(source.id);
-    uniqueSources.push(source);
-  });
+  const records = (authoritative.records || []).map(record => ({
+    ...record,
+    sourceDocumentId: authoritative.id
+  }));
+  const requiresVerification = Boolean(
+    authoritative.ambiguous
+    || !authoritative.hasCompleteWeek
+    || !records.length
+  );
+  const sourceVersion = getMailScheduleDocumentRevision(authoritative);
 
   return {
     weekStart,
     records: dedupeMailScheduleRecords(records),
-    sources: uniqueSources,
-    requiresVerification
+    sources: [authoritative],
+    requiresVerification,
+    sourceVersion,
+    authoritativeDocument: {
+      id: authoritative.id,
+      sourceTitle: authoritative.sourceTitle || '',
+      sourceAttachment: authoritative.sourceAttachment || '',
+      sourceDate: authoritative.sourceDate || '',
+      sourceSentAt: authoritative.sourceSentAt || '',
+      sourceMailUid: authoritative.sourceMailUid || '',
+      hasCompleteWeek: Boolean(authoritative.hasCompleteWeek),
+      isCorrection: Boolean(authoritative.isCorrection),
+      ambiguous: Boolean(authoritative.ambiguous),
+      warning: authoritative.warning || ''
+    }
   };
 }
 
