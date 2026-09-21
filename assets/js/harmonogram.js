@@ -202,43 +202,44 @@ function buildActiveInternatSchedule(index, week = new Date()) {
     : getInternatWeekStart(week);
   const documents = (Array.isArray(index) ? index : [])
     .map(normalizeInternatScheduleDocument)
-    .filter(item => item && item.weekStart === weekStart)
+    .filter(item => item
+      && item.weekStart === weekStart
+      && item.scheduleKind !== 'team')
     .sort(compareInternatScheduleDocuments);
-  const records = [];
-  const contributors = [];
-  let requiresVerification = false;
 
-  ['internat', 'team'].forEach(scheduleKind => {
-    const kindDocuments = documents.filter(item => (item.scheduleKind === 'team' ? 'team' : 'internat') === scheduleKind);
-    if (!kindDocuments.length) return;
-    const base = kindDocuments.find(item => !item.isCorrection) || null;
-    let kindRecords = base
-      ? base.records.map(record => ({ ...record, sourceDocumentId: base.id }))
-      : [];
-    if (base) contributors.push(base);
-    if (base?.ambiguous) requiresVerification = true;
+  const authoritative = documents[0] || null;
+  if (!authoritative) {
+    return {
+      weekStart,
+      documents,
+      records: [],
+      contributors: [],
+      sources: [],
+      requiresVerification: false,
+      sourceVersion: '',
+      authoritativeDocument: null
+    };
+  }
 
-    const corrections = kindDocuments
-      .filter(item => item.isCorrection && (!base || compareInternatScheduleDocuments(item, base) <= 0))
-      .sort((a, b) => compareInternatScheduleDocuments(b, a));
-    corrections.forEach(correction => {
-      const applied = applyInternatScheduleCorrection(kindRecords, correction);
-      kindRecords = applied.records;
-      if (applied.used || correction.ambiguous) contributors.push(correction);
-      if (correction.ambiguous || applied.uncertain) requiresVerification = true;
-    });
-
-    if (!base && corrections.length) requiresVerification = true;
-    records.push(...kindRecords);
-  });
+  const records = (authoritative.records || []).map(record => ({
+    ...record,
+    sourceDocumentId: authoritative.id
+  }));
+  const requiresVerification = Boolean(
+    authoritative.ambiguous
+    || !authoritative.hasCompleteWeek
+    || !records.length
+  );
 
   return {
     weekStart,
     documents,
     records,
-    contributors: uniqueInternatScheduleDocuments(contributors),
-    sources: uniqueInternatScheduleDocuments(contributors.length ? contributors : documents),
-    requiresVerification
+    contributors: [authoritative],
+    sources: [authoritative],
+    requiresVerification,
+    sourceVersion: authoritative.id,
+    authoritativeDocument: authoritative
   };
 }
 
@@ -421,7 +422,7 @@ async function ensureInternatScheduleIndex() {
   } catch {
     // Brak sessionStorage nie blokuje jednorazowej próby w bieżącym widoku.
   }
-  setInternatScheduleStatus('Indeks grafiku jest pusty — sprawdzam grafiki z ostatnich 6 tygodni...');
+  setInternatScheduleStatus('Indeks grafiku jest pusty — odbudowuję archiwum grafików od początku źródła...');
   internatScheduleReindexPromise = (async () => {
     const syncResult = await syncCurrentInfoMail(false, { since: getInternatScheduleReindexSince(now) });
     if (syncResult?.ok && syncResult.scheduleIndexSupported) {
@@ -442,11 +443,7 @@ async function ensureInternatScheduleIndex() {
 }
 
 function getInternatScheduleReindexSince(now = new Date()) {
-  const date = now instanceof Date ? new Date(now) : new Date(now);
-  if (Number.isNaN(date.getTime())) return CURRENT_INFO_START_DATE;
-  date.setHours(12, 0, 0, 0);
-  date.setDate(date.getDate() - 42);
-  return formatInternatIsoDate(date);
+  return CURRENT_INFO_START_DATE;
 }
 
 function refreshInternatScheduleStatus(now = new Date(), requestedWeek = '', existingIndex = null) {
