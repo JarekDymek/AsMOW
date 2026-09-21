@@ -62,6 +62,7 @@ assert.deepEqual(searches.map(query => query.from), [
   FORWARDER_EMAIL,
   ARCHIVE_DIRECTOR_EMAIL
 ]);
+assert.ok(searches.every(query => !Object.prototype.hasOwnProperty.call(query, 'subject')));
 
 searches = [];
 await searchDirectorMail({
