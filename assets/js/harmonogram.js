@@ -225,10 +225,13 @@ function buildActiveInternatSchedule(index, week = new Date()) {
     ...record,
     sourceDocumentId: authoritative.id
   }));
+  const blockingWarning = /nieprawidlowy przedzial|ponad 24 godzin|nietypowo duza/.test(
+    normalizeInternatScheduleText(authoritative.warning || '')
+  );
   const requiresVerification = Boolean(
-    authoritative.ambiguous
-    || !authoritative.hasCompleteWeek
+    !authoritative.hasCompleteWeek
     || !records.length
+    || blockingWarning
   );
 
   return {
