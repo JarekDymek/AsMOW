@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { simpleParser } from 'mailparser';
 import { DIRECTOR_EMAIL, FORWARDER_EMAIL, ARCHIVE_DIRECTOR_EMAIL, resolveDirectorMail, canReadDirectorAttachment, directorMailFingerprint, searchDirectorMail } from './mail-source.js';
+process.env.ASMOW_TEST_MODE = '1';
+const { resolveCurrentInfoMailbox } = await import('./server.js');
 
 const original = `Od: Dariusz Górski <${DIRECTOR_EMAIL}>\nDate: pt., 11 wrz 2026 o 15:10\nPozdrawiam`;
 const forwarded = text => ({
@@ -60,6 +62,20 @@ assert.deepEqual(searches.map(query => query.from), [
   ARCHIVE_DIRECTOR_EMAIL
 ]);
 assert.deepEqual(searchResult, [1, 2, 3]);
+
+assert.equal(
+  await resolveCurrentInfoMailbox({
+    list: async () => [
+      { path: 'INBOX', specialUse: '\\Inbox' },
+      { path: '[Gmail]/Wszystkie', specialUse: '\\All' }
+    ]
+  }, 'INBOX'),
+  '[Gmail]/Wszystkie'
+);
+assert.equal(
+  await resolveCurrentInfoMailbox({ list: async () => [{ path: 'INBOX' }] }, 'INBOX'),
+  'INBOX'
+);
 
 // Exercise the real frontend merge and migration settings without touching user data.
 const memory = new Map();
