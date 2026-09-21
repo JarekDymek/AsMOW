@@ -512,10 +512,7 @@ async function fetchMailScheduleDashboard(payload = {}) {
     .filter(item => item.scheduleKind === 'internat');
 
   const weekStarts = [...new Set(index.map(item => item.weekStart).filter(Boolean))].sort();
-  const activeByWeek = new Map(weekStarts.map(weekStart => [
-    weekStart,
-    buildActiveMailSchedule(index, weekStart)
-  ]));
+  const activeByWeek = new Map(weekStarts.map(weekStart => [weekStart, buildActiveMailSchedule(index, weekStart)]));
   const authoritativeRecords = [...activeByWeek.values()].flatMap(active => active.records || []);
   const availableEducators = [...new Set(authoritativeRecords.map(record => record.employee).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'pl'));
@@ -532,15 +529,9 @@ async function fetchMailScheduleDashboard(payload = {}) {
     const weekendHours = roundMailScheduleHours(days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0));
     const source = active.sources[0] || {};
     const sourceFilename = source.sourceAttachment || '';
-    const sourceLabel = sourceFilename
-      ? `Źródło: ${sourceFilename}`
-      : 'Źródło: najnowszy dokument internatu';
+    const sourceLabel = sourceFilename ? `Źródło: ${sourceFilename}` : 'Źródło: najnowszy dokument internatu';
 
-    authoritativeWeeks[weekStart] = {
-      sourceVersion: active.sourceVersion,
-      ...active.authoritativeDocument
-    };
-
+    authoritativeWeeks[weekStart] = { sourceVersion: active.sourceVersion, ...active.authoritativeDocument };
     internatWeeks[weekStart] = {
       weekStart,
       sourceVersion: active.sourceVersion,
@@ -584,9 +575,7 @@ async function fetchMailScheduleDashboard(payload = {}) {
     };
   });
 
-  const scheduleRevision = shortHash(JSON.stringify(
-    weeks.map(week => [week.weekStart, week.sourceVersion])
-  ));
+  const scheduleRevision = shortHash(JSON.stringify(weeks.map(week => [week.weekStart, week.sourceVersion])));
   const updatedAt = new Date().toISOString();
   const history = weeks.map(week => ({
     range: week.range,
@@ -596,19 +585,9 @@ async function fetchMailScheduleDashboard(payload = {}) {
     ...(week.summary || {})
   }));
   const data = {
-    educator,
-    calendarEducator: educator,
-    updatedAt,
-    generatedAt: updatedAt,
-    schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
-    scheduleRevision,
-    authoritativeWeeks,
-    weeks,
-    history,
-    alerts: [],
-    changes: [],
-    internatWeeks,
-    availableEducators
+    educator, calendarEducator: educator, updatedAt, generatedAt: updatedAt,
+    schedulePolicyRevision: SCHEDULE_POLICY_REVISION, scheduleRevision, authoritativeWeeks,
+    weeks, history, alerts: [], changes: [], internatWeeks, availableEducators
   };
 
   return {
@@ -620,114 +599,6 @@ async function fetchMailScheduleDashboard(payload = {}) {
     schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
     scheduleRevision,
     authoritativeWeeks,
-    educator,
-    calendarEducator: educator,
-    updatedAt,
-    generatedAt: updatedAt,
-    weeks,
-    history,
-    alerts: [],
-    changes: [],
-    internatWeeks,
-    availableEducators,
-    dashboardWeekStarts: weekStarts,
-    scheduleDocumentsCount: index.length,
-    ignoredScheduleDocumentsCount: Array.isArray(mail.ignoredScheduleDocuments) ? mail.ignoredScheduleDocuments.length : 0,
-    newestDate: mail.newestDate || '',
-    security: { access: 'mail-sync-token' },
-    data
-  };
-}) {
-  const now = new Date();
-  const currentWeek = getInternatMonday(formatInternatServerIsoDate(now));
-  const since = normalizeCurrentInfoSince(payload.since || addInternatDays(currentWeek, -56));
-  const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
-  const mail = await fetchCurrentInfoMail({
-    token: payload.token,
-    testAccessToken: payload.testAccessToken,
-    since,
-    limit: Math.min(Math.max(Number(payload.limit || 500), 50), 1200)
-  });
-
-  const index = (Array.isArray(mail.scheduleDocuments) ? mail.scheduleDocuments : [])
-    .map(normalizeMailScheduleDocument)
-    .filter(Boolean);
-  const weekStarts = [...new Set(index.map(item => item.weekStart).filter(Boolean))].sort();
-  const availableEducators = [...new Set(index.flatMap(item => item.records.map(record => record.employee)).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, 'pl'));
-  const educator = resolveMailScheduleEducator(educatorQuery, availableEducators);
-  const internatWeeks = {};
-
-  const weeks = weekStarts.map(weekStart => {
-    const active = buildActiveMailSchedule(index, weekStart);
-    const previous = buildActiveMailSchedule(index, addInternatDays(weekStart, -7));
-    const records = dedupeMailScheduleRecords([
-      ...active.records,
-      ...previous.records.filter(record => record.date === weekStart)
-    ]);
-    const days = buildMailScheduleDays(records, weekStart, educator, false);
-    const fullDays = buildMailScheduleDays(records, weekStart, '', true);
-    const totalHours = roundMailScheduleHours(days.reduce((sum, day) => sum + day.hoursDay, 0));
-    const weekendHours = roundMailScheduleHours(days.slice(5).reduce((sum, day) => sum + day.hoursDay, 0));
-
-    internatWeeks[weekStart] = {
-      weekStart,
-      dateFrom: weekStart,
-      dateTo: addInternatDays(weekStart, 6),
-      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
-      days: fullDays,
-      staff: [...new Set(fullDays.flatMap(day => day.shifts.map(shift => shift.educator)).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'pl')),
-      sourceDocuments: active.sources.map(source => source.sourceAttachment).filter(Boolean),
-      requiresVerification: active.requiresVerification
-    };
-
-    return {
-      label: 'Tydzień',
-      weekStart,
-      dateFrom: weekStart,
-      dateTo: addInternatDays(weekStart, 6),
-      range: weekStart + ' – ' + addInternatDays(weekStart, 6),
-      days,
-      summary: {
-        totalHours,
-        overtimeHours: '—',
-        weekendHours,
-        weekendWorkDays: days.slice(5).filter(day => day.hoursDay > 0).length
-      },
-      validationWarnings: active.requiresVerification
-        ? ['Część danych pochodzi z niepełnej albo niejednoznacznej korekty. Sprawdź dokument źródłowy.']
-        : [],
-      sourceFilename: active.sources.map(source => source.sourceAttachment).filter(Boolean).join('; ')
-    };
-  });
-
-  const updatedAt = new Date().toISOString();
-  const history = weeks.map(week => ({
-    range: week.range,
-    dateFrom: week.dateFrom,
-    dateTo: week.dateTo,
-    ...(week.summary || {})
-  }));
-  const data = {
-    educator,
-    calendarEducator: educator,
-    updatedAt,
-    generatedAt: updatedAt,
-    weeks,
-    history,
-    alerts: [],
-    changes: [],
-    internatWeeks,
-    availableEducators
-  };
-
-  return {
-    ok: true,
-    action: 'dashboard',
-    source: 'director-mail-render',
-    backendVersion: BACKEND_VERSION,
-    mailSourceRevision: mail.mailSourceRevision || 'director-canonical-v3',
     educator,
     calendarEducator: educator,
     updatedAt,
@@ -746,7 +617,6 @@ async function fetchMailScheduleDashboard(payload = {}) {
     data
   };
 }
-
 function normalizeMailScheduleDocument(item) {
   if (!item || typeof item !== 'object') return null;
   const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(String(item.weekStart || '')) ? String(item.weekStart) : '';
