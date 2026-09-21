@@ -237,6 +237,8 @@ function normalizeWeeklyPayload(payload) {
     updatedAt: payload.updatedAt || payload.generatedAt || '',
     educator: payload.educator || '',
     calendarEducator: payload.calendarEducator || '',
+    schedulePolicyRevision: payload.schedulePolicyRevision || '',
+    scheduleRevision: payload.scheduleRevision || '',
     alerts: Array.isArray(payload.alerts) ? payload.alerts : [],
     weeks: normalizedWeeks
   };
