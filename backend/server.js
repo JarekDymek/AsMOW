@@ -1150,6 +1150,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     socketTimeout: 20_000
   });
 
+  const mailStartedAt = Date.now();
   const items = [];
   const scheduleDocuments = [];
   const ignoredScheduleDocuments = [];
@@ -1175,8 +1176,17 @@ async function fetchCurrentInfoMail(payload = {}) {
 
   try {
     const sinceDate = new Date(`${since}T00:00:00Z`);
+    const searchStartedAt = Date.now();
     const uids = await searchDirectorMail(client, sinceDate, { ...config, scheduleOnly: Boolean(payload.scheduleOnly) });
     matchedCount = uids.length;
+    if (payload.scheduleOnly) {
+      console.log('[SCHEDULE_TIMING] search', JSON.stringify({
+        ms: Date.now() - searchStartedAt,
+        since,
+        matched: matchedCount,
+        limit
+      }));
+    }
     scanTruncated = matchedCount > limit;
     const selected = uids.slice(-limit);
     scannedCount = selected.length;
@@ -1195,6 +1205,7 @@ async function fetchCurrentInfoMail(payload = {}) {
         ignoredScheduleDocuments: []
       };
     }
+    const fetchStartedAt = Date.now();
     for await (const message of client.fetch(selected, {
       uid: true,
       envelope: true,
@@ -1215,6 +1226,14 @@ async function fetchCurrentInfoMail(payload = {}) {
       items.push(item);
       if (hasInternatScheduleDocument(parsed, item)) scheduleCandidates.push({ parsed, item });
     }
+    if (payload.scheduleOnly) {
+      console.log('[SCHEDULE_TIMING] fetch', JSON.stringify({
+        ms: Date.now() - fetchStartedAt,
+        scanned: scannedCount,
+        accepted: items.length,
+        candidates: scheduleCandidates.length
+      }));
+    }
   } catch (err) {
     throwCurrentInfoMailError(err, 'pobieranie wiadomości', config);
   } finally {
@@ -1222,10 +1241,19 @@ async function fetchCurrentInfoMail(payload = {}) {
     await client.logout().catch(() => {});
   }
 
+  const extractStartedAt = Date.now();
   for (const candidate of scheduleCandidates) {
     const extracted = await extractInternatScheduleDocuments(candidate.parsed, candidate.item);
     scheduleDocuments.push(...extracted.documents);
     ignoredScheduleDocuments.push(...extracted.ignored);
+  }
+  if (payload.scheduleOnly) {
+    console.log('[SCHEDULE_TIMING] extract', JSON.stringify({
+      ms: Date.now() - extractStartedAt,
+      documents: scheduleDocuments.length,
+      ignored: ignoredScheduleDocuments.length,
+      totalMs: Date.now() - mailStartedAt
+    }));
   }
 
   items.sort((a, b) => `${b.date} ${b.id}`.localeCompare(`${a.date} ${a.id}`));
