@@ -6,7 +6,8 @@ Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 - `GET /api/knowledge` - centralna baza wiedzy z katalogu `backend/knowledge`.
 - `GET /api/legal-updates` - status monitorowanych aktów i publikacje do weryfikacji z oficjalnego API ELI; bez użycia AI.
 - `POST /api/chat` - rozmowa z asystentem.
-- `POST /api/weekly-plan` - awaryjne pobranie planu z Harmonogram-MOW.\n- `POST /api/schedule-dashboard` - aktualny plan budowany bezpośrednio z wiadomości IMAP i najnowszych korekt.
+- `POST /api/weekly-plan` - starszy endpoint zgodności; nie jest używany jako źródło zakładki Grafik.
+- `POST /api/schedule-dashboard` - kanoniczny grafik internatu. Dla każdego tygodnia wybiera wyłącznie najnowszy dokument z poczty IMAP, bez scalania ze starszymi wersjami.
 - `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
 - `POST /api/current-info-attachment` - pobranie wybranego załącznika z wiadomości dyrektora.
 - `POST /api/extract-file` - odczyt tekstu z plików przekazanych do analizy.
@@ -37,8 +38,8 @@ Zmienne środowiskowe dla Google Gemini:
 W Renderze ustaw:
 
 - `TEST_ACCESS_TOKENS` - jeden albo kilka kodów testowych po przecinku.
-- `TEST_WEEKLY_BACKEND_URL` - adres `/exec` z Apps Script Harmonogram-MOW.
-- `TEST_WEEKLY_VIEW_TOKEN` - tylko `VIEW_TOKEN`, nigdy `ADMIN_TOKEN`.
+- `TEST_WEEKLY_BACKEND_URL` - ustawienie zgodności starszego testera; nie jest źródłem kanonicznego Grafiku.
+- `TEST_WEEKLY_VIEW_TOKEN` - ustawienie zgodności starszego testera; kanoniczny Grafik używa tokenu synchronizacji poczty.
 - `TEST_WEEKLY_EDUCATOR=Dymek` albo inne nazwisko do podglądu.
 
 Link dla testera ma format:
