@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.9';
+const BACKEND_VERSION = '1.5.10';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1179,8 +1179,8 @@ function buildBootstrapMetadataCandidate(message = {}) {
   return {
     uid: String(message.uid || ''),
     date: message.internalDate instanceof Date
-      ? localMailDate(message.internalDate)
-      : (message.envelope?.date instanceof Date ? localMailDate(message.envelope.date) : ''),
+      ? normalizeMailDate(message.internalDate)
+      : (message.envelope?.date instanceof Date ? normalizeMailDate(message.envelope.date) : ''),
     sentAt: message.internalDate instanceof Date
       ? localMailTimestamp(message.internalDate)
       : (message.envelope?.date instanceof Date ? localMailTimestamp(message.envelope.date) : ''),
@@ -3008,6 +3008,7 @@ export {
   getMailScheduleDocumentRevision,
   resolveCurrentInfoMailbox,
   collectImapAttachmentMetadata,
+  buildBootstrapMetadataCandidate,
   chooseBootstrapMessageUids,
   selectLatestScheduleAttachments,
   selectBootstrapScheduleAttachments,
