@@ -75,12 +75,12 @@ const item = { id: 'a', mailUid: '10', mailFingerprint: 'same-original', title: 
 sandbox.mergeCurrentInfoItems([item, { ...item, id: 'b', mailUid: '11' }]);
 assert.equal(sandbox.currentInfoItems.length, 1);
 assert.equal(sandbox.currentInfoItems[0].attachments.length, 20);
-sandbox.saveCurrentInfoSyncSettings({ sourceRevision: 'director-forwarding-v2' });
+sandbox.saveCurrentInfoSyncSettings({ sourceRevision: 'director-canonical-v3' });
 sandbox.saveCurrentInfoSyncSettings();
-assert.equal(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-forwarding-v2');
+assert.equal(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-canonical-v3');
 sandbox.isTestMode = () => true;
 sandbox.saveCurrentInfoSyncSettings();
-assert.equal(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-forwarding-v2');
+assert.equal(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-canonical-v3');
 console.log('OK: forwarding, exact senders, attachment access, deduplication, all attachments and sync migration.');
 
 // An old backend response must not advance the migration checkpoint.
@@ -91,4 +91,4 @@ sandbox.fetch = async () => ({ ok: true, json: async () => ({ ok: true, items: [
 const oldBackendResult = await sandbox.syncCurrentInfoMail(false);
 assert.equal(oldBackendResult.ok, false);
 assert.equal(sandbox.getCurrentInfoSyncSettings().lastSyncAt, '');
-assert.notEqual(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-forwarding-v2');
+assert.notEqual(sandbox.getCurrentInfoSyncSettings().sourceRevision, 'director-canonical-v3');
