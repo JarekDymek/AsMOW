@@ -91,7 +91,6 @@ async function fetchWeeklyPlan(options = {}) {
   setWeeklyStatus(options.rescan
     ? 'Sprawdzam kanoniczne grafiki w poczcie od początku archiwum…'
     : 'Pobieram kanoniczny plan z backendu Render…');
-
   try {
     const mailPayload = await fetchMailScheduleDashboard({ fullRescan: true });
     if (!mailPayload?.weeks?.length && !mailPayload?.data?.weeks?.length) {
@@ -102,53 +101,7 @@ async function fetchWeeklyPlan(options = {}) {
     console.error('Canonical schedule refresh failed.', error);
     setWeeklyStatus(`Nie udało się odświeżyć kanonicznego grafiku: ${error.message}. Zachowano ostatnią poprawnie zapisaną wersję; nie użyto Apps Script ani lokalnego indeksu jako zamiennika.`);
   }
-}) {
-  setWeeklyStatus(options.rescan
-    ? 'Odświeżam plan z najnowszych wiadomości i korekt…'
-    : 'Pobieram aktualny plan…');
-
-  try {
-    const mailPayload = await fetchMailScheduleDashboard({ fullRescan: Boolean(options.rescan) });
-    if (mailPayload?.weeks?.length || mailPayload?.data?.weeks?.length) {
-      setWeeklyPlanFromPayload(mailPayload, 'Pobrano z aktualnej poczty dyrektora przez Render');
-      return;
-    }
-  } catch (mailError) {
-    console.warn('Mail schedule dashboard failed; trying Apps Script fallback.', mailError);
-  }
-
-  const testMode = typeof isTestMode === 'function' && isTestMode();
-  const settings = saveWeeklySettings();
-  if (!testMode && !settings.backendUrl) {
-    setWeeklyStatus('Nie udało się odświeżyć planu z poczty, a brak adresu awaryjnego Harmonogram-MOW.');
-    return;
-  }
-
-  try {
-    const rescan = Boolean(options.rescan) && !testMode;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), rescan ? 120000 : 25000);
-    const res = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        targetUrl: testMode ? '' : settings.backendUrl,
-        token: testMode ? '' : settings.token,
-        testAccessToken: testMode ? getTestAccessToken() : '',
-        educator: settings.educator || 'Dymek',
-        action: rescan ? 'scan' : 'dashboard'
-      })
-    });
-    clearTimeout(timer);
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-    setWeeklyPlanFromPayload(payload.data || payload, 'Pobrano awaryjnie z Harmonogram-MOW');
-  } catch (error) {
-    setWeeklyStatus(`Nie udało się odświeżyć planu. Źródło pocztowe i awaryjny Harmonogram-MOW zwróciły błąd: ${error.message}`);
-  }
 }
-
 async function rebuildWeeklyPlanFromMail(educator = '') {
   const input = document.getElementById('weekly-educator');
   if (input && educator) input.value = educator;
