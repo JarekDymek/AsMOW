@@ -615,7 +615,7 @@ async function fetchMailScheduleDashboard(payload = {}) {
     action: 'dashboard',
     source: 'director-mail-render',
     backendVersion: BACKEND_VERSION,
-    mailSourceRevision: mail.mailSourceRevision || 'director-forwarding-v2',
+    mailSourceRevision: mail.mailSourceRevision || 'director-canonical-v3',
     schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
     scheduleRevision,
     authoritativeWeeks,
@@ -726,7 +726,7 @@ async function fetchMailScheduleDashboard(payload = {}) {
     action: 'dashboard',
     source: 'director-mail-render',
     backendVersion: BACKEND_VERSION,
-    mailSourceRevision: mail.mailSourceRevision || 'director-forwarding-v2',
+    mailSourceRevision: mail.mailSourceRevision || 'director-canonical-v3',
     educator,
     calendarEducator: educator,
     updatedAt,
@@ -1049,7 +1049,7 @@ async function fetchCurrentInfoMail(payload = {}) {
     if (!selected.length) {
       return {
         ok: true,
-        mailSourceRevision: 'director-forwarding-v2',
+        mailSourceRevision: 'director-canonical-v3',
         source: config.from,
         since,
         count: 0,
@@ -1095,7 +1095,7 @@ async function fetchCurrentInfoMail(payload = {}) {
   const newestDate = items[0]?.date || '';
   return {
     ok: true,
-    mailSourceRevision: 'director-forwarding-v2',
+    mailSourceRevision: 'director-canonical-v3',
     source: config.from,
     since,
     count: items.length,
