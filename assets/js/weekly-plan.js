@@ -7,16 +7,20 @@ let weeklyPlanRefreshPromise = null;
 let weeklyPlanRefreshAt = 0;
 
 function getSharedHarmonogramMowSettings() {
-  const keys = ['harmonogram-mow-state-v12', 'harmonogram-mow-state-v11', 'harmonogram-mow-state-v10'];
-  for (const key of keys) {
+  const sources = [
+    { key: 'harmonogram-mow-settings-v1', settingsOnly: true },
+    { key: 'harmonogram-mow-state-v12' },
+    { key: 'harmonogram-mow-state-v11' },
+    { key: 'harmonogram-mow-state-v10' }
+  ];
+  for (const source of sources) {
     try {
-      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      const parsed = JSON.parse(localStorage.getItem(source.key) || 'null');
       if (!parsed || typeof parsed !== 'object') continue;
-      return {
-        backendUrl: String(parsed.backendUrl || ''),
-        token: String(parsed.viewToken || parsed.adminToken || ''),
-        educator: String(parsed.educator || '')
-      };
+      const backendUrl = String(parsed.backendUrl || '');
+      const token = String(parsed.adminToken || parsed.viewToken || '');
+      const educator = String(parsed.educator || '');
+      if (backendUrl || token || educator) return { backendUrl, token, educator };
     } catch {}
   }
   return { backendUrl: '', token: '', educator: '' };
@@ -72,54 +76,61 @@ function setWeeklyStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function fetchMailScheduleDashboard(options = {}) {
-  const currentInfo = getCurrentInfoSyncSettings();
-  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
-  if (!currentInfo.token && !testAccessToken) return null;
+async function fetchWeeklyPlan(options = {}) {
+  const testMode = typeof isTestMode === 'function' && isTestMode();
+  const settings = saveWeeklySettings();
+  if (!testMode && !settings.backendUrl) {
+    setWeeklyStatus('Brak adresu wdrożenia Apps Script Harmonogram-MOW.');
+    return;
+  }
+  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
+    setWeeklyStatus('Adres backendu Harmonogram-MOW musi kończyć się na /exec.');
+    return;
+  }
+  if (!testMode && !settings.token) {
+    setWeeklyStatus('Brak VIEW_TOKEN lub ADMIN_TOKEN Harmonogram-MOW.');
+    return;
+  }
 
-  const educator = document.getElementById('weekly-educator')?.value.trim() || 'Dymek';
+  const rescan = Boolean(options.rescan) && !testMode;
+  const automatic = Boolean(options.automatic);
+  setWeeklyStatus(rescan
+    ? 'Skanuję Harmonogram-MOW i pobieram aktualny plan…'
+    : (automatic ? 'Odświeżam plan z Harmonogram-MOW…' : 'Pobieram plan z Harmonogram-MOW…'));
+
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), options.forceRefresh ? 20_000 : 12_000);
+  const timer = setTimeout(() => ctrl.abort(), rescan ? 120_000 : 30_000);
   try {
-    const response = await fetch(`${getAIBackendBaseUrl()}/api/schedule-dashboard`, {
+    const response = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: ctrl.signal,
       body: JSON.stringify({
-        token: testAccessToken ? '' : currentInfo.token,
-        testAccessToken,
-        educator,
-        forceRefresh: Boolean(options.forceRefresh)
+        targetUrl: testMode ? '' : settings.backendUrl,
+        token: testMode ? '' : settings.token,
+        testAccessToken: testMode ? getTestAccessToken() : '',
+        educator: settings.educator || 'Dymek',
+        action: rescan ? 'scan' : 'dashboard'
       })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false) {
       throw new Error(payload.error || `HTTP ${response.status}`);
     }
-    return payload;
+    const dashboard = payload.data || payload;
+    if (!Array.isArray(dashboard.weeks) || !dashboard.weeks.length) {
+      throw new Error('Harmonogram-MOW nie zwrócił żadnego tygodnia');
+    }
+    setWeeklyPlanFromPayload(
+      dashboard,
+      rescan ? 'Przeskanowano i pobrano z Harmonogram-MOW' : 'Pobrano z Harmonogram-MOW'
+    );
   } catch (error) {
-    if (error?.name === 'AbortError') throw new Error('backend grafiku nie odpowiedział w wymaganym czasie');
-    throw error;
+    const message = error?.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : error.message;
+    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
+    setWeeklyStatus(`Nie udało się pobrać planu: ${message}. ${tokenHint}`);
   } finally {
     clearTimeout(timer);
-  }
-}
-
-async function fetchWeeklyPlan(options = {}) {
-  setWeeklyStatus(options.rescan
-    ? 'Sprawdzam kanoniczne grafiki w poczcie od początku archiwum…'
-    : 'Pobieram kanoniczny plan z backendu Render…');
-  try {
-    const mailPayload = await fetchMailScheduleDashboard({ forceRefresh: Boolean(options.rescan) });
-    if (!mailPayload?.weeks?.length && !mailPayload?.data?.weeks?.length) {
-      throw new Error('backend Render nie zwrócił żadnego tygodnia grafiku internatu');
-    }
-    setWeeklyPlanFromPayload(mailPayload, mailPayload?.stale
-      ? 'Ostatni poprawny kanoniczny grafik z cache backendu'
-      : 'Kanoniczny grafik z poczty dyrektora przez Render');
-  } catch (error) {
-    console.error('Canonical schedule refresh failed.', error);
-    setWeeklyStatus(`Nie udało się odświeżyć kanonicznego grafiku: ${error.message}. Zachowano ostatnią poprawnie zapisaną wersję; nie użyto Apps Script ani lokalnego indeksu jako zamiennika.`);
   }
 }
 async function rebuildWeeklyPlanFromMail(educator = '') {
@@ -130,11 +141,14 @@ async function rebuildWeeklyPlanFromMail(educator = '') {
 
 async function refreshWeeklyPlanOnOpen() {
   const testMode = typeof isTestMode === 'function' && isTestMode();
-  const currentInfo = typeof getCurrentInfoSyncSettings === 'function'
-    ? getCurrentInfoSyncSettings()
-    : { token: '' };
-  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
-  if (!testMode && !currentInfo.token && !testAccessToken) return false;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
+  const shared = getSharedHarmonogramMowSettings();
+  const backendUrl = document.getElementById('weekly-backend-url')?.value.trim()
+    || saved.backendUrl || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
+  const token = document.getElementById('weekly-token')?.value.trim()
+    || saved.token || shared.token || '';
+  if (!testMode && (!backendUrl || !token)) return false;
   if (weeklyPlanRefreshPromise) return weeklyPlanRefreshPromise;
   if (weeklyPlan && Date.now() - weeklyPlanRefreshAt < 60_000) return true;
   weeklyPlanRefreshPromise = fetchWeeklyPlan({ automatic: true })
@@ -146,7 +160,6 @@ async function refreshWeeklyPlanOnOpen() {
     .finally(() => { weeklyPlanRefreshPromise = null; });
   return weeklyPlanRefreshPromise;
 }
-
 async function loadSampleWeeklyPlan() {
   setWeeklyStatus('Pobieram dane przykładowe...');
   try {
@@ -328,7 +341,7 @@ function getWeeklyGeneratorDiagnostic(payload = {}) {
   if (Array.isArray(payload.dashboardWeekStarts)) {
     return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.${version}`;
   }
-  return `Uwaga: aktywny generator nie zwraca pola dashboardWeekStarts, więc może nadal działać stare wdrożenie Apps Script.${version}`;
+  return `Harmonogram-MOW zwrócił plan tygodniowy.${version}`;
 }
 
 function normalizeWeeklyWeek(w = {}) {
