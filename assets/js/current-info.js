@@ -3,6 +3,7 @@ const CURRENT_INFO_SOURCE_REVISION = 'director-canonical-v5';
 const CURRENT_INFO_START_DATE = '2026-01-01';
 const CURRENT_INFO_RECOVERY_DATE = '2026-09-01';
 const CURRENT_INFO_LOOKBACK_DAYS = 14;
+const CURRENT_INFO_BACKEND_URL = 'https://asmow.onrender.com';
 
 function loadCurrentInfo() {
   try {
@@ -257,7 +258,7 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
 
   try {
     setCurrentInfoStatus(`Pobieram załącznik: ${attachment.name}...`);
-    const response = await fetch(`${getAIBackendBaseUrl()}/api/current-info-attachment`, {
+    const response = await fetchCurrentInfoBackend('/api/current-info-attachment', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -585,6 +586,30 @@ function getCurrentInfoSyncSince(lastSyncAt = '') {
   return iso < CURRENT_INFO_START_DATE ? CURRENT_INFO_START_DATE : iso;
 }
 
+function getCurrentInfoBackendBases() {
+  const candidates = [CURRENT_INFO_BACKEND_URL];
+  try {
+    const configured = String(getAIBackendBaseUrl() || '').replace(/\/$/, '');
+    if (configured && !candidates.includes(configured)) candidates.push(configured);
+  } catch {}
+  return candidates;
+}
+
+async function fetchCurrentInfoBackend(path, options = {}) {
+  let lastNetworkError = null;
+  for (const base of getCurrentInfoBackendBases()) {
+    try {
+      return await fetch(`${base}${path}`, options);
+    } catch (error) {
+      lastNetworkError = error;
+      console.warn(`Current Info backend unavailable: ${base}`, error);
+    }
+  }
+  const error = new Error(`Nie można połączyć się z backendem AsMOW (${CURRENT_INFO_BACKEND_URL}).`);
+  error.cause = lastNetworkError;
+  throw error;
+}
+
 async function syncCurrentInfoMail(manual = true, options = {}) {
   const settings = saveCurrentInfoSyncSettings({ lastSyncAt: getCurrentInfoSyncSettings().lastSyncAt });
   const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
@@ -604,7 +629,7 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     setCurrentInfoStatus(manual
       ? `Pobieram nowe wiadomości od ${sinceLabel}...`
       : `Automatycznie sprawdzam pocztę od ${sinceLabel}...`);
-    const response = await fetch(`${getAIBackendBaseUrl()}/api/current-info-mail`, {
+    const response = await fetchCurrentInfoBackend('/api/current-info-mail', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
