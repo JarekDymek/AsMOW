@@ -3025,7 +3025,6 @@ export {
   buildBootstrapMetadataCandidate,
   formatBootstrapMailTimestamp,
   extractInternatWeekStart,
-  selectLatestScheduleAttachments,
   chooseBootstrapMessageUids,
   selectLatestScheduleAttachments,
   selectBootstrapScheduleAttachments,
