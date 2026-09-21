@@ -1,6 +1,8 @@
 const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
-const CURRENT_INFO_SOURCE_REVISION = 'director-canonical-v4';
+const CURRENT_INFO_SOURCE_REVISION = 'director-canonical-v5';
 const CURRENT_INFO_START_DATE = '2026-01-01';
+const CURRENT_INFO_RECOVERY_DATE = '2026-09-01';
+const CURRENT_INFO_LOOKBACK_DAYS = 14;
 
 function loadCurrentInfo() {
   try {
@@ -576,7 +578,11 @@ async function autoSyncCurrentInfoMail() {
 function getCurrentInfoSyncSince(lastSyncAt = '') {
   const match = String(lastSyncAt || '').match(/^\d{4}-\d{2}-\d{2}/);
   if (!match) return CURRENT_INFO_START_DATE;
-  return match[0] < CURRENT_INFO_START_DATE ? CURRENT_INFO_START_DATE : match[0];
+  const date = new Date(`${match[0]}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return CURRENT_INFO_START_DATE;
+  date.setUTCDate(date.getUTCDate() - CURRENT_INFO_LOOKBACK_DAYS);
+  const iso = date.toISOString().slice(0, 10);
+  return iso < CURRENT_INFO_START_DATE ? CURRENT_INFO_START_DATE : iso;
 }
 
 async function syncCurrentInfoMail(manual = true, options = {}) {
@@ -589,7 +595,7 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
   try {
     const syncStartedAt = new Date().toISOString();
     const needsSourceRescan = settings.sourceRevision !== CURRENT_INFO_SOURCE_REVISION;
-    const since = needsSourceRescan ? CURRENT_INFO_START_DATE : options.since
+    const since = needsSourceRescan ? CURRENT_INFO_RECOVERY_DATE : options.since
       ? getCurrentInfoSyncSince(options.since)
       : options.fullRescan
         ? CURRENT_INFO_START_DATE
