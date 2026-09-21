@@ -97,11 +97,17 @@ for (const required of [
 ]) {
   if (!server.includes(required)) throw new Error(`Brak strażnika kanonicznego grafiku: ${required}`);
 }
-if (weeklyPlan.includes('/api/weekly-plan') || weeklyPlan.includes('Apps Script fallback')) {
-  throw new Error('Zakładka Grafik nie może wracać do Apps Script jako alternatywnego źródła danych.');
+for (const required of [
+  '/api/weekly-plan',
+  'targetUrl',
+  'settings.token',
+  'WEEKLY_DEFAULT_BACKEND_URL',
+  'harmonogram-mow-settings-v1'
+]) {
+  if (!weeklyPlan.includes(required)) throw new Error(`Zakładka Grafik musi korzystać z Harmonogram-MOW przez bezpieczne proxy: ${required}`);
 }
-if (!weeklyPlan.includes('fetchMailScheduleDashboard') || !weeklyPlan.includes('Zachowano ostatnią poprawnie zapisaną wersję')) {
-  throw new Error('Zakładka Grafik musi używać Render jako jedynego źródła i zachować ostatnią poprawną wersję przy błędzie.');
+if (weeklyPlan.includes('fetchMailScheduleDashboard')) {
+  throw new Error('Zakładka Grafik nie może wymagać tokenu synchronizacji poczty Render zamiast tokenu Harmonogram-MOW.');
 }
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);
