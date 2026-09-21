@@ -128,6 +128,51 @@ assert.deepEqual(
   ['Dembiński', 'Chlebowski']
 );
 
+const shiftedSequence = parseInternatScheduleCellEntries(
+  '6:00-8:00\nFilut\nzast. Dembiński\n12:30-20:00\nDembiński\n20:00-22:00\nDymek',
+  '',
+  'VI'
+);
+assert.deepEqual(
+  shiftedSequence.map(entry => ({
+    employee: entry.employee,
+    from: entry.range.from,
+    to: entry.range.to,
+    substitution: Boolean(entry.substitution)
+  })),
+  [
+    { employee: 'Filut', from: '06:00', to: '08:00', substitution: false },
+    { employee: 'Dembiński', from: '06:00', to: '08:00', substitution: true },
+    { employee: 'Dembiński', from: '12:30', to: '20:00', substitution: false },
+    { employee: 'Dymek', from: '20:00', to: '22:00', substitution: false }
+  ]
+);
+
+const sameRangeReplacement = parseInternatScheduleCellEntries(
+  '15:00-19:00\nWorożański\nzast. Pawłowski\n19:00-22:00\nGłowacki',
+  '',
+  'III'
+);
+assert.deepEqual(
+  sameRangeReplacement.map(entry => [entry.employee, entry.range.from, entry.range.to, Boolean(entry.substitution)]),
+  [
+    ['Worożański', '15:00', '19:00', false],
+    ['Pawłowski', '15:00', '19:00', true],
+    ['Głowacki', '19:00', '22:00', false]
+  ]
+);
+
+const nightAnnotation = parseInternatScheduleCellEntries(
+  '22:00-6:00 Szaruga zastępstwo za pracownika nocnego',
+  '',
+  'NOC',
+  'night-row'
+);
+assert.equal(nightAnnotation.length, 1);
+assert.equal(nightAnnotation[0].employee, 'Szaruga');
+assert.equal(nightAnnotation[0].range.from, '22:00');
+assert.equal(nightAnnotation[0].range.to, '06:00');
+
 const substituteEntries = parseInternatScheduleCellEntries(
   '14:00-18:00\nzast. Dembiński\n18:00-22:00\nzast. Dymek',
   '',
@@ -141,4 +186,4 @@ assert.deepEqual(
   ]
 );
 
-console.log('OK: parser grafików rozpoznaje tryb wakacyjny i szkolny, zastępstwa zapisane jako "zast.", waliduje godziny oraz odrzuca grafik innego zespołu.');
+console.log('OK: parser grafików rozpoznaje tryb wakacyjny i szkolny, wiąże zastępstwa z właściwym przedziałem, zachowuje adnotacje nocne, waliduje godziny oraz odrzuca grafik innego zespołu.');
