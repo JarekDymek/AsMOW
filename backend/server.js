@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.3';
+const BACKEND_VERSION = '1.5.4';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -63,6 +63,8 @@ const rate = new Map();
 const KNOWLEDGE_PROMPT_EXCLUDED_FILES = new Set(['07_bank_odpowiedzi_mow_250.md']);
 let knowledgeFilesCache = { signature: '', files: [] };
 let legalUpdatesCache = { at: 0, payload: null };
+const SCHEDULE_DASHBOARD_CACHE_MS = 60_000;
+const scheduleDashboardCache = new Map();
 const STATIC_FILES = new Map([
   ['/manifest.webmanifest', { file: path.join(__dirname, '..', 'manifest.webmanifest'), type: 'application/manifest+json; charset=utf-8' }],
   ['/sw.js', { file: path.join(__dirname, '..', 'sw.js'), type: 'application/javascript; charset=utf-8' }]
@@ -135,7 +137,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/schedule-dashboard') {
       if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
       const payload = await readJson(req);
-      const dashboard = await fetchMailScheduleDashboard(payload);
+      const dashboard = await fetchMailScheduleDashboardCached(payload);
       return json(res, 200, dashboard);
     }
 
@@ -198,8 +200,35 @@ const server = http.createServer(async (req, res) => {
 if (process.env.ASMOW_TEST_MODE !== '1') {
   server.listen(PORT, () => {
     console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
-    setTimeout(() => probeCurrentInfoMailConnection().catch(() => {}), 750);
+    setTimeout(async () => {
+      const ok = await probeCurrentInfoMailConnection().catch(() => false);
+      if (ok) await prewarmCanonicalScheduleCache().catch(() => {});
+    }, 750);
   });
+}
+
+async function prewarmCanonicalScheduleCache() {
+  const token = getConfiguredCurrentInfoSyncTokens()[0];
+  if (!token) {
+    console.warn('[SCHEDULE_CACHE] prewarm skipped: no sync token configured');
+    return false;
+  }
+  try {
+    const dashboard = await fetchMailScheduleDashboardCached({
+      token,
+      educator: TEST_WEEKLY_EDUCATOR || 'Dymek',
+      forceRefresh: true
+    });
+    console.log('[SCHEDULE_CACHE] prewarm ok', JSON.stringify({
+      weeks: Array.isArray(dashboard?.weeks) ? dashboard.weeks.length : 0,
+      revision: dashboard?.scheduleRevision || '',
+      newestDate: dashboard?.newestDate || ''
+    }));
+    return true;
+  } catch (error) {
+    console.error('[SCHEDULE_CACHE] prewarm failed', error?.code || '', error?.message || '');
+    return false;
+  }
 }
 
 async function probeCurrentInfoMailConnection() {
@@ -555,7 +584,56 @@ async function fetchWeeklyPlan(payload = {}) {
 }
 
 
-async function fetchMailScheduleDashboard(payload = {}) {
+async async function fetchMailScheduleDashboardCached(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
+
+  const educator = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
+  const key = normalizeMailSearch(educator) || 'dymek';
+  const now = Date.now();
+  const existing = scheduleDashboardCache.get(key);
+
+  if (!payload.forceRefresh && existing?.payload && now - existing.at < SCHEDULE_DASHBOARD_CACHE_MS) {
+    return {
+      ...existing.payload,
+      cached: true,
+      cacheAgeMs: now - existing.at
+    };
+  }
+
+  if (existing?.promise) return existing.promise;
+
+  const promise = fetchMailScheduleDashboard(payload)
+    .then(result => {
+      scheduleDashboardCache.set(key, { at: Date.now(), payload: result, promise: null });
+      return result;
+    })
+    .catch(error => {
+      const previous = scheduleDashboardCache.get(key);
+      if (previous?.payload) {
+        console.warn('[SCHEDULE_CACHE] serving last good snapshot after refresh error:', error?.code || '', error?.message || '');
+        return {
+          ...previous.payload,
+          cached: true,
+          stale: true,
+          staleReason: error?.message || 'Błąd odświeżenia źródła pocztowego.'
+        };
+      }
+      throw error;
+    })
+    .finally(() => {
+      const current = scheduleDashboardCache.get(key);
+      if (current?.promise === promise) scheduleDashboardCache.delete(key);
+    });
+
+  scheduleDashboardCache.set(key, {
+    at: existing?.at || 0,
+    payload: existing?.payload || null,
+    promise
+  });
+  return promise;
+}
+
+function fetchMailScheduleDashboard(payload = {}) {
   const since = normalizeCurrentInfoSince(SCHEDULE_ARCHIVE_SINCE);
   const educatorQuery = String(payload.educator || TEST_WEEKLY_EDUCATOR || 'Dymek').trim() || 'Dymek';
   const mail = await fetchCurrentInfoMail({
