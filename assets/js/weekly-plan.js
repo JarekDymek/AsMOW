@@ -1,4 +1,4 @@
-const WEEKLY_SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1';
+const WEEKLY_SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2';
 /* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
@@ -144,6 +144,59 @@ async function loadSampleWeeklyPlan() {
   }
 }
 
+function compareWeeklyAuthoritativeSource(incomingWeek, existingWeek) {
+  const incoming = incomingWeek?.authoritativeDocument || {};
+  const existing = existingWeek?.authoritativeDocument || {};
+  const byDate = String(incoming.sourceSentAt || incoming.sourceDate || '')
+    .localeCompare(String(existing.sourceSentAt || existing.sourceDate || ''));
+  if (byDate) return byDate;
+  const byUid = Number(incoming.sourceMailUid || 0) - Number(existing.sourceMailUid || 0);
+  if (byUid) return byUid;
+  return String(incoming.id || incomingWeek?.sourceVersion || '')
+    .localeCompare(String(existing.id || existingWeek?.sourceVersion || ''));
+}
+
+function mergeStableWeeklyPlan(existingPlan, incomingPlan) {
+  if (!existingPlan?.weeks?.length) return incomingPlan;
+  if (existingPlan.meta?.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) return incomingPlan;
+  if (normalizeForWeeklyCompare(existingPlan.educator || '') !== normalizeForWeeklyCompare(incomingPlan.educator || '')) {
+    return incomingPlan;
+  }
+
+  const merged = new Map();
+  existingPlan.weeks.forEach(week => {
+    const identity = getWeeklyIdentity(week);
+    if (identity) merged.set(identity, week);
+  });
+
+  incomingPlan.weeks.forEach(incomingWeek => {
+    const identity = getWeeklyIdentity(incomingWeek);
+    if (!identity) return;
+    const existingWeek = merged.get(identity);
+    if (!existingWeek) {
+      merged.set(identity, incomingWeek);
+      return;
+    }
+
+    // Ten sam dokument źródłowy = zamrożony tydzień. Nie zastępuj go
+    // ponownym wynikiem parsera.
+    if (incomingWeek.sourceVersion && incomingWeek.sourceVersion === existingWeek.sourceVersion) return;
+
+    if (!existingWeek.sourceVersion || compareWeeklyAuthoritativeSource(incomingWeek, existingWeek) > 0) {
+      merged.set(identity, incomingWeek);
+    }
+  });
+
+  return {
+    ...incomingPlan,
+    weeks: classifyWeeklyWeeks([...merged.values()])
+  };
+}
+
+function normalizeForWeeklyCompare(value = '') {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
 function setWeeklyPlanFromPayload(payload, sourceLabel) {
   const extracted = extractWeeklyDashboard(payload);
   if (extracted.ok === false) {
@@ -164,14 +217,16 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
     setWeeklyStatus(`Odpowiedź nie zawiera żadnego kanonicznego tygodnia${details ? ` (${details})` : ''}. Poprzednio zapisany plan nie został zmieniony.`);
     return;
   }
-  weeklyPlan = normalized;
-  weeklyPlanMeta = {
+  const incomingMeta = {
     source: sourceLabel,
     sourceType: 'render-canonical',
     schedulePolicyRevision: extracted.schedulePolicyRevision || extracted.data?.schedulePolicyRevision || '',
     scheduleRevision: extracted.scheduleRevision || extracted.data?.scheduleRevision || '',
     loadedAt: new Date().toISOString()
   };
+  normalized.meta = incomingMeta;
+  weeklyPlan = mergeStableWeeklyPlan(weeklyPlan, normalized);
+  weeklyPlanMeta = incomingMeta;
   weeklyPlan.meta = weeklyPlanMeta;
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
   renderWeeklyPlan();
@@ -277,6 +332,10 @@ function normalizeWeeklyWeek(w = {}) {
     days,
     validationWarnings: [...(w.validationWarnings || []), ...validateWeeklyWeek(days)],
     sourceFilename: w.sourceFilename || w.source || '',
+    sourceVersion: String(w.sourceVersion || ''),
+    authoritativeDocument: w.authoritativeDocument && typeof w.authoritativeDocument === 'object'
+      ? { ...w.authoritativeDocument }
+      : null,
     partialFromHistory: !!w.partialFromHistory
   };
 }
