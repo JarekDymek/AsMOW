@@ -62,6 +62,8 @@ function normalizeInternatScheduleDocument(item) {
     };
   }).filter(Boolean);
 
+  const recordDates = new Set(records.map(record => record.date).filter(Boolean));
+
   return {
     id,
     weekStart,
@@ -72,7 +74,7 @@ function normalizeInternatScheduleDocument(item) {
     sourceAttachmentOrder: Number(item.sourceAttachmentOrder || 0),
     sourceDate: String(item.sourceDate || ''),
     sourceSentAt: String(item.sourceSentAt || ''),
-    hasCompleteWeek: Boolean(item.hasCompleteWeek),
+    hasCompleteWeek: Boolean(item.hasCompleteWeek) || recordDates.size >= 7,
     coveredScopes: Array.isArray(item.coveredScopes) ? item.coveredScopes : [],
     indexedAt: String(item.indexedAt || new Date().toISOString()),
     scheduleKind: classifyInternatScheduleKind(item.scheduleKind, `${item.sourceTitle || ''} ${sourceAttachment}`),
