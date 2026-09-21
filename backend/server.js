@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.11';
+const BACKEND_VERSION = '1.5.12';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -2526,7 +2526,7 @@ function parseInternatScheduleCellDate(value, weekStart) {
   const iso = text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
   if (iso) return createInternatIsoDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
-  const full = text.match(/\b(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})\b/);
+  const full = text.match(/\b(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(20\d{2})\b/);
   if (full) return createInternatIsoDate(Number(full[3]), Number(full[2]), Number(full[1]));
 
   if (!weekStart) return '';
@@ -2554,14 +2554,14 @@ function getInternatWeekdayOffset(value = '') {
 
 function extractInternatWeekStart(value = '') {
   const text = String(value || '');
-  const range = text.match(/(?:^|[^\d])(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](20\d{2}))?\s*[.]?\s*(?:r\.?)?\s*(?:-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/i);
+  const range = text.match(/(?:^|[^\d])(\d{1,2})\s*[.\/-]\s*(\d{1,2})(?:\s*[.\/-]\s*(20\d{2}))?\s*[.]?\s*(?:r\.?)?\s*(?:-|–|—)\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(20\d{2})/i);
   if (range) {
     let year = Number(range[3] || range[6]);
     if (!range[3] && Number(range[2]) > Number(range[5])) year -= 1;
     return getInternatMonday(createInternatIsoDate(year, Number(range[2]), Number(range[1])));
   }
 
-  const shortRange = text.match(/(?:^|[^\d])(\d{1,2})\s*[.]?\s*(?:-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})/i);
+  const shortRange = text.match(/(?:^|[^\d])(\d{1,2})\s*[.]?\s*(?:-|–|—)\s*(\d{1,2})\s*[.\/-]\s*(\d{1,2})\s*[.\/-]\s*(20\d{2})/i);
   if (shortRange) {
     const startDay = Number(shortRange[1]);
     const endDay = Number(shortRange[2]);
@@ -3024,6 +3024,8 @@ export {
   collectImapAttachmentMetadata,
   buildBootstrapMetadataCandidate,
   formatBootstrapMailTimestamp,
+  extractInternatWeekStart,
+  selectLatestScheduleAttachments,
   chooseBootstrapMessageUids,
   selectLatestScheduleAttachments,
   selectBootstrapScheduleAttachments,
