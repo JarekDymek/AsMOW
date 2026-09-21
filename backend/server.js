@@ -2465,5 +2465,6 @@ export {
   classifyInternatScheduleKind,
   parseInternatScheduleCellEntries,
   parseInternatScheduleHtml,
-  buildActiveMailSchedule
+  buildActiveMailSchedule,
+  getMailScheduleDocumentRevision
 };
