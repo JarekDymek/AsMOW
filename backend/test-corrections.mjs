@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 process.env.ASMOW_TEST_MODE = '1';
-const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision } = await import('./server.js');
+const { parseInternatScheduleHtml, buildActiveMailSchedule, getMailScheduleDocumentRevision, getScheduleBootstrapSince, settleWithin } = await import('./server.js');
 
 const context = vm.createContext({ console, Date });
 vm.runInContext(fs.readFileSync(new URL('../assets/js/harmonogram.js', import.meta.url), 'utf8'), context);
@@ -153,6 +153,26 @@ assert.ok(schoolLabels.records.some(r => r.group === 'VI' && r.employee === 'Dym
 assert.ok(schoolLabels.records.some(r => r.group === 'IV' && r.employee === 'Kowalska'));
 
 // Grafik w Asystencie musi korzystać tylko z Render; żadnego Apps Script ani lokalnej odbudowy jako fallback.
+const serverSource = fs.readFileSync(new URL('./server.js', import.meta.url), 'utf8');
+assert.doesNotMatch(
+  serverSource,
+  /if\s*\(existing\?\.promise\)\s*return\s+existing\.promise/,
+  'Żądanie użytkownika nie może blokować się na pełnym skanie cache.'
+);
+assert.match(serverSource, /SCHEDULE_DASHBOARD_CACHE_MS\s*=\s*15\s*\*\s*60_000/);
+assert.match(serverSource, /getOrStartScheduleBootstrap/);
+assert.match(serverSource, /startScheduleDashboardRefresh/);
+assert.match(serverSource, /settleWithin\(refreshPromise,\s*SCHEDULE_FORCE_REFRESH_WAIT_MS\)/);
+
+const slowResult = await settleWithin(new Promise(resolve => setTimeout(() => resolve('late'), 80)), 10);
+assert.equal(slowResult.done, false);
+const fastResult = await settleWithin(Promise.resolve('ok'), 100);
+assert.equal(fastResult.done, true);
+assert.equal(fastResult.value, 'ok');
+
+const bootstrapSince = getScheduleBootstrapSince();
+assert.match(bootstrapSince, /^\d{4}-\d{2}-\d{2}$/);
+
 const weeklySource = fs.readFileSync(new URL('../assets/js/weekly-plan.js', import.meta.url), 'utf8');
 const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan(options = {})');
 const fetchEnd = weeklySource.indexOf('\nasync function rebuildWeeklyPlanFromMail', fetchStart);
