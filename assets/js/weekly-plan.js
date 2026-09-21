@@ -34,13 +34,16 @@ function loadWeeklyPlanState() {
   } catch {}
   try {
     const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
-    if (saved && saved.weeks && saved.meta?.schedulePolicyRevision === WEEKLY_SCHEDULE_POLICY_REVISION) {
+    if (saved && saved.weeks) {
       weeklyPlan = saved;
       weeklyPlanMeta = saved.meta || null;
-    } else if (saved) {
-      localStorage.removeItem(WEEKLY_PLAN_KEY);
-      weeklyPlan = null;
-      weeklyPlanMeta = null;
+      if (saved.meta?.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) {
+        weeklyPlanMeta = {
+          ...(saved.meta || {}),
+          legacyPolicy: true
+        };
+        weeklyPlan.meta = weeklyPlanMeta;
+      }
     }
   } catch {}
 }
@@ -75,21 +78,31 @@ async function fetchMailScheduleDashboard(options = {}) {
   if (!currentInfo.token && !testAccessToken) return null;
 
   const educator = document.getElementById('weekly-educator')?.value.trim() || 'Dymek';
-  const response = await fetch(`${getAIBackendBaseUrl()}/api/schedule-dashboard`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      token: testAccessToken ? '' : currentInfo.token,
-      testAccessToken,
-      educator,
-      since: options.fullRescan ? CURRENT_INFO_START_DATE : undefined
-    })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || `HTTP ${response.status}`);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), options.forceRefresh ? 20_000 : 12_000);
+  try {
+    const response = await fetch(`${getAIBackendBaseUrl()}/api/schedule-dashboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        token: testAccessToken ? '' : currentInfo.token,
+        testAccessToken,
+        educator,
+        forceRefresh: Boolean(options.forceRefresh)
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+    return payload;
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('backend grafiku nie odpowiedział w wymaganym czasie');
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload;
 }
 
 async function fetchWeeklyPlan(options = {}) {
@@ -97,11 +110,13 @@ async function fetchWeeklyPlan(options = {}) {
     ? 'Sprawdzam kanoniczne grafiki w poczcie od początku archiwum…'
     : 'Pobieram kanoniczny plan z backendu Render…');
   try {
-    const mailPayload = await fetchMailScheduleDashboard({ fullRescan: true });
+    const mailPayload = await fetchMailScheduleDashboard({ forceRefresh: Boolean(options.rescan) });
     if (!mailPayload?.weeks?.length && !mailPayload?.data?.weeks?.length) {
       throw new Error('backend Render nie zwrócił żadnego tygodnia grafiku internatu');
     }
-    setWeeklyPlanFromPayload(mailPayload, 'Kanoniczny grafik z poczty dyrektora przez Render');
+    setWeeklyPlanFromPayload(mailPayload, mailPayload?.stale
+      ? 'Ostatni poprawny kanoniczny grafik z cache backendu'
+      : 'Kanoniczny grafik z poczty dyrektora przez Render');
   } catch (error) {
     console.error('Canonical schedule refresh failed.', error);
     setWeeklyStatus(`Nie udało się odświeżyć kanonicznego grafiku: ${error.message}. Zachowano ostatnią poprawnie zapisaną wersję; nie użyto Apps Script ani lokalnego indeksu jako zamiennika.`);
