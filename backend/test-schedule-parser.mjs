@@ -148,6 +148,20 @@ assert.deepEqual(
   ]
 );
 
+const realFridayCorrection = parseInternatScheduleCellEntries(
+  '14:00-22:00\nFilut\n14:00-18:00\nzast. Dembiński\n18:00-22:00\nzast. Dymek',
+  '',
+  'VI'
+);
+assert.deepEqual(
+  realFridayCorrection.map(entry => [entry.employee, entry.range.from, entry.range.to, Boolean(entry.substitution)]),
+  [
+    ['Filut', '14:00', '22:00', false],
+    ['Dembiński', '14:00', '18:00', true],
+    ['Dymek', '18:00', '22:00', true]
+  ]
+);
+
 const sameRangeReplacement = parseInternatScheduleCellEntries(
   '15:00-19:00\nWorożański\nzast. Pawłowski\n19:00-22:00\nGłowacki',
   '',
