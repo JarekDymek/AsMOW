@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.6';
+const BACKEND_VERSION = '1.5.7';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1242,10 +1242,35 @@ async function fetchCurrentInfoMail(payload = {}) {
   }
 
   const extractStartedAt = Date.now();
-  for (const candidate of scheduleCandidates) {
-    const extracted = await extractInternatScheduleDocuments(candidate.parsed, candidate.item);
-    scheduleDocuments.push(...extracted.documents);
-    ignoredScheduleDocuments.push(...extracted.ignored);
+  if (payload.scheduleOnly) {
+    const selectedAttachments = selectLatestScheduleAttachments(scheduleCandidates);
+    const grouped = new Map();
+    selectedAttachments.forEach(selected => {
+      const group = grouped.get(selected.candidate) || new Set();
+      group.add(selected.attachmentIndex);
+      grouped.set(selected.candidate, group);
+    });
+
+    const extractedGroups = await Promise.all(
+      [...grouped.entries()].map(([candidate, attachmentIndexes]) =>
+        extractInternatScheduleDocuments(candidate.parsed, candidate.item, { attachmentIndexes })
+      )
+    );
+    extractedGroups.forEach(extracted => {
+      scheduleDocuments.push(...extracted.documents);
+      ignoredScheduleDocuments.push(...extracted.ignored);
+    });
+    console.log('[SCHEDULE_TIMING] select', JSON.stringify({
+      candidates: scheduleCandidates.length,
+      selectedAttachments: selectedAttachments.length,
+      selectedMessages: grouped.size
+    }));
+  } else {
+    for (const candidate of scheduleCandidates) {
+      const extracted = await extractInternatScheduleDocuments(candidate.parsed, candidate.item);
+      scheduleDocuments.push(...extracted.documents);
+      ignoredScheduleDocuments.push(...extracted.ignored);
+    }
   }
   if (payload.scheduleOnly) {
     console.log('[SCHEDULE_TIMING] extract', JSON.stringify({
@@ -1708,12 +1733,77 @@ function isNumberedInternatWeekHint(value = '') {
   return hasWeekNumber && hasDateRange;
 }
 
-async function extractInternatScheduleDocuments(parsed, item) {
+function compareScheduleAttachmentCandidates(left, right) {
+  const byDate = String(left.sourceSentAt || left.sourceDate || '')
+    .localeCompare(String(right.sourceSentAt || right.sourceDate || ''));
+  if (byDate) return byDate;
+  const byUid = Number(left.sourceMailUid || 0) - Number(right.sourceMailUid || 0);
+  if (byUid) return byUid;
+  return Number(left.attachmentIndex || 0) - Number(right.attachmentIndex || 0);
+}
+
+function selectLatestScheduleAttachments(scheduleCandidates = []) {
+  const latestByWeek = new Map();
+  const unclassified = [];
+
+  (Array.isArray(scheduleCandidates) ? scheduleCandidates : []).forEach(candidate => {
+    const parsed = candidate?.parsed;
+    const item = candidate?.item || {};
+    const attachments = Array.isArray(parsed?.attachments) ? parsed.attachments : [];
+
+    attachments.forEach((attachment, attachmentIndex) => {
+      const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${attachmentIndex + 1}`);
+      if (!isInternatScheduleAttachment(item.title, filename, attachment.contentType)) return;
+
+      const scheduleHint = `${item.title || ''}\n${filename}`;
+      const scheduleKind = classifyInternatScheduleKind(scheduleHint);
+      if (scheduleKind === 'team') return;
+
+      const weekStart = extractInternatWeekStart(scheduleHint);
+      const descriptor = {
+        candidate,
+        attachmentIndex,
+        filename,
+        weekStart,
+        scheduleKind,
+        sourceSentAt: item.sourceSentAt || '',
+        sourceDate: item.date || '',
+        sourceMailUid: item.mailUid || ''
+      };
+
+      if (!weekStart) {
+        // Gdy tygodnia nie da się ustalić bez otwierania pliku, zachowaj załącznik.
+        // Nie wolno go odrzucić na podstawie heurystyki.
+        unclassified.push(descriptor);
+        return;
+      }
+
+      const previous = latestByWeek.get(weekStart);
+      if (!previous || compareScheduleAttachmentCandidates(descriptor, previous) > 0) {
+        latestByWeek.set(weekStart, descriptor);
+      }
+    });
+  });
+
+  return [...latestByWeek.values(), ...unclassified]
+    .sort((a, b) =>
+      String(a.weekStart || '').localeCompare(String(b.weekStart || ''))
+      || compareScheduleAttachmentCandidates(a, b)
+    );
+}
+
+async function extractInternatScheduleDocuments(parsed, item, options = {}) {
   const attachments = Array.isArray(parsed.attachments) ? parsed.attachments : [];
+  const allowedIndexes = options.attachmentIndexes instanceof Set
+    ? options.attachmentIndexes
+    : Array.isArray(options.attachmentIndexes)
+      ? new Set(options.attachmentIndexes)
+      : null;
   const documents = [];
   const ignored = [];
 
   for (let index = 0; index < attachments.length; index += 1) {
+    if (allowedIndexes && !allowedIndexes.has(index)) continue;
     const attachment = attachments[index];
     const filename = sanitizeMailAttachmentFilename(attachment.filename || `zalacznik-${index + 1}`);
     const scheduleHint = `${item.title}\n${filename}`;
@@ -2773,6 +2863,7 @@ export {
   buildActiveMailSchedule,
   getMailScheduleDocumentRevision,
   resolveCurrentInfoMailbox,
+  selectLatestScheduleAttachments,
   fetchMailScheduleDashboardCached,
   getScheduleBootstrapSince,
   settleWithin
