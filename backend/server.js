@@ -622,7 +622,13 @@ async async function fetchMailScheduleDashboardCached(payload = {}) {
     })
     .finally(() => {
       const current = scheduleDashboardCache.get(key);
-      if (current?.promise === promise) scheduleDashboardCache.delete(key);
+      if (current?.promise === promise) {
+        if (current.payload) {
+          scheduleDashboardCache.set(key, { at: current.at || Date.now(), payload: current.payload, promise: null });
+        } else {
+          scheduleDashboardCache.delete(key);
+        }
+      }
     });
 
   scheduleDashboardCache.set(key, {
