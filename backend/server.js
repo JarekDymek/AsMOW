@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.1';
+const BACKEND_VERSION = '1.5.2';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -27,7 +27,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const CURRENT_INFO_FROM = process.env.CURRENT_INFO_FROM || 'dariusz.gorski@mowmalbork.pl';
 const CURRENT_INFO_SINCE = process.env.CURRENT_INFO_SINCE || '2026-01-01';
 const CURRENT_INFO_ATTACHMENT_LIMIT = Number(process.env.CURRENT_INFO_ATTACHMENT_LIMIT || 10_000_000);
-const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v1';
+const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2';
 const SCHEDULE_ARCHIVE_SINCE = '2026-01-01';
 const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
 const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 12_000);
@@ -674,22 +674,16 @@ function compareMailScheduleDocuments(a, b) {
 
 function getMailScheduleDocumentRevision(documentItem) {
   if (!documentItem) return '';
-  const records = (documentItem.records || []).map(record => [
-    record.date,
-    normalizeMailSearch(record.employee),
-    normalizeMailSearch(record.group),
-    record.from,
-    record.to
-  ]);
+  // sourceVersion identyfikuje dokument źródłowy, a nie rezultat parsera.
+  // Dzięki temu ponowne parsowanie tego samego DOCX nie może utworzyć
+  // "nowej wersji" tygodnia bez nowej wiadomości/korekty.
   return shortHash(JSON.stringify([
     SCHEDULE_POLICY_REVISION,
     documentItem.id || '',
     documentItem.weekStart || '',
     documentItem.sourceSentAt || documentItem.sourceDate || '',
-    documentItem.sourceMailUid || '',
-    documentItem.sourceAttachmentId || '',
-    documentItem.sourceAttachmentOrder || 0,
-    records
+    documentItem.sourceAttachment || '',
+    documentItem.sourceAttachmentId || ''
   ]));
 }
 
