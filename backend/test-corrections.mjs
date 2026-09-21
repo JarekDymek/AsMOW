@@ -81,6 +81,14 @@ assert.deepEqual(Array.from(active.records, r => r.employee).sort(), ['Dymek', '
 assert.deepEqual(Array.from(active.sources, s => s.id), ['full-correction']);
 assert.equal(active.requiresVerification, false);
 
+const frontendFullButNonBlockingWarning = {
+  ...fullCorrection,
+  ambiguous: true,
+  warning: 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.'
+};
+active = context.buildActiveInternatSchedule([base, frontendFullButNonBlockingWarning], base.weekStart);
+assert.equal(active.requiresVerification, false);
+
 active = context.buildActiveInternatSchedule([base, fullCorrection, teamDocument], base.weekStart);
 assert.deepEqual(Array.from(active.sources, s => s.id), ['full-correction']);
 assert.ok(active.records.every(r => r.group !== 'TEAM'));
