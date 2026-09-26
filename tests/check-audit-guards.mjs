@@ -77,10 +77,10 @@ if (!sw.includes('const CACHE = `${CACHE_PREFIX}v' + expectedCacheRevision + '`;
   throw new Error(`Cache PWA nie odpowiada wydaniu ${frontendPackage.version}; oczekiwano v${expectedCacheRevision}.`);
 }
 if (!weeklyPlan.includes('function mergeStableWeeklyPlan')) {
-  throw new Error('Brak blokady ponownego nadpisywania tygodnia przez ten sam dokument.');
+  throw new Error('Brak kontrolowanego łączenia tygodni.');
 }
 if (!weeklyPlan.includes('incomingWeek.sourceVersion === existingWeek.sourceVersion')) {
-  throw new Error('Ten sam sourceVersion musi pozostawiać lokalny tydzień bez zmian.');
+  throw new Error('Brak rozpoznawania ponownego odczytu tego samego dokumentu.');
 }
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');

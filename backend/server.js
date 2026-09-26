@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.16';
+const BACKEND_VERSION = '1.5.17';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -1251,7 +1251,7 @@ function chooseBootstrapMessageUids(metadataCandidates = [], todayIso = getSched
         uid: candidate.uid,
         attachmentIndex,
         filename: attachment.filename,
-        weekStart: extractInternatWeekStart(hint),
+        weekStart: extractInternatWeekStart(attachment.filename) || extractInternatWeekStart(candidate.title),
         sourceSentAt: candidate.sentAt || '',
         sourceDate: candidate.date || '',
         sourceMailUid: candidate.uid || ''
@@ -1927,7 +1927,7 @@ function selectLatestScheduleAttachments(scheduleCandidates = []) {
       const scheduleKind = classifyInternatScheduleKind(scheduleHint);
       if (scheduleKind === 'team') return;
 
-      const weekStart = extractInternatWeekStart(scheduleHint);
+      const weekStart = extractInternatWeekStart(filename) || extractInternatWeekStart(item.title);
       const descriptor = {
         candidate,
         attachmentIndex,
@@ -2067,8 +2067,12 @@ function classifyInternatScheduleKind(value = '') {
 
 function parseInternatScheduleHtml(html, source = {}) {
   const documentText = decodeInternatHtmlCell(html);
-  const sourceHint = `${source.sourceTitle || ''} ${source.sourceAttachment || ''}`;
-  const weekStart = extractInternatWeekStart(sourceHint) || extractInternatWeekStart(documentText);
+  const documentWeek = extractInternatWeekStart(documentText);
+  const attachmentWeek = extractInternatWeekStart(source.sourceAttachment);
+  if (documentWeek && attachmentWeek && documentWeek !== attachmentWeek) {
+    throw new Error('Sprzeczne daty grafiku: treść dokumentu i nazwa załącznika wskazują różne tygodnie.');
+  }
+  const weekStart = documentWeek || attachmentWeek || extractInternatWeekStart(source.sourceTitle);
   const ignoreReason = getNonInternatScheduleReason(documentText);
   if (ignoreReason) {
     return {

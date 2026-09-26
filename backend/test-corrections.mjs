@@ -195,6 +195,11 @@ const selectedRealistic = selectLatestScheduleAttachments([
   makeScheduleCandidate('Grafik zespołu 14-20.09.2026r.', 'grafik zespół 14-20.09.2026r..docx', '2026-09-17T08:00', 130),
   makeScheduleCandidate('Grafik internat 21-28 września 2026r.', '4. 21-27.09.2026r..docx', '2026-09-18T12:00', 140)
 ]);
+const adjacentWeeks = selectLatestScheduleAttachments([
+  makeScheduleCandidate('Grafik 21-27.09.2026', '4. 21-27.09.2026.docx', '2026-09-18T12:00', 140),
+  makeScheduleCandidate('Re: Grafik 21-27.09.2026', '5. 28.09-04.10.2026.docx', '2026-09-24T12:00', 150)
+]);
+assert.deepEqual(adjacentWeeks.map(entry => entry.weekStart).sort(), ['2026-09-21', '2026-09-28']);
 assert.equal(selectedRealistic.length, 2);
 assert.equal(selectedRealistic[0].weekStart, '2026-09-14');
 assert.equal(selectedRealistic[0].sourceMailUid, '120');

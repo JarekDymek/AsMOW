@@ -32,6 +32,13 @@ const internat = parseInternatScheduleHtml(internatHtml, {
   sourceAttachment: '51. 17- 23.08.2026r.docx'
 });
 assert.equal(internat.ignored, false);
+const staleSubject = parseInternatScheduleHtml(internatHtml, {
+  sourceTitle: 'Grafik 24-30.08.2026', sourceAttachment: '51. 17-23.08.2026.docx'
+});
+assert.equal(staleSubject.weekStart, '2026-08-17', 'Stary temat maila nie może zmienić dat dokumentu');
+assert.throws(() => parseInternatScheduleHtml(internatHtml, {
+  sourceAttachment: '52. 24-30.08.2026.docx'
+}), /Sprzeczne daty/);
 assert.deepEqual(internat.records.map(record => ({
   employee: record.employee,
   date: record.date,

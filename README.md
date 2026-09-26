@@ -2,9 +2,9 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.10**
+Aktualna wersja PWA: **2.5.13**
 
-Aktualna wersja backendu: **1.5.15**
+Aktualna wersja backendu: **1.5.17**
 
 Ostatni pełny audyt: **26 sierpnia 2026**
 
@@ -18,7 +18,7 @@ Ostatni pełny audyt: **26 sierpnia 2026**
 - stopnie uspołecznienia i lokalne notatki;
 - centralna oraz lokalna baza wiedzy z kontrolą aktualności aktów ELI;
 - archiwum wiadomości dyrekcji i bezpieczne pobieranie załączników;
-- kanoniczny plan tygodniowy z backendu Render/IMAP, współdzielony z Harmonogram-MOW, oraz lokalne archiwum dokumentów DOCX do audytu;
+- plan tygodniowy z Harmonogram-MOW (Google Apps Script, przez proxy Render) oraz odrębne archiwum poczty IMAP i dokumentów DOCX;
 - kopia i przywracanie danych zapisanych na urządzeniu;
 - instalacja jako PWA, praca offline i kontrolowana aktualizacja app shell.
 
@@ -43,7 +43,7 @@ Parser oznacza dokument jako niejednoznaczny, gdy:
 
 ### Kanoniczny plan tygodniowy
 
-Zakładka **Grafik** wywołuje bezpośrednio `POST /api/schedule-dashboard` na Renderze. Ten sam endpoint jest źródłem dla aplikacji Harmonogram MOW.
+Zakładka **Grafik** wywołuje `POST /api/weekly-plan` na Renderze, przekazując skonfigurowany adres `/exec` i token Harmonogramu MOW. Render przekazuje zapytanie do Google Apps Script i uzupełnia metadane odpowiedzi. Endpoint `POST /api/schedule-dashboard` jest odrębnym mechanizmem IMAP, a nie źródłem aktualnej zakładki Grafik.
 
 Reguła danych jest celowo rygorystyczna:
 
@@ -52,10 +52,12 @@ Reguła danych jest celowo rygorystyczna:
 3. **obowiązuje dokładnie jeden najnowszy dokument grafiku internatu dla tego tygodnia**;
 4. starszy dokument nie uzupełnia, nie naprawia i nie scala się z nowszym;
 5. jeżeli najnowszy dokument jest niepełny albo nieczytelny, aplikacja pokazuje ostrzeżenie zamiast przywracać starszy grafik;
-6. błąd Rendera pozostawia ostatnią poprawnie zapisaną wersję i nie uruchamia Apps Script jako fallbacku;
-7. historia jest skanowana od stałej daty archiwum, więc stary tydzień nie znika wraz z upływem czasu.
+6. błąd pobierania pozostawia zapisany widok offline;
+7. zakres historii widoku Grafik wynika z odpowiedzi Harmonogramu MOW; odrębne archiwum IMAP jest skanowane od stałej daty archiwum.
 
-Odpowiedź zawiera `schedulePolicyRevision`, `scheduleRevision` i `sourceVersion` każdego tygodnia. Dzięki temu ten sam tydzień jest niezmienny, dopóki nie pojawi się nowszy dokument dotyczący właśnie tego tygodnia.
+Odpowiedź zawiera `schedulePolicyRevision`, `scheduleRevision`, `backendVersion` i `sourceVersion` każdego tygodnia. Poprawiony odczyt tego samego dokumentu zastępuje zapisany plan, również po zmianie parsera. Starszy dokument nie nadpisuje nowszej korekty. Zmiana wersji źródłowego backendu zastępuje poprzedni zestaw tygodni, aby nie zachować dokumentów odrzuconych przez nową walidację.
+
+Naprawa z 25 września 2026 rozdziela tygodnie według dat załącznika i dokumentu, nawet gdy temat odpowiedzi nadal wymienia poprzedni tydzień. Sprzeczne daty w treści i nazwie pliku są odrzucane. Testy obejmują sąsiadujące tygodnie 21–27.09 i 28.09–04.10 oraz wymianę błędnego cache. Pełna naprawa źródła wymaga również osobnego wdrożenia poprawionego `apps-script/Code.gs` z repozytorium Harmonogram-MOW w istniejącym projekcie Google, a następnie synchronizacji. Nie trzeba kasować danych przeglądarki ani tokenów.
 
 ## Walidacja i bezpieczeństwo
 

@@ -187,6 +187,7 @@ function compareWeeklyAuthoritativeSource(incomingWeek, existingWeek) {
 function mergeStableWeeklyPlan(existingPlan, incomingPlan) {
   if (!existingPlan?.weeks?.length) return incomingPlan;
   if (existingPlan.meta?.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) return incomingPlan;
+  if (incomingPlan.meta?.backendVersion && incomingPlan.meta.backendVersion !== existingPlan.meta?.backendVersion) return incomingPlan;
   if (normalizeForWeeklyCompare(existingPlan.educator || '') !== normalizeForWeeklyCompare(incomingPlan.educator || '')) {
     return incomingPlan;
   }
@@ -206,11 +207,12 @@ function mergeStableWeeklyPlan(existingPlan, incomingPlan) {
       return;
     }
 
-    // Ten sam dokument źródłowy = zamrożony tydzień. Nie zastępuj go
-    // ponownym wynikiem parsera.
-    if (incomingWeek.sourceVersion && incomingWeek.sourceVersion === existingWeek.sourceVersion) return;
+    // Poprawka parsera może zmienić odczyt tego samego pliku. Zachowujemy
+    // ochronę przed starszym dokumentem, ale przyjmujemy poprawiony odczyt.
+    const sameDocument = (incomingWeek.sourceVersion && incomingWeek.sourceVersion === existingWeek.sourceVersion) ||
+      (incomingWeek.authoritativeDocument?.id && incomingWeek.authoritativeDocument.id === existingWeek.authoritativeDocument?.id);
 
-    if (!existingWeek.sourceVersion || compareWeeklyAuthoritativeSource(incomingWeek, existingWeek) > 0) {
+    if (sameDocument || !existingWeek.sourceVersion || compareWeeklyAuthoritativeSource(incomingWeek, existingWeek) > 0) {
       merged.set(identity, incomingWeek);
     }
   });
@@ -247,7 +249,8 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
   }
   const incomingMeta = {
     source: sourceLabel,
-    sourceType: 'render-canonical',
+    sourceType: extracted.sourceType || 'harmonogram-mow',
+    backendVersion: extracted.backendVersion || '',
     schedulePolicyRevision: extracted.schedulePolicyRevision || extracted.data?.schedulePolicyRevision || '',
     scheduleRevision: extracted.scheduleRevision || extracted.data?.scheduleRevision || '',
     loadedAt: new Date().toISOString()
