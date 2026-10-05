@@ -101,15 +101,16 @@ for (const forbidden of [
   '/api/weekly-plan',
   'targetUrl',
   'settings.token',
-  'WEEKLY_DEFAULT_BACKEND_URL',
-  'harmonogram-mow-settings-v1'
+  'WEEKLY_DEFAULT_BACKEND_URL'
 ]) {
   if (weeklyPlan.includes(forbidden)) throw new Error(`Wycofana integracja Harmonogram-MOW nadal jest aktywna w weekly-plan.js: ${forbidden}`);
 }
 for (const required of [
   'Harmonogram-MOW zostało wycofane',
   'async function fetchWeeklyPlan()',
-  'async function refreshWeeklyPlanOnOpen()'
+  'async function refreshWeeklyPlanOnOpen()',
+  "localStorage.removeItem('harmonogram-mow-settings-v1')",
+  'localStorage.removeItem(WEEKLY_PLAN_KEY)'
 ]) {
   if (!weeklyPlan.includes(required)) throw new Error(`Brak strażnika wycofanej integracji Harmonogram-MOW: ${required}`);
 }

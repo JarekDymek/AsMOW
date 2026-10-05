@@ -6,19 +6,15 @@ let weeklyPlanRefreshPromise = null;
 let weeklyPlanRefreshAt = 0;
 
 function loadWeeklyPlanState() {
+  weeklyPlan = null;
+  weeklyPlanMeta = null;
   try {
-    const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
-    if (saved && saved.weeks) {
-      weeklyPlan = saved;
-      weeklyPlanMeta = saved.meta || null;
-      if (saved.meta?.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) {
-        weeklyPlanMeta = {
-          ...(saved.meta || {}),
-          legacyPolicy: true
-        };
-        weeklyPlan.meta = weeklyPlanMeta;
-      }
-    }
+    localStorage.removeItem(WEEKLY_PLAN_KEY);
+    localStorage.removeItem(WEEKLY_SETTINGS_KEY);
+    localStorage.removeItem('harmonogram-mow-settings-v1');
+    localStorage.removeItem('harmonogram-mow-state-v12');
+    localStorage.removeItem('harmonogram-mow-state-v11');
+    localStorage.removeItem('harmonogram-mow-state-v10');
   } catch {}
 }
 

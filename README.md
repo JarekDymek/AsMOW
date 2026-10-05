@@ -2,7 +2,7 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.14**
+Aktualna wersja PWA: **2.5.15**
 
 Aktualna wersja backendu: **1.5.18**
 

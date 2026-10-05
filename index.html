@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.5.14</span>
+  <span class="hdr-badge">v2.5.15</span>
 </header>
 
 <!-- MAIN -->
@@ -475,9 +475,8 @@
     accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
     style="display:none" onchange="handleHarmFile(this)">
 
-  <div class="card card-body" id="weekly-settings-card" style="margin-bottom:10px">
-    <div style="font-weight:900;margin-bottom:6px">Źródło Harmonogram-MOW wycofane</div>
-    <div class="weekly-status" id="weekly-status">Automatyczne pobieranie przez stare repozytorium Harmonogram-MOW zostało wyłączone. Bieżący indeks grafików korzysta z poczty IMAP; docelowym źródłem integracji jest MOW-PLAN.</div>
+  <div id="weekly-settings-card" style="display:none">
+    <div id="weekly-status"></div>
     <input id="weekly-educator" type="hidden" value="Dymek">
   </div>
 
