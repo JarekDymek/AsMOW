@@ -97,17 +97,24 @@ for (const required of [
 ]) {
   if (!server.includes(required)) throw new Error(`Brak strażnika kanonicznego grafiku: ${required}`);
 }
-for (const required of [
+for (const forbidden of [
   '/api/weekly-plan',
   'targetUrl',
   'settings.token',
   'WEEKLY_DEFAULT_BACKEND_URL',
   'harmonogram-mow-settings-v1'
 ]) {
-  if (!weeklyPlan.includes(required)) throw new Error(`Zakładka Grafik musi korzystać z Harmonogram-MOW przez bezpieczne proxy: ${required}`);
+  if (weeklyPlan.includes(forbidden)) throw new Error(`Wycofana integracja Harmonogram-MOW nadal jest aktywna w weekly-plan.js: ${forbidden}`);
 }
-if (weeklyPlan.includes('fetchMailScheduleDashboard')) {
-  throw new Error('Zakładka Grafik nie może wymagać tokenu synchronizacji poczty Render zamiast tokenu Harmonogram-MOW.');
+for (const required of [
+  'Harmonogram-MOW zostało wycofane',
+  'async function fetchWeeklyPlan()',
+  'async function refreshWeeklyPlanOnOpen()'
+]) {
+  if (!weeklyPlan.includes(required)) throw new Error(`Brak strażnika wycofanej integracji Harmonogram-MOW: ${required}`);
+}
+if (!server.includes('HARMONOGRAM_MOW_RETIRED') || !server.includes('return json(res, 410')) {
+  throw new Error('Backend musi jawnie zwracać HTTP 410 dla wycofanego /api/weekly-plan.');
 }
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);

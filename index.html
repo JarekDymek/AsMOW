@@ -73,7 +73,7 @@
   </div>
   <button class="hdr-help" type="button" onclick="openHelp()" title="Pomoc" aria-label="Pomoc">?</button>
   <button class="hdr-install" id="install-btn" type="button" style="display:none">Instaluj</button>
-  <span class="hdr-badge">v2.5.13</span>
+  <span class="hdr-badge">v2.5.14</span>
 </header>
 
 <!-- MAIN -->
@@ -475,28 +475,15 @@
     accept=".txt,.csv,.tsv,.doc,.docx,.xls,.xlsx,image/*"
     style="display:none" onchange="handleHarmFile(this)">
 
-  <button class="section-toggle" type="button" data-accordion-target="weekly-settings-card" onclick="toggleAccordion('weekly-settings-card')">
-    <span class="st-main">Aktualny plan tygodniowy z Harmonogram-MOW</span><span class="st-state">Rozwiń</span>
-  </button>
+  <div class="card card-body" id="weekly-settings-card" style="margin-bottom:10px">
+    <div style="font-weight:900;margin-bottom:6px">Źródło Harmonogram-MOW wycofane</div>
+    <div class="weekly-status" id="weekly-status">Automatyczne pobieranie przez stare repozytorium Harmonogram-MOW zostało wyłączone. Bieżący indeks grafików korzysta z poczty IMAP; docelowym źródłem integracji jest MOW-PLAN.</div>
+    <input id="weekly-educator" type="hidden" value="Dymek">
+  </div>
 
   <button class="section-toggle" type="button" data-accordion-target="harm-upload-card" onclick="toggleAccordion('harm-upload-card')">
     <span class="st-main">📋 Wczytaj harmonogram z pliku lub screena</span><span class="st-state">Rozwiń</span>
   </button>
-
-  <div class="card collapsible-card accordion-panel" id="weekly-settings-card"><div class="card-body">
-    <div class="weekly-settings">
-      <input id="weekly-backend-url" type="hidden">
-      <input id="weekly-token" type="hidden">
-      <input id="weekly-educator" type="text" placeholder="Wychowawca, np. Dymek">
-    </div>
-    <div class="btn-row">
-      <button class="btn" type="button" onclick="fetchWeeklyPlan()">Pobierz plan tygodniowy</button>
-      <button class="btn warn" type="button" onclick="fetchWeeklyPlan({ rescan: true })">Przeskanuj i pobierz</button>
-      <button class="btn sec" type="button" onclick="loadSampleWeeklyPlan()">Dane przykładowe</button>
-      <button class="btn qblue" type="button" onclick="askAIAboutWeeklyPlan()">Zapytaj AI o tydzień</button>
-    </div>
-    <div class="weekly-status" id="weekly-status">Plan tygodniowy jest pobierany z Harmonogram-MOW. Asystent używa zapisanego backendu oraz VIEW_TOKEN/ADMIN_TOKEN Harmonogram-MOW.</div>
-  </div></div>
 
   <div class="collapsible-card accordion-panel" id="harm-upload-card">
     <div class="upload-zone" id="upload-zone" onclick="document.getElementById('harm-file-input').click()">

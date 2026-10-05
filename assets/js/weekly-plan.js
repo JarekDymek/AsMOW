@@ -2,40 +2,10 @@ const WEEKLY_SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2';
 /* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
-const WEEKLY_DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwBTAjRfp5cK5oRvDZ0oRAJ_zrxzsqE_4v7pgvrpMZYcXQovb9Fd7JWlQggYEVkotBwBA/exec';
 let weeklyPlanRefreshPromise = null;
 let weeklyPlanRefreshAt = 0;
 
-function getSharedHarmonogramMowSettings() {
-  const sources = [
-    { key: 'harmonogram-mow-settings-v1', settingsOnly: true },
-    { key: 'harmonogram-mow-state-v12' },
-    { key: 'harmonogram-mow-state-v11' },
-    { key: 'harmonogram-mow-state-v10' }
-  ];
-  for (const source of sources) {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(source.key) || 'null');
-      if (!parsed || typeof parsed !== 'object') continue;
-      const backendUrl = String(parsed.backendUrl || '');
-      const token = String(parsed.adminToken || parsed.viewToken || '');
-      const educator = String(parsed.educator || '');
-      if (backendUrl || token || educator) return { backendUrl, token, educator };
-    } catch {}
-  }
-  return { backendUrl: '', token: '', educator: '' };
-}
 function loadWeeklyPlanState() {
-  try {
-    const settings = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}');
-    const shared = getSharedHarmonogramMowSettings();
-    const backend = document.getElementById('weekly-backend-url');
-    const token = document.getElementById('weekly-token');
-    const educator = document.getElementById('weekly-educator');
-    if (backend) backend.value = settings.backendUrl || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
-    if (token) token.value = settings.token || shared.token || '';
-    if (educator) educator.value = settings.educator || shared.educator || '';
-  } catch {}
   try {
     const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
     if (saved && saved.weeks) {
@@ -53,21 +23,10 @@ function loadWeeklyPlanState() {
 }
 
 function saveWeeklySettings() {
-  if (typeof isTestMode === 'function' && isTestMode()) {
-    const profile = getTestProfile();
-    return {
-      backendUrl: '',
-      token: '',
-      educator: profile.weeklyEducator || document.getElementById('weekly-educator')?.value.trim() || ''
-    };
-  }
-  const shared = getSharedHarmonogramMowSettings();
   const settings = {
-    backendUrl: document.getElementById('weekly-backend-url')?.value.trim() || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL,
-    token: document.getElementById('weekly-token')?.value.trim() || shared.token || '',
-    educator: document.getElementById('weekly-educator')?.value.trim() || shared.educator || ''
+    educator: document.getElementById('weekly-educator')?.value.trim() || ''
   };
-  localStorage.setItem(WEEKLY_SETTINGS_KEY, JSON.stringify(settings));
+  try { localStorage.setItem(WEEKLY_SETTINGS_KEY, JSON.stringify(settings)); } catch {}
   return settings;
 }
 
@@ -76,89 +35,16 @@ function setWeeklyStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function fetchWeeklyPlan(options = {}) {
-  const testMode = typeof isTestMode === 'function' && isTestMode();
-  const settings = saveWeeklySettings();
-  if (!testMode && !settings.backendUrl) {
-    setWeeklyStatus('Brak adresu wdrożenia Apps Script Harmonogram-MOW.');
-    return;
-  }
-  if (!testMode && !/\/exec(?:\?|$)/.test(settings.backendUrl)) {
-    setWeeklyStatus('Adres backendu Harmonogram-MOW musi kończyć się na /exec.');
-    return;
-  }
-  if (!testMode && !settings.token) {
-    setWeeklyStatus('Brak VIEW_TOKEN lub ADMIN_TOKEN Harmonogram-MOW.');
-    return;
-  }
-
-  const rescan = Boolean(options.rescan) && !testMode;
-  const automatic = Boolean(options.automatic);
-  setWeeklyStatus(rescan
-    ? 'Skanuję Harmonogram-MOW i pobieram aktualny plan…'
-    : (automatic ? 'Odświeżam plan z Harmonogram-MOW…' : 'Pobieram plan z Harmonogram-MOW…'));
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), rescan ? 120_000 : 30_000);
-  try {
-    const response = await fetch(`${getAIBackendBaseUrl()}/api/weekly-plan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        targetUrl: testMode ? '' : settings.backendUrl,
-        token: testMode ? '' : settings.token,
-        testAccessToken: testMode ? getTestAccessToken() : '',
-        educator: settings.educator || 'Dymek',
-        action: rescan ? 'scan' : 'dashboard'
-      })
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok === false) {
-      throw new Error(payload.error || `HTTP ${response.status}`);
-    }
-    const dashboard = payload.data || payload;
-    if (!Array.isArray(dashboard.weeks) || !dashboard.weeks.length) {
-      throw new Error('Harmonogram-MOW nie zwrócił żadnego tygodnia');
-    }
-    setWeeklyPlanFromPayload(
-      dashboard,
-      rescan ? 'Przeskanowano i pobrano z Harmonogram-MOW' : 'Pobrano z Harmonogram-MOW'
-    );
-  } catch (error) {
-    const message = error?.name === 'AbortError' ? 'serwer odpowiada zbyt długo' : error.message;
-    const tokenHint = rescan ? 'Do skanowania potrzebny jest ADMIN_TOKEN.' : 'Sprawdź VIEW_TOKEN albo ADMIN_TOKEN.';
-    setWeeklyStatus(`Nie udało się pobrać planu: ${message}. ${tokenHint}`);
-  } finally {
-    clearTimeout(timer);
-  }
+async function fetchWeeklyPlan() {
+  setWeeklyStatus('Automatyczne pobieranie przez Harmonogram-MOW zostało wycofane. Bieżący indeks grafików działa przez pocztę; docelowym źródłem integracji jest MOW-PLAN.');
+  return false;
 }
-async function rebuildWeeklyPlanFromMail(educator = '') {
-  const input = document.getElementById('weekly-educator');
-  if (input && educator) input.value = educator;
-  return fetchWeeklyPlan({ rescan: true });
+async function rebuildWeeklyPlanFromMail() {
+  return fetchWeeklyPlan();
 }
 
 async function refreshWeeklyPlanOnOpen() {
-  const testMode = typeof isTestMode === 'function' && isTestMode();
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}'); } catch {}
-  const shared = getSharedHarmonogramMowSettings();
-  const backendUrl = document.getElementById('weekly-backend-url')?.value.trim()
-    || saved.backendUrl || shared.backendUrl || WEEKLY_DEFAULT_BACKEND_URL;
-  const token = document.getElementById('weekly-token')?.value.trim()
-    || saved.token || shared.token || '';
-  if (!testMode && (!backendUrl || !token)) return false;
-  if (weeklyPlanRefreshPromise) return weeklyPlanRefreshPromise;
-  if (weeklyPlan && Date.now() - weeklyPlanRefreshAt < 60_000) return true;
-  weeklyPlanRefreshPromise = fetchWeeklyPlan({ automatic: true })
-    .then(() => {
-      weeklyPlanRefreshAt = Date.now();
-      return true;
-    })
-    .catch(() => false)
-    .finally(() => { weeklyPlanRefreshPromise = null; });
-  return weeklyPlanRefreshPromise;
+  return false;
 }
 async function loadSampleWeeklyPlan() {
   setWeeklyStatus('Pobieram dane przykładowe...');
@@ -344,7 +230,7 @@ function getWeeklyGeneratorDiagnostic(payload = {}) {
   if (Array.isArray(payload.dashboardWeekStarts)) {
     return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.${version}`;
   }
-  return `Harmonogram-MOW zwrócił plan tygodniowy.${version}`;
+  return `Archiwalny zapis zawiera plan tygodniowy.${version}`;
 }
 
 function normalizeWeeklyWeek(w = {}) {

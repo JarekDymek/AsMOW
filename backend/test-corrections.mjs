@@ -238,19 +238,24 @@ const bootstrapSince = getScheduleBootstrapSince();
 assert.match(bootstrapSince, /^\d{4}-\d{2}-\d{2}$/);
 
 const weeklySource = fs.readFileSync(new URL('../assets/js/weekly-plan.js', import.meta.url), 'utf8');
-const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan(options = {})');
+const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan()');
 const fetchEnd = weeklySource.indexOf('\nasync function rebuildWeeklyPlanFromMail', fetchStart);
 assert.ok(fetchStart >= 0 && fetchEnd > fetchStart);
 const fetchBody = weeklySource.slice(fetchStart, fetchEnd);
-assert.match(fetchBody, /\/api\/weekly-plan/);
-assert.match(fetchBody, /targetUrl/);
-assert.match(fetchBody, /settings\.token/);
-assert.doesNotMatch(fetchBody, /fetchMailScheduleDashboard/);
-assert.doesNotMatch(fetchBody, /syncCurrentInfoMail/);
+assert.doesNotMatch(fetchBody, /\/api\/weekly-plan/);
+assert.doesNotMatch(fetchBody, /targetUrl/);
+assert.doesNotMatch(fetchBody, /settings\.token/);
+assert.match(fetchBody, /Harmonogram-MOW zostało wycofane/);
+
+assert.match(serverSource, /url\.pathname === '\/api\/weekly-plan'/);
+assert.match(serverSource, /HARMONOGRAM_MOW_RETIRED/);
+assert.match(serverSource, /return json\(res, 410/);
+assert.doesNotMatch(serverSource, /TEST_WEEKLY_BACKEND_URL/);
+assert.doesNotMatch(serverSource, /TEST_WEEKLY_VIEW_TOKEN/);
 
 const setStart = weeklySource.indexOf('function setWeeklyPlanFromPayload');
 const setEnd = weeklySource.indexOf('\nfunction ', setStart + 20);
 const setBody = weeklySource.slice(setStart, setEnd);
 assert.doesNotMatch(setBody, /mergeWeeklyPlans\(weeklyPlan/);
 
-console.log('OK: korekty są deterministyczne, a AsMOW pobiera Grafik przez backend Harmonogram-MOW.');
+console.log('OK: korekty są deterministyczne, a integracja Harmonogram-MOW jest wycofana bez naruszania indeksu IMAP.');

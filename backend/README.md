@@ -6,7 +6,7 @@ Ten backend chroni klucz API i udostępnia aplikacji PWA endpointy:
 - `GET /api/knowledge` - centralna baza wiedzy z katalogu `backend/knowledge`.
 - `GET /api/legal-updates` - status monitorowanych aktów i publikacje do weryfikacji z oficjalnego API ELI; bez użycia AI.
 - `POST /api/chat` - rozmowa z asystentem.
-- `POST /api/weekly-plan` - starszy endpoint zgodności; nie jest używany jako źródło zakładki Grafik.
+- `POST /api/weekly-plan` - **wycofany**; zwraca HTTP 410 i nie łączy się już z Harmonogram-MOW.
 - `POST /api/schedule-dashboard` - kanoniczny grafik internatu. Dla każdego tygodnia wybiera wyłącznie najnowszy dokument z poczty IMAP, bez scalania ze starszymi wersjami.
 - `POST /api/current-info-mail` - synchronizacja bieżących informacji z poczty.
 - `POST /api/current-info-attachment` - pobranie wybranego załącznika z wiadomości dyrektora.
@@ -38,8 +38,6 @@ Zmienne środowiskowe dla Google Gemini:
 W Renderze ustaw:
 
 - `TEST_ACCESS_TOKENS` - jeden albo kilka kodów testowych po przecinku.
-- `TEST_WEEKLY_BACKEND_URL` - ustawienie zgodności starszego testera; nie jest źródłem kanonicznego Grafiku.
-- `TEST_WEEKLY_VIEW_TOKEN` - ustawienie zgodności starszego testera; kanoniczny Grafik używa tokenu synchronizacji poczty.
 - `TEST_WEEKLY_EDUCATOR=Dymek` albo inne nazwisko do podglądu.
 
 Link dla testera ma format:
@@ -48,7 +46,7 @@ Link dla testera ma format:
 https://jarekdymek.github.io/AsMOW/?tester=TU_WKLEJ_KOD_TESTOWY
 ```
 
-Tester nie widzi tokenów harmonogramu, poczty ani kluczy AI. Przycisk skanowania generatora jest ukryty, a backend wymusza tylko bezpieczny podgląd.
+Tester nie widzi tokenów poczty ani kluczy AI. Integracja z Harmonogram-MOW została wycofana; Grafik korzysta z własnego indeksu poczty.
 
 Jeżeli aplikacja PWA jest serwowana z tego samego Rendera, w `index.html` może zostać domyślne `AI_BACKEND_URL='/api/chat'`.
 Jeżeli frontend jest na innej domenie, ustaw w przeglądarce albo zmień w kodzie:

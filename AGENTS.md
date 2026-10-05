@@ -9,7 +9,7 @@
 
 ## Granice
 - Nie myl z `AsMOW-Next` (nowa linia rozwojowa), `Asystent-MOW-Open` (wariant publiczny/offline) ani `AsystentNewGen`.
-- Obecna zakładka Grafik korzysta z `JarekDymek/Harmonogram-MOW` przez proxy. To zależność legacy, nie repozytorium Asystenta.
+- Integracja z `JarekDymek/Harmonogram-MOW` została wycofana 2026-10-05. Nie przywracaj proxy `/api/weekly-plan`; bieżący indeks grafików działa przez IMAP, a docelową integracją jest `MOW-PLAN`.
 - Nie modyfikuj GH2, GH3, AUDYTOR-INTERNAT ani MOW — Mój Plan przy pracy nad tym repo bez jawnego polecenia.
 - Preferuj poprawki utrzymaniowe. Nową architekturę rozwijaj w `AsMOW-Next`, jeśli zadanie dotyczy następcy.
 

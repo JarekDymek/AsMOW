@@ -12,7 +12,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.17';
+const BACKEND_VERSION = '1.5.18';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -31,8 +31,6 @@ const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2';
 const SCHEDULE_ARCHIVE_SINCE = '2026-01-01';
 const KNOWLEDGE_PROMPT_LIMIT = Number(process.env.KNOWLEDGE_PROMPT_LIMIT || 32_000);
 const KNOWLEDGE_FILE_SNIPPET_LIMIT = Number(process.env.KNOWLEDGE_FILE_SNIPPET_LIMIT || 12_000);
-const TEST_WEEKLY_BACKEND_URL = process.env.TEST_WEEKLY_BACKEND_URL || '';
-const TEST_WEEKLY_VIEW_TOKEN = process.env.TEST_WEEKLY_VIEW_TOKEN || '';
 const TEST_WEEKLY_EDUCATOR = process.env.TEST_WEEKLY_EDUCATOR || 'Dymek';
 const ELI_API_BASE = 'https://api.sejm.gov.pl/eli';
 const LEGAL_UPDATES_CACHE_MS = Number(process.env.LEGAL_UPDATES_CACHE_MS || 6 * 60 * 60 * 1000);
@@ -147,10 +145,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/weekly-plan') {
-      if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
-      const payload = await readJson(req);
-      const plan = await fetchWeeklyPlan(payload);
-      return json(res, 200, plan);
+      return json(res, 410, {
+        ok: false,
+        retired: true,
+        code: 'HARMONOGRAM_MOW_RETIRED',
+        error: 'Integracja Harmonogram-MOW została wycofana. Użyj bieżącego indeksu poczty; docelową integracją jest MOW-PLAN.'
+      });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/schedule-dashboard') {
@@ -520,118 +520,11 @@ function isImageMime(mimeType) {
   return /^image\/(png|jpe?g|webp|gif)$/i.test(mimeType);
 }
 
-async function fetchWeeklyPlan(payload = {}) {
-  const testProfile = payload.testAccessToken ? getPublicTestProfile(payload.testAccessToken) : null;
-  const targetUrl = testProfile ? TEST_WEEKLY_BACKEND_URL : String(payload.targetUrl || payload.backendUrl || '').trim();
-  if (!targetUrl) {
-    const err = new Error(testProfile ? 'Tryb testowy nie ma jeszcze ustawionego TEST_WEEKLY_BACKEND_URL w Renderze.' : 'Brak adresu backendu Harmonogram-MOW.');
-    err.status = 400;
-    throw err;
-  }
-  if (testProfile && !TEST_WEEKLY_VIEW_TOKEN) {
-    const err = new Error('Tryb testowy nie ma jeszcze ustawionego TEST_WEEKLY_VIEW_TOKEN w Renderze.');
-    err.status = 400;
-    throw err;
-  }
-
-  const url = new URL(targetUrl);
-  if (!/^https?:$/.test(url.protocol)) {
-    const err = new Error('Adres harmonogramu musi zaczynać się od http:// albo https://.');
-    err.status = 400;
-    throw err;
-  }
-  if (isPrivateHost(url.hostname)) {
-    const err = new Error('Nie można pobierać harmonogramu z adresu lokalnego lub prywatnego.');
-    err.status = 400;
-    throw err;
-  }
-
-  const requestedAction = String(payload.action || 'dashboard');
-  const action = testProfile ? 'dashboard' : ['scan', 'forceRescan'].includes(requestedAction) ? requestedAction : 'dashboard';
-  url.searchParams.set('action', action);
-  const educator = testProfile ? (TEST_WEEKLY_EDUCATOR || testProfile.weeklyEducator || '') : payload.educator;
-  const token = testProfile ? TEST_WEEKLY_VIEW_TOKEN : payload.token;
-  if (educator) url.searchParams.set('educator', String(educator).slice(0, 120));
-  if (token) url.searchParams.set('token', String(token).slice(0, 500));
-  url.searchParams.delete('transport');
-  url.searchParams.set('format', 'jsonp');
-  url.searchParams.set('callback', '__mowSchedule');
-  url.searchParams.set('_', Date.now());
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), action === 'dashboard' ? 25_000 : 115_000);
-  try {
-    const upstream = await fetch(url.toString(), {
-      signal: ctrl.signal,
-      headers: { accept: 'application/json,text/plain,*/*' }
-    });
-    const text = await upstream.text();
-    if (!upstream.ok) {
-      const err = new Error(`Backend Harmonogram-MOW zwrócił HTTP ${upstream.status}.`);
-      err.status = upstream.status;
-      throw err;
-    }
-    const data = parseMaybeJson(text);
-    if (!data) {
-      const hint = /<html|<!doctype|accounts\.google|ServiceLogin|Zaloguj/i.test(text)
-        ? ' Odpowiedź wygląda jak HTML albo ekran logowania. Użyj adresu wdrożenia Apps Script kończącego się na /exec i ustaw dostęp wdrożenia dla użytkowników z linkiem/każdego zgodnie z konfiguracją Harmonogram-MOW.'
-        : '';
-      const err = new Error('Backend Harmonogram-MOW nie zwrócił poprawnego JSON/JSONP.' + hint);
-      err.status = 502;
-      throw err;
-    }
-    if (data.ok === false) {
-      const err = new Error(data.error || 'Generator Harmonogram-MOW odmówił dostępu albo zwrócił błąd.');
-      err.status = /token|dostęp|uprawnie/i.test(err.message) ? 403 : 502;
-      err.code = 'HARMONOGRAM_BACKEND_ERROR';
-      throw err;
-    }
-    const candidate = data.data || data.dashboard || data;
-    const weeks = Array.isArray(candidate.weeks) ? candidate.weeks : Array.isArray(data.weeks) ? data.weeks : [];
-    if (!weeks.length) {
-      return {
-        ok: true,
-        proxied: true,
-        warning: 'NO_WEEKS',
-        message: 'Generator odpowiedział, ale nie przekazał tablicy weeks. Najczęściej oznacza to brak zeskanowanych grafików albo inny format odpowiedzi.',
-        data
-      };
-    }
-
-    // Harmonogram-MOW pozostaje źródłem grafiku. Backend AsMOW jest tylko
-    // bezpiecznym proxy i dopisuje metadane potrzebne nowszemu klientowi.
-    const normalizedWeeks = weeks.map(week => {
-      if (week?.authoritativeDocument) return week;
-      const source = week?.sourceInfo || {};
-      return {
-        ...week,
-        authoritativeDocument: {
-          id: String(source.digest || week?.sourceVersion || source.filename || ''),
-          filename: String(source.filename || week?.source || ''),
-          sourceDate: String(source.messageDate || week?.updatedAt || ''),
-          sourceSentAt: String(source.messageDate || week?.updatedAt || '')
-        }
-      };
-    });
-    const dashboardWeekStarts = Array.isArray(candidate.dashboardWeekStarts)
-      ? candidate.dashboardWeekStarts
-      : normalizedWeeks.map(week => String(week?.weekStart || week?.dateFrom || '')).filter(Boolean);
-    const revisionSeed = normalizedWeeks.map(week =>
-      [week?.weekStart || week?.dateFrom || '', week?.sourceVersion || '', week?.authoritativeDocument?.id || ''].join('|')
-    ).join('||');
-    const enriched = {
-      ...candidate,
-      weeks: normalizedWeeks,
-      dashboardWeekStarts,
-      schedulePolicyRevision: SCHEDULE_POLICY_REVISION,
-      scheduleRevision: revisionSeed ? crypto.createHash('sha256').update(revisionSeed).digest('hex').slice(0, 16) : '',
-      backendVersion: candidate.backendVersion || data.backendVersion || '',
-      sourceType: 'harmonogram-mow'
-    };
-    return { ok: true, proxied: true, data: enriched };
-  } finally {
-    clearTimeout(timer);
-  }
+async function fetchWeeklyPlan() {
+  const err = new Error('Integracja Harmonogram-MOW została wycofana.');
+  err.status = 410;
+  err.code = 'HARMONOGRAM_MOW_RETIRED';
+  throw err;
 }
 
 

@@ -9,7 +9,4 @@ function nav(screenId, btn) {
   if (screenId === 's-prawo' && typeof maybeRefreshLegalUpdates === 'function') {
     setTimeout(maybeRefreshLegalUpdates, 250);
   }
-  if (screenId === 's-harm' && typeof refreshWeeklyPlanOnOpen === 'function') {
-    setTimeout(refreshWeeklyPlanOnOpen, 100);
-  }
 }
