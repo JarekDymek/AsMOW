@@ -66,3 +66,7 @@ Backend dołącza je do instrukcji modelu i każe traktować je jako nadrzędne 
 `CURRENT_INFO_FORWARDER=dymek.jaroslaw@mowmalbork.pl`
 
 Zachowaj aktualne dane logowania IMAP do Gmaila. Backend rozpoznaje dokładny adres bezpośredniego nadawcy albo pole Od/From z datą w wiadomości przekazanej z zaufanego konta. Obsługuje tekst i HTML, również wielokrotne przekazania. Pobieranie załączników używa identycznej reguły; starsze załączniki mają oddzielną, ograniczoną datą zgodność archiwalną.
+
+## Źródło MOW — Mój Plan
+
+MOW_PLAN_API_URL=https://mow-moj-plan.vercel.app; MOW_ASYSTENT_INTEGRATION_SECRET jest tym samym serwerowym sekretem co na Mój Plan. Istniejący token CURRENT_INFO_SYNC_TOKEN nadal ogranicza dostęp użytkownika. /api/schedule-dashboard, /api/current-info-mail i /api/current-info-attachment używają wyłącznie adaptera Mój Plan. /api/weekly-plan pozostaje wycofane (410). Stary IMAP nie uruchamia się podczas startu ani w aktywnych trasach.

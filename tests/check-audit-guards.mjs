@@ -97,25 +97,11 @@ for (const required of [
 ]) {
   if (!server.includes(required)) throw new Error(`Brak strażnika kanonicznego grafiku: ${required}`);
 }
-for (const forbidden of [
-  '/api/weekly-plan',
-  'targetUrl',
-  'settings.token',
-  'WEEKLY_DEFAULT_BACKEND_URL'
-]) {
-  if (weeklyPlan.includes(forbidden)) throw new Error(`Wycofana integracja Harmonogram-MOW nadal jest aktywna w weekly-plan.js: ${forbidden}`);
+for (const required of ['/api/schedule-dashboard', 'getCurrentInfoSyncSettings', 'fetchCurrentInfoBackend', 'mow-moj-plan-v1']) {
+  if (!weeklyPlan.includes(required)) throw new Error('Brak integracji MOW — Mój Plan: ' + required);
 }
-for (const required of [
-  'Harmonogram-MOW zostało wycofane',
-  'async function fetchWeeklyPlan()',
-  'async function refreshWeeklyPlanOnOpen()',
-  "localStorage.removeItem('harmonogram-mow-settings-v1')",
-  'localStorage.removeItem(WEEKLY_PLAN_KEY)'
-]) {
-  if (!weeklyPlan.includes(required)) throw new Error(`Brak strażnika wycofanej integracji Harmonogram-MOW: ${required}`);
-}
-if (!server.includes('HARMONOGRAM_MOW_RETIRED') || !server.includes('return json(res, 410')) {
-  throw new Error('Backend musi jawnie zwracać HTTP 410 dla wycofanego /api/weekly-plan.');
-}
+if (weeklyPlan.includes('script.google.com') || weeklyPlan.includes('targetUrl:')) throw new Error('Aktywny Grafik używa starego źródła.');
+if (server.includes('const dashboard = await fetchMailScheduleDashboardCached(payload)')) throw new Error('Aktywna trasa uruchamia drugi parser.');
+if (weeklyPlan.includes('/api/weekly-plan') || server.includes('deprecatedFetchWeeklyPlan') || !server.includes('HARMONOGRAM_MOW_RETIRED') || !server.includes('return json(res, 410')) throw new Error('Stare proxy musi pozostać wycofane.');
 
 console.log(`OK: strażniki audytu aktywne, bank odpowiedzi ładowany leniwie (${answerBankSize} B).`);

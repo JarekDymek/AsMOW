@@ -9,7 +9,7 @@
 
 ## Granice
 - Nie myl z `AsMOW-Next` (nowa linia rozwojowa), `Asystent-MOW-Open` (wariant publiczny/offline) ani `AsystentNewGen`.
-- Integracja z `JarekDymek/Harmonogram-MOW` została wycofana 2026-10-05. Nie przywracaj proxy `/api/weekly-plan`; bieżący indeks grafików działa przez IMAP, a docelową integracją jest `MOW-PLAN`.
+- Integracja z `JarekDymek/Harmonogram-MOW` została wycofana 2026-10-05. Nie przywracaj proxy `/api/weekly-plan` (HTTP 410). Grafik, korekty, historia, wiadomości dyrektora i załączniki są odczytywane przez serwerowy adapter z `MOW-PLAN`. Nie uruchamiaj starego IMAP ani drugiego parsera jako fallbacku.
 - Nie modyfikuj GH2, GH3, AUDYTOR-INTERNAT ani MOW — Mój Plan przy pracy nad tym repo bez jawnego polecenia.
 - Preferuj poprawki utrzymaniowe. Nową architekturę rozwijaj w `AsMOW-Next`, jeśli zadanie dotyczy następcy.
 

@@ -1,9 +1,9 @@
 const DIRECTOR_EMAIL = 'dariusz.gorski@mowmalbork.pl';
-const CURRENT_INFO_SOURCE_REVISION = 'director-canonical-v5';
+const CURRENT_INFO_SOURCE_REVISION = 'mow-moj-plan-v1';
 const CURRENT_INFO_START_DATE = '2026-01-01';
 const CURRENT_INFO_RECOVERY_DATE = '2026-09-01';
 const CURRENT_INFO_LOOKBACK_DAYS = 14;
-const CURRENT_INFO_BACKEND_URL = 'https://asmow.onrender.com';
+const CURRENT_INFO_BACKEND_URL = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) ? window.location.origin : 'https://asmow.onrender.com';
 
 function loadCurrentInfo() {
   try {
@@ -42,6 +42,8 @@ function normalizeCurrentInfoItem(item) {
     topic: String(item.topic || detectCurrentInfoTopic(title, body)).trim().slice(0, 100),
     source: String(item.source || DIRECTOR_EMAIL).trim().slice(0, 120),
     body: body.slice(0, 40_000),
+    sourceType: String(item.sourceType || ''),
+    summary: item.summary || '', categories: item.categories || [], extractedTerms: item.extractedTerms || [], actions: item.actions || [],
     mailUid: item.mailUid ? String(item.mailUid) : '',
     mailFingerprint: String(item.mailFingerprint || ''),
     forwardedBy: String(item.forwardedBy || ''),
@@ -159,7 +161,7 @@ function createCurrentInfoRow(item) {
   body.className = 'current-info-body';
   const meta = document.createElement('div');
   meta.className = 'current-info-meta';
-  meta.textContent = `Źródło: ${item.source || DIRECTOR_EMAIL}`;
+  meta.textContent = `Źródło: ${item.source || DIRECTOR_EMAIL} · ${item.sourceType === CURRENT_INFO_SOURCE_REVISION ? "MOW — Mój Plan; ostatnio pobrane dane" : "dane zapisane lokalnie przed migracją"}`;
   const text = document.createElement('div');
   text.className = 'current-info-text';
   text.textContent = item.body || '(brak treści)';
@@ -258,6 +260,7 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
 
   try {
     setCurrentInfoStatus(`Pobieram załącznik: ${attachment.name}...`);
+    if (item.sourceType !== CURRENT_INFO_SOURCE_REVISION) { setCurrentInfoStatus("Załącznik pochodzi z archiwum lokalnego. Pobierz aktualne Info z MOW — Mój Plan."); return null; }
     const response = await fetchCurrentInfoBackend('/api/current-info-attachment', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -285,7 +288,7 @@ async function fetchCurrentInfoAttachment(itemId, attachmentId, options = {}) {
       canBrowserPreview: Boolean(data.canBrowserPreview)
     };
   } catch (err) {
-    setCurrentInfoStatus(`Nie udało się pobrać załącznika: ${err.message}`);
+    setCurrentInfoStatus('Nie udało się pobrać załącznika z MOW — Mój Plan. Spróbuj ponownie później.');
     return null;
   }
 }
@@ -596,18 +599,9 @@ function getCurrentInfoBackendBases() {
 }
 
 async function fetchCurrentInfoBackend(path, options = {}) {
-  let lastNetworkError = null;
-  for (const base of getCurrentInfoBackendBases()) {
-    try {
-      return await fetch(`${base}${path}`, options);
-    } catch (error) {
-      lastNetworkError = error;
-      console.warn(`Current Info backend unavailable: ${base}`, error);
-    }
-  }
-  const error = new Error(`Nie można połączyć się z backendem AsMOW (${CURRENT_INFO_BACKEND_URL}).`);
-  error.cause = lastNetworkError;
-  throw error;
+  try {
+    return await fetch(CURRENT_INFO_BACKEND_URL + path, { ...options, signal: options.signal || AbortSignal.timeout(60000) });
+  } catch { throw new Error('Nie udało się pobrać aktualnych danych z MOW — Mój Plan.'); }
 }
 
 async function syncCurrentInfoMail(manual = true, options = {}) {
@@ -627,8 +621,8 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
         : getCurrentInfoSyncSince(settings.lastSyncAt);
     const sinceLabel = new Date(`${since}T12:00:00`).toLocaleDateString('pl-PL');
     setCurrentInfoStatus(manual
-      ? `Pobieram nowe wiadomości od ${sinceLabel}...`
-      : `Automatycznie sprawdzam pocztę od ${sinceLabel}...`);
+      ? `Pobieram indeks Info z MOW — Mój Plan...`
+      : `Odświeżam indeks Info z MOW — Mój Plan...`);
     const response = await fetchCurrentInfoBackend('/api/current-info-mail', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -648,13 +642,7 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     }
     const before = currentInfoItems.length;
     mergeCurrentInfoItems(data.items || []);
-    const scheduleIndexSupported = Object.prototype.hasOwnProperty.call(data, 'scheduleDocuments');
-    if (typeof setInternatScheduleBackendStatus === 'function') {
-      setInternatScheduleBackendStatus(scheduleIndexSupported ? 'compatible' : 'incompatible');
-    }
-    if (scheduleIndexSupported && typeof mergeInternatScheduleDocuments === 'function') {
-      mergeInternatScheduleDocuments(Array.isArray(data.scheduleDocuments) ? data.scheduleDocuments : []);
-    }
+    const scheduleIndexSupported = false;
     const added = currentInfoItems.length - before;
     saveCurrentInfoSyncSettings({ lastSyncAt: syncStartedAt, sourceRevision: CURRENT_INFO_SOURCE_REVISION });
     const newest = data.newestDate ? ` Najnowsza wiadomość: ${data.newestDate}.` : '';
@@ -666,10 +654,10 @@ async function syncCurrentInfoMail(manual = true, options = {}) {
     const ignoredSchedules = Array.isArray(data.ignoredScheduleDocuments) && data.ignoredScheduleDocuments.length
       ? ` Pominięte grafiki innych zespołów: ${data.ignoredScheduleDocuments.length}.`
       : '';
-    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z poczty: ${data.count || 0}.${newest}${schedules}${ignoredSchedules}`);
+    setCurrentInfoStatus(`Synchronizacja zakończona. Nowe wpisy: ${added}. Pobrane z MOW — Mój Plan: ${data.count || 0}.${newest}${schedules}${ignoredSchedules}`);
     return { ok: true, data, scheduleIndexSupported };
   } catch (err) {
-    setCurrentInfoStatus(`Nie udało się pobrać poczty: ${describeCurrentInfoSyncError(err)}`);
+    setCurrentInfoStatus('Nie udało się pobrać aktualnych danych z MOW — Mój Plan. Widoczne informacje to ostatnio zapisane dane lokalne.');
     return { ok: false, error: err };
   }
 }
@@ -681,6 +669,7 @@ function mergeCurrentInfoItems(items = []) {
     if (existingIndex >= 0) {
       currentInfoItems[existingIndex] = {
         ...currentInfoItems[existingIndex],
+        ...(item.sourceType === CURRENT_INFO_SOURCE_REVISION ? item : {}),
         mailFingerprint: item.mailFingerprint || currentInfoItems[existingIndex].mailFingerprint,
         forwardedBy: item.forwardedBy || currentInfoItems[existingIndex].forwardedBy,
         mailUid: item.mailUid || currentInfoItems[existingIndex].mailUid || '',

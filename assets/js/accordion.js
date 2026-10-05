@@ -21,7 +21,7 @@ const ACCORDION_TILE_META = {
   'law-phones-card': { icon: '☎️', label: 'Numery alarmowe i kontakty', tone: 'orange' },
   'current-info-form-card': { icon: '📣', label: 'Dodaj informację od dyrekcji', tone: 'gold' },
   'current-info-list-card': { icon: '🗂️', label: 'Archiwum od 2026 r.', tone: 'green' },
-  'weekly-settings-card': { icon: '🗓️', label: 'Plan z generatora Harmonogram-MOW', tone: 'blue' },
+  'weekly-settings-card': { icon: '🗓️', label: 'Plan z MOW — Mój Plan', tone: 'blue' },
   'harm-upload-card': { icon: '📁', label: 'Wczytaj harmonogram z pliku lub screena', tone: 'orange' },
   'harm-query-card': { icon: '🔎', label: 'Zapytaj o wychowawcę', tone: 'blue' },
   'harm-result-card': { icon: '📊', label: 'Wynik', tone: 'green' }

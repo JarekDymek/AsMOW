@@ -7,7 +7,7 @@ vm.runInContext(fs.readFileSync(new URL('../assets/js/weekly-plan.js', import.me
 // Merge is tested independently of display formatting.
 context.getWeeklyIdentity = week => week.dateFrom;
 context.classifyWeeklyWeeks = weeks => weeks;
-const meta = { schedulePolicyRevision: 'latest-document-per-week-v2', backendVersion: 'parser-v3' };
+const meta = { schedulePolicyRevision: 'mow-moj-plan-v1', backendVersion: 'parser-v3' };
 const week = { dateFrom: '2026-09-21', sourceVersion: 'same-document', days: [{ hoursDay: 99 }], authoritativeDocument: { id: 'doc4', sourceSentAt: '2026-09-18T12:00:00Z' } };
 const plan = weeks => ({ educator: 'Dymek', meta: { ...meta }, weeks });
 const corrected = { ...week, days: [{ hoursDay: 6 }] };

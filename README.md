@@ -2,7 +2,7 @@
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.
 
-Aktualna wersja PWA: **2.5.15**
+Aktualna wersja PWA: **2.5.17**
 
 Aktualna wersja backendu: **1.5.18**
 
@@ -18,7 +18,7 @@ Ostatni pełny audyt: **26 sierpnia 2026**
 - stopnie uspołecznienia i lokalne notatki;
 - centralna oraz lokalna baza wiedzy z kontrolą aktualności aktów ELI;
 - archiwum wiadomości dyrekcji i bezpieczne pobieranie załączników;
-- grafik internatu z własnego indeksu poczty IMAP oraz ręczne wczytywanie dokumentów; stara integracja z Harmonogram-MOW została wycofana;
+- plan tygodniowy z Harmonogram-MOW (Google Apps Script, przez proxy Render) oraz odrębne archiwum poczty IMAP i dokumentów DOCX;
 - kopia i przywracanie danych zapisanych na urządzeniu;
 - instalacja jako PWA, praca offline i kontrolowana aktualizacja app shell.
 
@@ -41,9 +41,9 @@ Parser oznacza dokument jako niejednoznaczny, gdy:
 - jednej osobie przypisano ponad 24 godziny w ciągu dnia;
 - liczba rekordów jest nietypowo duża.
 
-### Kanoniczny grafik po wycofaniu Harmonogram-MOW
+### Kanoniczny plan tygodniowy
 
-Od **5 października 2026** połączenie z repozytorium i backendem `Harmonogram-MOW` jest wycofane. `POST /api/weekly-plan` zwraca HTTP 410 i nie wykonuje żadnego połączenia do Google Apps Script. Bieżący indeks grafików korzysta z `POST /api/schedule-dashboard` oraz poczty IMAP. Ręczne wczytywanie pliku pozostaje dostępne. Docelowym źródłem integracji dla nowej linii Asystenta jest **MOW-PLAN**.
+Zakładka **Grafik** wywołuje `POST /api/weekly-plan` na Renderze, przekazując skonfigurowany adres `/exec` i token Harmonogramu MOW. Render przekazuje zapytanie do Google Apps Script i uzupełnia metadane odpowiedzi. Endpoint `POST /api/schedule-dashboard` jest odrębnym mechanizmem IMAP, a nie źródłem aktualnej zakładki Grafik.
 
 Reguła danych jest celowo rygorystyczna:
 
@@ -53,15 +53,15 @@ Reguła danych jest celowo rygorystyczna:
 4. starszy dokument nie uzupełnia, nie naprawia i nie scala się z nowszym;
 5. jeżeli najnowszy dokument jest niepełny albo nieczytelny, aplikacja pokazuje ostrzeżenie zamiast przywracać starszy grafik;
 6. błąd pobierania pozostawia zapisany widok offline;
-7. zakres historii indeksu Grafiku wynika z dokumentów odczytanych z poczty IMAP od stałej daty archiwum.
+7. zakres historii widoku Grafik wynika z odpowiedzi Harmonogramu MOW; odrębne archiwum IMAP jest skanowane od stałej daty archiwum.
 
 Odpowiedź zawiera `schedulePolicyRevision`, `scheduleRevision`, `backendVersion` i `sourceVersion` każdego tygodnia. Poprawiony odczyt tego samego dokumentu zastępuje zapisany plan, również po zmianie parsera. Starszy dokument nie nadpisuje nowszej korekty. Zmiana wersji źródłowego backendu zastępuje poprzedni zestaw tygodni, aby nie zachować dokumentów odrzuconych przez nową walidację.
 
-Parser nadal rozdziela tygodnie według dat załącznika i dokumentu, nawet gdy temat odpowiedzi wymienia poprzedni tydzień. Sprzeczne daty w treści i nazwie pliku są odrzucane. Historyczne wdrożenie Apps Script z repozytorium Harmonogram-MOW nie jest już częścią bieżącej architektury AsMOW.
+Naprawa z 25 września 2026 rozdziela tygodnie według dat załącznika i dokumentu, nawet gdy temat odpowiedzi nadal wymienia poprzedni tydzień. Sprzeczne daty w treści i nazwie pliku są odrzucane. Testy obejmują sąsiadujące tygodnie 21–27.09 i 28.09–04.10 oraz wymianę błędnego cache. Pełna naprawa źródła wymaga również osobnego wdrożenia poprawionego `apps-script/Code.gs` z repozytorium Harmonogram-MOW w istniejącym projekcie Google, a następnie synchronizacji. Nie trzeba kasować danych przeglądarki ani tokenów.
 
 ## Walidacja i bezpieczeństwo
 
-- sekrety AI i IMAP nie mogą trafić do frontendu, repozytorium ani logów;
+- sekrety AI i IMAP nie mogą trafić do frontendu, repozytorium ani logów; token Harmonogramu nie może trafić do repozytorium ani logów;
 - token poczty jest porównywany stałoczasowo z konfiguracją Render;
 - synchronizacja poczty ma ograniczenia liczby żądań, rozmiaru załączników i zakresu dat;
 - dokumenty zespołu diagnostyczno-terapeutycznego są odrzucane przez parser grafiku internatu;
@@ -282,3 +282,21 @@ Grafik w Asystencie korzysta bezpośrednio z synchronizacji IMAP zakładki Info,
 - poprzednie i przyszłe tygodnie nie blokują pierwszego wyświetlenia planu;
 - pełna historia jest odbudowywana w tle;
 - log produkcyjny zapisuje wybrany weekStart, nazwę pliku i UID, co pozwala zweryfikować rzeczywiste źródło.
+
+
+## Migracja produkcyjnego AsMOW — 2026-10-05
+
+SOURCE OF TRUTH w kodzie tej migracji:
+- Grafik: **MOW — Mój Plan**.
+- Aktywna wersja / korekty: **MOW — Mój Plan**. Asystent przyjmuje gotowy aktywny snapshot; nie wybiera korekty z lokalnej historii.
+- Info / wiadomości dyrektora / terminy i działania: **MOW — Mój Plan**.
+- Stary Harmonogram MOW: **DEPRECATED — NIE JEST UŻYWANY W RUNTIME** kodu migracji.
+- Stary mechanizm pocztowy: **DEPRECATED — NIE STARTUJE Z BACKENDEM**. Pozostawione funkcje parsera i źródła służą wyłącznie historycznym testom / rollbackowi.
+
+Wspólny adapter serwerowy: backend/mow-plan-source.js. Korzysta z read-only /api/asystent/plan i /api/asystent/info. Załącznik pobierany na wyraźne żądanie jest obsługiwany po stronie Mój Plan. Asystent nie importuje poczty ani nie parsuje grafiku.
+
+Serwer Asystenta wymaga MOW_PLAN_API_URL oraz MOW_ASYSTENT_INTEGRATION_SECRET w środowisku serwera. Ten sekret nie jest tokenem użytkownika i nie trafia do klienta. Dostęp użytkownika jest sprawdzany istniejącym CURRENT_INFO_SYNC_TOKEN / zatwierdzonym tokenem testowym. Do Asystenta nie kopiujemy sekretów Google, tokenów Google, DATABASE_URL ani TOKEN_ENCRYPTION_KEY Mój Plan.
+
+Nie ma fallbacku do starego źródła. Błąd jest wyświetlany po polsku; lokalny cache jest oznaczony jako ostatnio pobrane dane. Dawny indeks zachowuje lokalną kopię przed pierwszym zastąpieniem snapshotu.
+
+Wydanie PWA 2.5.17 / backend 1.5.19 odczytuje produkcyjne API https://mow-moj-plan.vercel.app. POST /api/schedule-dashboard udostępnia plan po sprawdzeniu istniejącego tokenu użytkownika; POST /api/weekly-plan pozostaje HTTP 410. Grafik, Info i załączniki zwracają private, no-store. Starsze fragmenty instrukcji Apps Script / IMAP opisują historię i nie są konfiguracją runtime.

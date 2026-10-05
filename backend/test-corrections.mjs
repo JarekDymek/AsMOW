@@ -70,30 +70,17 @@ const teamDocument = {
   records: [record('Dymek', 'TEAM', '00:00', '23:00')]
 };
 
-// Frontendowy indeks Asystenta: zawsze dokładnie jeden najnowszy dokument internatu.
-let active = context.buildActiveInternatSchedule([base, partialCorrection], base.weekStart);
-assert.deepEqual(Array.from(active.records, r => r.employee), ['Replacement']);
-assert.equal(active.requiresVerification, true);
-assert.deepEqual(Array.from(active.sources, s => s.id), ['partial']);
-
-active = context.buildActiveInternatSchedule([base, partialCorrection, fullCorrection], base.weekStart);
+// Runtime frontend accepts only the active, verified snapshot selected by Mój Plan.
+const ready = { ...fullCorrection, sourceType: 'mow-moj-plan-v1', active: true, verified: true };
+let active = context.buildActiveInternatSchedule([base, partialCorrection, ready, teamDocument], base.weekStart);
 assert.deepEqual(Array.from(active.records, r => r.employee).sort(), ['Dymek', 'New VII']);
 assert.deepEqual(Array.from(active.sources, s => s.id), ['full-correction']);
 assert.equal(active.requiresVerification, false);
+assert.equal(context.buildActiveInternatSchedule([base, partialCorrection], base.weekStart).records.length, 0);
+assert.equal(context.buildActiveInternatSchedule([{...ready, verified: false}], base.weekStart).records.length, 0);
+assert.equal(context.buildActiveInternatSchedule([ready, {...ready, id:'ambiguous'}], base.weekStart).records.length, 0);
 
-const frontendFullButNonBlockingWarning = {
-  ...fullCorrection,
-  ambiguous: true,
-  warning: 'Nie wszystkie dane tabeli udało się przypisać jednoznacznie.'
-};
-active = context.buildActiveInternatSchedule([base, frontendFullButNonBlockingWarning], base.weekStart);
-assert.equal(active.requiresVerification, false);
-
-active = context.buildActiveInternatSchedule([base, fullCorrection, teamDocument], base.weekStart);
-assert.deepEqual(Array.from(active.sources, s => s.id), ['full-correction']);
-assert.ok(active.records.every(r => r.group !== 'TEAM'));
-
-// Backend Render: identyczna polityka.
+// Deprecated parser: retained rollback code, never called by runtime routes.
 let mailActive = buildActiveMailSchedule([base, partialCorrection], base.weekStart);
 assert.deepEqual(mailActive.records.map(r => r.employee), ['Replacement']);
 assert.equal(mailActive.requiresVerification, true);
@@ -238,24 +225,19 @@ const bootstrapSince = getScheduleBootstrapSince();
 assert.match(bootstrapSince, /^\d{4}-\d{2}-\d{2}$/);
 
 const weeklySource = fs.readFileSync(new URL('../assets/js/weekly-plan.js', import.meta.url), 'utf8');
-const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan()');
+const fetchStart = weeklySource.indexOf('async function fetchWeeklyPlan(options = {})');
 const fetchEnd = weeklySource.indexOf('\nasync function rebuildWeeklyPlanFromMail', fetchStart);
 assert.ok(fetchStart >= 0 && fetchEnd > fetchStart);
 const fetchBody = weeklySource.slice(fetchStart, fetchEnd);
-assert.doesNotMatch(fetchBody, /\/api\/weekly-plan/);
-assert.doesNotMatch(fetchBody, /targetUrl/);
-assert.doesNotMatch(fetchBody, /settings\.token/);
-assert.match(fetchBody, /Harmonogram-MOW zostało wycofane/);
-
-assert.match(serverSource, /url\.pathname === '\/api\/weekly-plan'/);
-assert.match(serverSource, /HARMONOGRAM_MOW_RETIRED/);
-assert.match(serverSource, /return json\(res, 410/);
-assert.doesNotMatch(serverSource, /TEST_WEEKLY_BACKEND_URL/);
-assert.doesNotMatch(serverSource, /TEST_WEEKLY_VIEW_TOKEN/);
+assert.match(fetchBody, /\/api\/schedule-dashboard/);
+assert.doesNotMatch(fetchBody, /targetUrl|script\.google\.com/);
+assert.match(fetchBody, /getCurrentInfoSyncSettings/);
+assert.doesNotMatch(fetchBody, /fetchMailScheduleDashboard/);
+assert.doesNotMatch(fetchBody, /syncCurrentInfoMail/);
 
 const setStart = weeklySource.indexOf('function setWeeklyPlanFromPayload');
 const setEnd = weeklySource.indexOf('\nfunction ', setStart + 20);
 const setBody = weeklySource.slice(setStart, setEnd);
 assert.doesNotMatch(setBody, /mergeWeeklyPlans\(weeklyPlan/);
 
-console.log('OK: korekty są deterministyczne, a integracja Harmonogram-MOW jest wycofana bez naruszania indeksu IMAP.');
+console.log('OK: korekty są deterministyczne, a AsMOW respektuje aktywny snapshot MOW — Mój Plan.');

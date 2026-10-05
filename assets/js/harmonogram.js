@@ -4,24 +4,14 @@
 let internatScheduleReindexPromise = null;
 
 function mergeInternatScheduleDocuments(documents = []) {
-  const index = loadInternatScheduleIndex();
-  let changed = 0;
-
-  documents.map(normalizeInternatScheduleDocument).filter(Boolean).forEach(documentItem => {
-    const existingIndex = index.findIndex(item => item.id === documentItem.id || (item.sourceMailUid === documentItem.sourceMailUid && item.sourceAttachmentId === documentItem.sourceAttachmentId));
-    if (existingIndex >= 0) index[existingIndex] = documentItem;
-    else index.push(documentItem);
-    changed += 1;
-  });
-
-  try {
-    localStorage.setItem(INTERNAT_SCHEDULE_INDEX_KEY, JSON.stringify(index));
-  } catch {
-    setCurrentInfoStatus('Poczta została pobrana, ale na urządzeniu zabrakło miejsca na lokalny indeks grafików.');
-  }
-  refreshInternatScheduleWeekOptions(index);
+  const ready = documents.map(normalizeInternatScheduleDocument).filter(d => d && d.sourceType === 'mow-moj-plan-v1' && d.active && d.verified);
+  // Keep the former index as a local archive before replacing the active snapshot.
+  const old = localStorage.getItem(INTERNAT_SCHEDULE_INDEX_KEY);
+  if (old && !localStorage.getItem(INTERNAT_SCHEDULE_INDEX_KEY + '-before-mow-plan')) localStorage.setItem(INTERNAT_SCHEDULE_INDEX_KEY + '-before-mow-plan', old);
+  localStorage.setItem(INTERNAT_SCHEDULE_INDEX_KEY, JSON.stringify(ready));
+  refreshInternatScheduleWeekOptions(ready);
   refreshInternatScheduleStatus();
-  return changed;
+  return ready.length;
 }
 
 function loadInternatScheduleIndex() {
@@ -48,6 +38,7 @@ function normalizeInternatScheduleDocument(item) {
     const to = String(record?.to || '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !employee || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) return null;
     return {
+      ...record,
       date,
       sourceDay: String(record.sourceDay || record.date),
       employee: employee.slice(0, 120),
@@ -66,6 +57,7 @@ function normalizeInternatScheduleDocument(item) {
 
   return {
     id,
+    sourceType: item.sourceType || "", active: item.active === true, verified: item.verified === true,
     weekStart,
     sourceMailUid,
     sourceTitle: String(item.sourceTitle || '').slice(0, 180),
@@ -135,7 +127,7 @@ async function queryInternatSchedule() {
 
   answer.records.forEach(record => {
     const line = document.createElement('div');
-    line.textContent = `${formatInternatScheduleDate(record.date)} — ${record.from}–${record.to}${record.group ? ` — ${formatInternatScheduleGroup(record.group)}` : ''}`;
+    line.textContent = `${formatInternatScheduleDate(record.date)} — ${record.from}–${record.to}${record.group ? ` — ${formatInternatScheduleGroup(record.group)}` : ''}${record.night ? " — nocka" : ""}${record.substitution ? " — zastępstwo" : ""}${record.replacedEmployee ? " za " + record.replacedEmployee : ""}${record.endDate && record.endDate !== record.date ? " (do " + record.endDate + ")" : ""}`;
     result.appendChild(line);
   });
   if (answer.requiresVerification) {
@@ -206,10 +198,9 @@ function buildActiveInternatSchedule(index, week = new Date()) {
     .map(normalizeInternatScheduleDocument)
     .filter(item => item
       && item.weekStart === weekStart
-      && item.scheduleKind !== 'team')
-    .sort(compareInternatScheduleDocuments);
+      && item.sourceType === 'mow-moj-plan-v1' && item.active && item.verified);
 
-  const authoritative = documents[0] || null;
+  const authoritative = documents.length === 1 ? documents[0] : null;
   if (!authoritative) {
     return {
       weekStart,
@@ -395,56 +386,10 @@ function setInternatScheduleBackendStatus(status) {
 }
 
 async function ensureInternatScheduleIndex() {
-  const now = new Date();
-  const weekStart = getInternatWeekStart(now);
-  const index = loadInternatScheduleIndex();
-  if (hasInternatScheduleCurrentWeek(index, now)) {
-    refreshInternatScheduleStatus(now);
-    return false;
-  }
-
   if (internatScheduleReindexPromise) return internatScheduleReindexPromise;
-  const marker = `${weekStart}:index-v7`;
-  try {
-    if (localStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker
-      || sessionStorage.getItem(INTERNAT_SCHEDULE_REINDEX_KEY) === marker) {
-      refreshInternatScheduleStatus(now);
-      return false;
-    }
-  } catch {
-    // Ochrona sesyjna jest opcjonalna; blokada w pamięci nadal zapobiega pętli.
-  }
-
-  const settings = getCurrentInfoSyncSettings();
-  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
-  if (!settings.token && !testAccessToken) {
-    setInternatScheduleStatus('Indeks grafiku jest pusty — zapisz token poczty w zakładce INF, aby pobrać załączniki.');
-    return false;
-  }
-
-  try {
-    sessionStorage.setItem(INTERNAT_SCHEDULE_REINDEX_KEY, marker);
-  } catch {
-    // Brak sessionStorage nie blokuje jednorazowej próby w bieżącym widoku.
-  }
-  setInternatScheduleStatus('Indeks grafiku jest pusty — odbudowuję archiwum grafików od początku źródła...');
-  internatScheduleReindexPromise = (async () => {
-    const syncResult = await syncCurrentInfoMail(false, { since: getInternatScheduleReindexSince(now) });
-    if (syncResult?.ok && syncResult.scheduleIndexSupported) {
-      try {
-        localStorage.setItem(INTERNAT_SCHEDULE_REINDEX_KEY, marker);
-      } catch {
-        // Przy braku miejsca znacznik pozostanie tylko w bieżącej sesji.
-      }
-    }
-    refreshInternatScheduleStatus(now);
-    return Boolean(syncResult?.ok && syncResult.scheduleIndexSupported);
-  })();
-  try {
-    return await internatScheduleReindexPromise;
-  } finally {
-    internatScheduleReindexPromise = null;
-  }
+  internatScheduleReindexPromise = fetchWeeklyPlan({ automatic: true });
+  try { return await internatScheduleReindexPromise; }
+  finally { internatScheduleReindexPromise = null; refreshInternatScheduleStatus(); }
 }
 
 function getInternatScheduleReindexSince(now = new Date()) {
@@ -460,7 +405,7 @@ function refreshInternatScheduleStatus(now = new Date(), requestedWeek = '', exi
   if (active.documents.length) {
     const documentLabel = active.documents.length === 1 ? 'dokument' : active.documents.length < 5 ? 'dokumenty' : 'dokumentów';
     const recordLabel = active.records.length === 1 ? 'wpis' : active.records.length < 5 ? 'wpisy' : 'wpisów';
-    setInternatScheduleStatus(`Grafiki: ${active.documents.length} ${documentLabel} · ${active.records.length} ${recordLabel} · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
+    setInternatScheduleStatus(`MOW — Mój Plan (ostatnio pobrane dane): ${active.documents.length} ${documentLabel} · ${active.records.length} ${recordLabel} · tydzień ${formatInternatScheduleWeek(active.weekStart)}`);
     return;
   }
   if (backendStatus === 'incompatible') {

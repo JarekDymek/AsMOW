@@ -1,4 +1,4 @@
-const WEEKLY_SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2';
+const WEEKLY_SCHEDULE_POLICY_REVISION = 'mow-moj-plan-v1';
 /* ────────────────────────────────
    WEEKLY PLAN INTEGRATION
 ──────────────────────────────── */
@@ -6,22 +6,34 @@ let weeklyPlanRefreshPromise = null;
 let weeklyPlanRefreshAt = 0;
 
 function loadWeeklyPlanState() {
-  weeklyPlan = null;
-  weeklyPlanMeta = null;
   try {
-    localStorage.removeItem(WEEKLY_PLAN_KEY);
-    localStorage.removeItem(WEEKLY_SETTINGS_KEY);
-    localStorage.removeItem('harmonogram-mow-settings-v1');
-    localStorage.removeItem('harmonogram-mow-state-v12');
-    localStorage.removeItem('harmonogram-mow-state-v11');
-    localStorage.removeItem('harmonogram-mow-state-v10');
+    const settings = JSON.parse(localStorage.getItem(WEEKLY_SETTINGS_KEY) || '{}');
+    const backend = document.getElementById('weekly-backend-url');
+    const token = document.getElementById('weekly-token');
+    const educator = document.getElementById('weekly-educator');
+    if (backend) backend.value = ''; 
+    if (token) token.value = ''; 
+    if (educator) educator.value = settings.educator || '';
+  } catch {}
+  try {
+    const saved = JSON.parse(localStorage.getItem(WEEKLY_PLAN_KEY) || 'null');
+    if (saved && saved.weeks) {
+      weeklyPlan = saved;
+      weeklyPlanMeta = saved.meta || null;
+      if (saved.meta?.schedulePolicyRevision !== WEEKLY_SCHEDULE_POLICY_REVISION) {
+        weeklyPlanMeta = {
+          ...(saved.meta || {}),
+          legacyPolicy: true
+        };
+        weeklyPlan.meta = weeklyPlanMeta;
+      setWeeklyStatus("Dane zapisane lokalnie. Odśwież, aby sprawdzić aktualny plan MOW — Mój Plan.");
+      }
+    }
   } catch {}
 }
 
 function saveWeeklySettings() {
-  const settings = {
-    educator: document.getElementById('weekly-educator')?.value.trim() || ''
-  };
+  const settings = { educator: document.getElementById('weekly-educator')?.value.trim() || 'Dymek' };
   try { localStorage.setItem(WEEKLY_SETTINGS_KEY, JSON.stringify(settings)); } catch {}
   return settings;
 }
@@ -31,16 +43,45 @@ function setWeeklyStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function fetchWeeklyPlan() {
-  setWeeklyStatus('Automatyczne pobieranie przez Harmonogram-MOW zostało wycofane. Bieżący indeks grafików działa przez pocztę; docelowym źródłem integracji jest MOW-PLAN.');
-  return false;
+async function fetchWeeklyPlan(options = {}) {
+  const settings = saveWeeklySettings();
+  const token = getCurrentInfoSyncSettings().token || '';
+  const testAccessToken = typeof getTestAccessToken === 'function' ? getTestAccessToken() : '';
+  if (!token && !testAccessToken) { setWeeklyStatus('Zapisz token dostępu w zakładce Info, aby pobrać MOW — Mój Plan.'); return false; }
+  setWeeklyStatus('Pobieram plan z MOW — Mój Plan…');
+  try {
+    const response = await fetchCurrentInfoBackend('/api/schedule-dashboard', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({ token: testAccessToken ? '' : token, testAccessToken, educator: settings.educator })
+    });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error('source');
+    const dashboard = payload.data || payload;
+    setWeeklyPlanFromPayload(dashboard, 'Pobrano z MOW — Mój Plan');
+    if (typeof mergeInternatScheduleDocuments === 'function') mergeInternatScheduleDocuments(dashboard.scheduleDocuments || []);
+    return true;
+  } catch {
+    setWeeklyStatus('Nie udało się pobrać aktualnych danych z MOW — Mój Plan. ' + (weeklyPlan ? 'Widoczny plan to ostatnio zapisane dane lokalne.' : 'Spróbuj ponownie później.'));
+    return false;
+  }
 }
-async function rebuildWeeklyPlanFromMail() {
-  return fetchWeeklyPlan();
+async function rebuildWeeklyPlanFromMail(educator = '') {
+  const input = document.getElementById('weekly-educator');
+  if (input && educator) input.value = educator;
+  return fetchWeeklyPlan({ rescan: true });
 }
 
 async function refreshWeeklyPlanOnOpen() {
-  return false;
+  if (weeklyPlanRefreshPromise) return weeklyPlanRefreshPromise;
+  if (weeklyPlan && Date.now() - weeklyPlanRefreshAt < 60_000) return true;
+  weeklyPlanRefreshPromise = fetchWeeklyPlan({ automatic: true })
+    .then((ok) => {
+      if (ok) weeklyPlanRefreshAt = Date.now();
+      return ok;
+    })
+    .catch(() => false)
+    .finally(() => { weeklyPlanRefreshPromise = null; });
+  return weeklyPlanRefreshPromise;
 }
 async function loadSampleWeeklyPlan() {
   setWeeklyStatus('Pobieram dane przykładowe...');
@@ -120,25 +161,16 @@ function setWeeklyPlanFromPayload(payload, sourceLabel) {
     setWeeklyStatus(`Odrzucono odpowiedź Grafiku: niezgodna polityka źródła (${normalized.schedulePolicyRevision || 'brak'}).`);
     return;
   }
-  if (!normalized.weeks.length) {
-    const details = [
-      extracted.status ? `status: ${extracted.status}` : '',
-      extracted.action ? `akcja: ${extracted.action}` : '',
-      extracted.error ? `błąd: ${extracted.error}` : ''
-    ].filter(Boolean).join(', ');
-    setWeeklyStatus(`Odpowiedź nie zawiera żadnego kanonicznego tygodnia${details ? ` (${details})` : ''}. Poprzednio zapisany plan nie został zmieniony.`);
-    return;
-  }
   const incomingMeta = {
     source: sourceLabel,
-    sourceType: extracted.sourceType || 'harmonogram-mow',
+    sourceType: extracted.sourceType || 'mow-moj-plan-v1',
     backendVersion: extracted.backendVersion || '',
     schedulePolicyRevision: extracted.schedulePolicyRevision || extracted.data?.schedulePolicyRevision || '',
     scheduleRevision: extracted.scheduleRevision || extracted.data?.scheduleRevision || '',
     loadedAt: new Date().toISOString()
   };
   normalized.meta = incomingMeta;
-  weeklyPlan = mergeStableWeeklyPlan(weeklyPlan, normalized);
+  weeklyPlan = normalized;
   weeklyPlanMeta = incomingMeta;
   weeklyPlan.meta = weeklyPlanMeta;
   localStorage.setItem(WEEKLY_PLAN_KEY, JSON.stringify(weeklyPlan));
@@ -226,20 +258,20 @@ function getWeeklyGeneratorDiagnostic(payload = {}) {
   if (Array.isArray(payload.dashboardWeekStarts)) {
     return `Generator widzi ${payload.dashboardWeekStarts.length} tyg.: ${payload.dashboardWeekStarts.join(', ')}.${version}`;
   }
-  return `Archiwalny zapis zawiera plan tygodniowy.${version}`;
+  return `MOW — Mój Plan zwrócił plan tygodniowy.${version}`;
 }
 
 function normalizeWeeklyWeek(w = {}) {
   const days = Array.isArray(w.days) ? w.days : [];
   return {
     label: w.label || `Tydzień ${w.weekNumber || ''}`.trim(),
-    range: w.range || [w.dateFrom, w.dateTo].filter(Boolean).join(' - '),
+    range: w.range || [w.dateFrom || w.weekStart, w.dateTo || w.weekEnd].filter(Boolean).join(' - '),
     weekNumber: w.weekNumber || '',
     dateFrom: w.dateFrom || w.weekStart || '',
     dateTo: w.dateTo || w.weekEnd || '',
     summary: w.summary || {
       totalHours: w.totalHours ?? 0,
-      overtimeHours: w.overtimeHours ?? 0,
+      overtimeHours: w.overtimeHours ?? "—",
       weekendHours: w.weekendHours ?? 0
     },
     days,
@@ -433,7 +465,7 @@ function renderWeeklyPlan() {
   const weeks = classifyWeeklyWeeks(weeklyPlan.weeks || []).filter(shouldShowWeeklyWeek);
   el.innerHTML = weeks.slice(0, 8).map((week, index) => {
     const panelId = `weekly-week-${index}`;
-    const summary = `Godziny: ${escapeHtml(week.summary?.totalHours ?? '0')} · Nadgodziny: ${escapeHtml(week.summary?.overtimeHours ?? '0')} · Weekend: ${escapeHtml(week.summary?.weekendHours ?? '0')}`;
+    const summary = `Godziny: ${escapeHtml(week.summary?.totalHours ?? '0')} · Nadgodziny: ${escapeHtml(week.summary?.overtimeHours ?? '—')} · Weekend: ${escapeHtml(week.summary?.weekendHours ?? '0')}`;
     return `
       <div class="weekly-card">
         <button class="section-toggle weekly-toggle" type="button" data-accordion-target="${panelId}" onclick="toggleAccordion('${panelId}')">
@@ -451,10 +483,11 @@ function renderWeeklyPlan() {
           ${week.partialFromHistory ? `
             <div class="weekly-day weekly-day--notice">
               <strong>Wykryto grafik w historii generatora</strong>
-              <span class="weekly-empty">Aktywne wdrożenie Apps Script nie zwraca jeszcze szczegółów tego tygodnia. Po aktualizacji backendu pojawią się dni i dyżury.</span>
+              <span class="weekly-empty">To są dane zapisane lokalnie przed migracją. Odśwież plan z MOW — Mój Plan.</span>
               ${week.sourceFilename ? `<span class="weekly-empty">Źródło: ${escapeHtml(week.sourceFilename)}</span>` : ''}
             </div>
           ` : ''}
+          ${week.sourceFilename ? `<div class="weekly-empty">Źródło: MOW — Mój Plan · ${escapeHtml(week.sourceFilename)} · wersja ${escapeHtml(week.sourceVersion)}</div>` : ""}
           ${(week.days || []).map(day => `
             <div class="weekly-day">
               <strong>${escapeHtml(day.name || '')} ${escapeHtml(day.date || '')}</strong>
@@ -512,7 +545,7 @@ function askAIAboutWeeklyPlan() {
   setAIContextScope('harmonogram');
   nav('s-ai', document.querySelector('.nav-btn:last-child'));
   const ta = document.getElementById('chat-input');
-  ta.value = `Przeanalizuj mój plan tygodniowy pracy z Harmonogram-MOW. Podsumuj dyżury, nadgodziny, weekendy, ryzyka organizacyjne i wskaż pytania doprecyzowujące, jeśli czegoś brakuje.\n\n--- PLAN TYGODNIOWY ---\n${weeklyPlanToText().slice(0, 12000)}`;
+  ta.value = `Przeanalizuj mój plan tygodniowy pracy z MOW — Mój Plan. Podsumuj dyżury, nadgodziny, weekendy, ryzyka organizacyjne i wskaż pytania doprecyzowujące, jeśli czegoś brakuje.\n\n--- PLAN TYGODNIOWY ---\n${weeklyPlanToText().slice(0, 12000)}`;
   autoResizeTA(ta);
   saveChatDraft();
   sendChat();

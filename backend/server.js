@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createMowPlanSource } from './mow-plan-source.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +13,7 @@ import { dedupeLegalCandidates, normalizeLegalAct } from './legal-updates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
-const BACKEND_VERSION = '1.5.18';
+const BACKEND_VERSION = '1.5.19';
 const BODY_LIMIT = Number(process.env.BODY_LIMIT || 12_000_000);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*')
   .split(',')
@@ -86,6 +87,10 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    if (['/api/schedule-dashboard', '/api/current-info-mail', '/api/current-info-attachment'].includes(url.pathname)) {
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('Vary', 'Origin');
+    }
 
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, {
@@ -146,17 +151,15 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && url.pathname === '/api/weekly-plan') {
       return json(res, 410, {
-        ok: false,
-        retired: true,
-        code: 'HARMONOGRAM_MOW_RETIRED',
-        error: 'Integracja Harmonogram-MOW została wycofana. Użyj bieżącego indeksu poczty; docelową integracją jest MOW-PLAN.'
+        ok: false, retired: true, code: 'HARMONOGRAM_MOW_RETIRED',
+        error: 'Integracja Harmonogram-MOW została wycofana. Aktualny plan jest dostępny przez MOW — Mój Plan.'
       });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/schedule-dashboard') {
       if (!allowRate(req)) return json(res, 429, { error: 'Za dużo zapytań. Spróbuj ponownie za chwilę.' });
       const payload = await readJson(req);
-      const dashboard = await fetchMailScheduleDashboardCached(payload);
+      const dashboard = await fetchWeeklyPlan(payload);
       return json(res, 200, dashboard);
     }
 
@@ -219,10 +222,7 @@ const server = http.createServer(async (req, res) => {
 if (process.env.ASMOW_TEST_MODE !== '1') {
   server.listen(PORT, () => {
     console.log(`MOW AI backend ${BACKEND_VERSION} działa na porcie ${PORT}`);
-    setTimeout(async () => {
-      const ok = await probeCurrentInfoMailConnection().catch(() => false);
-      if (ok) await prewarmCanonicalScheduleCache().catch(() => {});
-    }, 750);
+    // Read-only Mój Plan adapter is called on demand; no IMAP prewarm.
   });
 }
 
@@ -520,13 +520,10 @@ function isImageMime(mimeType) {
   return /^image\/(png|jpe?g|webp|gif)$/i.test(mimeType);
 }
 
-async function fetchWeeklyPlan() {
-  const err = new Error('Integracja Harmonogram-MOW została wycofana.');
-  err.status = 410;
-  err.code = 'HARMONOGRAM_MOW_RETIRED';
-  throw err;
+async function fetchWeeklyPlan(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
+  return { ok: true, data: await createMowPlanSource().plan(payload.educator || "") };
 }
-
 
 async function fetchMailScheduleDashboardCached(payload = {}) {
   assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
@@ -1161,6 +1158,12 @@ function chooseBootstrapMessageUids(metadataCandidates = [], todayIso = getSched
 
 async function fetchCurrentInfoMail(payload = {}) {
   assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
+  return createMowPlanSource().info();
+}
+
+// Deprecated mailbox source: no runtime route calls this function.
+async function deprecatedFetchCurrentInfoMail(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
   const config = getCurrentInfoMailConfig();
   const since = normalizeCurrentInfoSince(payload.since || config.since);
   const limit = Math.min(Math.max(Number(payload.limit || 500), 1), 1200);
@@ -1361,6 +1364,12 @@ async function fetchCurrentInfoMail(payload = {}) {
 }
 
 async function fetchCurrentInfoAttachment(payload = {}) {
+  assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
+  return createMowPlanSource().attachment(String(payload.uid || ""), String(payload.attachmentId || ""), payload.preview !== false);
+}
+
+// Deprecated mailbox download: no runtime route calls this function.
+async function deprecatedFetchCurrentInfoAttachment(payload = {}) {
   assertCurrentInfoSyncToken(payload.token, payload.testAccessToken);
   const config = getCurrentInfoMailConfig();
   const uid = String(payload.uid || '').trim();
@@ -1563,7 +1572,7 @@ function assertCurrentInfoSyncToken(token, testAccessToken = '') {
   }
   const syncTokens = getConfiguredCurrentInfoSyncTokens();
   if (!syncTokens.length) {
-    const err = new Error('Synchronizacja poczty nie jest jeszcze skonfigurowana w Renderze. Dodaj CURRENT_INFO_SYNC_TOKEN albo CURRENT_INFO_SYNC_TOKENS oraz dane IMAP.');
+    const err = new Error('Dostęp do MOW — Mój Plan nie jest jeszcze skonfigurowany.');
     err.status = 400;
     err.code = 'CURRENT_INFO_SYNC_NOT_CONFIGURED';
     throw err;
@@ -2937,6 +2946,7 @@ function end(res, status) {
 }
 
 export {
+  server,
   normalizeCurrentInfoMailMessage,
   extractInternatScheduleDocuments,
   fetchCurrentInfoMail,

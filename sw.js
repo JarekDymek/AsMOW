@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'asmow-private-';
-const CACHE = `${CACHE_PREFIX}v75`;
+const CACHE = `${CACHE_PREFIX}v77`;
 const APP_SHELL = [
   './',
   './index.html',
@@ -66,7 +66,7 @@ function isOwnCache(key) {
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => cache.addAll(APP_SHELL.map(url => new Request(url, { cache: 'reload' }))))
   );
 });
 
@@ -87,7 +87,8 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  if (url.pathname === '/api/chat' || url.pathname === '/api/weekly-plan' || url.pathname === '/api/current-info-mail' || url.pathname === '/api/extract-file' || url.pathname === '/api/legal-updates' || url.pathname === '/health') {
+  // Integration DTOs and attachments are private: always use the network.
+  if (url.pathname.startsWith('/api/') || url.pathname === '/api/chat' || url.pathname === '/api/weekly-plan' || url.pathname === '/api/current-info-mail' || url.pathname === '/api/extract-file' || url.pathname === '/api/legal-updates' || url.pathname === '/health') {
     event.respondWith(fetch(req));
     return;
   }
