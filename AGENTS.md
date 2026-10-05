@@ -16,3 +16,7 @@
 ## Dane
 - Nie zapisuj prywatnych wiadomości, grafików, danych wychowanków ani sekretów w Git.
 - Zachowuj kompatybilność PWA i istniejących danych użytkownika.
+
+## Wspólna baza wiedzy MOW
+
+Kanoniczny katalog relacji międzyprojektowych, statusów i nazewnictwa znajduje się w prywatnym repozytorium `JarekDymek/MOW-HUB`. Używaj go przy zadaniach przekrojowych. Dla zmian w tej aplikacji pierwszeństwo mają aktualny kod, lokalny `AGENTS.md` i dokumentacja tego repozytorium.
