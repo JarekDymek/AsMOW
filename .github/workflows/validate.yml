@@ -35,5 +35,5 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Validate mail source, DOCX parser and canonical schedule
+      - name: Validate authenticated Mój Plan adapter and canonical schedule
         run: npm test
