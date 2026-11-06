@@ -1,3 +1,5 @@
+> Aktualny stan po audycie ECO (2026-11-06): Grafik, Info i załączniki korzystają wyłącznie z serwerowego API Mój Plan. Usunięto stary skaner IMAP, parser i ich zależności. Dawne /api/weekly-plan i /api/schedule-status zwracają 410. Aktualna konfiguracja: backend/README.md. Poniższe opisy IMAP i Apps Script są historią wydań, a nie instrukcją uruchomienia.
+
 # Asystent MOW
 
 Prywatna aplikacja PWA wspierająca pracę wychowawcy MOW nr 1 w Malborku. Łączy rozkład dnia, procedury, stopnie uspołecznienia, bazę prawa i wiedzy, bieżące komunikaty dyrekcji, grafik internatu oraz opcjonalny czat AI.

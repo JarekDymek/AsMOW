@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "test": "node test-mail-source.mjs && node test-schedule-parser.mjs && node test-corrections.mjs && node --test test-mow-plan-source.mjs"
+    "test": "node test-corrections.mjs && node --test test-mow-plan-source.mjs"
   },
   "dependencies": {
-    "imapflow": "^1.0.194",
-    "mailparser": "^3.7.2",
     "mammoth": "^1.8.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },

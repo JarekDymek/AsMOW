@@ -85,17 +85,11 @@ if (!weeklyPlan.includes('incomingWeek.sourceVersion === existingWeek.sourceVers
 if (!weeklyPlan.includes('function validateWeeklyWeek')) {
   throw new Error('Brak niezależnej walidacji danych planu z generatora.');
 }
-if (!server.includes('function validateInternatScheduleRecords')) {
-  throw new Error('Brak walidacji rekordów grafiku odczytanych z DOCX.');
+if (!server.includes('createMowPlanSource().plan') || !server.includes('createMowPlanSource().info')) {
+  throw new Error('Grafik i Info muszą korzystać z serwerowego adaptera Mój Plan.');
 }
-for (const required of [
-  "const SCHEDULE_POLICY_REVISION = 'latest-document-per-week-v2'",
-  "const SCHEDULE_ARCHIVE_SINCE = '2026-01-01'",
-  'function buildActiveMailSchedule',
-  'const authoritative = documents[0] || null',
-  "filter(item => item.scheduleKind === 'internat')"
-]) {
-  if (!server.includes(required)) throw new Error(`Brak strażnika kanonicznego grafiku: ${required}`);
+if (backendPackage.dependencies.imapflow || backendPackage.dependencies.mailparser || /new ImapFlow|deprecatedFetchCurrentInfo/.test(server)) {
+  throw new Error('Wycofany mechanizm pocztowy nie może wrócić do backendu.');
 }
 for (const required of ['/api/schedule-dashboard', 'getCurrentInfoSyncSettings', 'fetchCurrentInfoBackend', 'mow-moj-plan-v1']) {
   if (!weeklyPlan.includes(required)) throw new Error('Brak integracji MOW — Mój Plan: ' + required);
